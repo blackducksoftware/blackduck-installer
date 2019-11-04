@@ -23,6 +23,7 @@
 package com.synopsys.integration.blackduck.installer.dockerswarm.install;
 
 import com.synopsys.integration.blackduck.installer.dockerswarm.DockerCommands;
+import com.synopsys.integration.blackduck.installer.model.AlertInstallOptions;
 import com.synopsys.integration.blackduck.installer.model.CustomCertificate;
 import com.synopsys.integration.executable.Executable;
 
@@ -35,8 +36,9 @@ public class NewInstall implements InstallMethod {
     private final String stackName;
     private final CustomCertificate customCertificate;
     private final boolean useLocalOverrides;
+    private AlertInstallOptions alertInstallOptions;
 
-    public NewInstall(DockerCommands dockerCommands, String stackName, CustomCertificate customCertificate, boolean useLocalOverrides) {
+    public NewInstall(DockerCommands dockerCommands, String stackName, CustomCertificate customCertificate, boolean useLocalOverrides, boolean installAlert) {
         this.dockerCommands = dockerCommands;
         this.stackName = stackName;
         this.customCertificate = customCertificate;

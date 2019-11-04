@@ -26,21 +26,30 @@ import com.synopsys.integration.executable.Executable;
 
 import java.io.File;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 public class DockerCommands {
-    private static final String SECRET_CERT = "_WEBSERVER_CUSTOM_CERT_FILE";
-    private static final String SECRET_KEY = "_WEBSERVER_CUSTOM_KEY_FILE";
-    private static final String SECRET_ALERT_ENCRYPTION_PASSWORD = "_ALERT_ENCRYPTION_PASSWORD";
-    private static final String SECRET_ALERT_ENCRYPTION_GLOBAL_SALT = "_ALERT_ENCRYPTION_GLOBAL_SALT";
+    public static final String SECRET_CERT = "WEBSERVER_CUSTOM_CERT_FILE";
+    public static final String SECRET_KEY = "WEBSERVER_CUSTOM_KEY_FILE";
+    public static final String SECRET_ALERT_ENCRYPTION_PASSWORD = "ALERT_ENCRYPTION_PASSWORD";
+    public static final String SECRET_ALERT_ENCRYPTION_GLOBAL_SALT = "ALERT_ENCRYPTION_GLOBAL_SALT";
 
     public Executable startStack(File installDirectory, String stackName) {
-        String fullCommand = String.format("docker stack deploy -c docker-compose.yml %s", stackName);
-        return createExecutable(installDirectory, fullCommand);
+        return startStack(installDirectory, stackName, Collections.emptyList());
     }
 
-    public Executable startStackWithLocalOverrides(File installDirectory, String stackName) {
-        String fullCommand = String.format("docker stack deploy -c docker-compose.yml -c docker-compose.local-overrides.yml %s", stackName);
+    public Executable startStack(File installDirectory, String stackName, List<String> additionalFiles) {
+        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append("docker stack deploy -c docker-compose.yml");
+        for (String additionalFile : additionalFiles) {
+            stringBuilder.append(" -c ");
+            stringBuilder.append(additionalFile);
+        }
+        stringBuilder.append(" ");
+        stringBuilder.append(stackName);
+
+        String fullCommand = stringBuilder.toString();
         return createExecutable(installDirectory, fullCommand);
     }
 

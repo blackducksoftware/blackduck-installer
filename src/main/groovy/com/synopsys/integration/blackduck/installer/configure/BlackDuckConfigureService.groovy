@@ -65,7 +65,7 @@ class BlackDuckConfigureService {
                     break
                 }
             } catch (IntegrationException e) {
-                intLogger.info("Black Duck did not respond, waiting 5 seconds and trying again.")
+                intLogger.info(String.format("Black Duck did not respond, waiting 5 seconds and trying again. (%s)", e.getMessage()))
                 Thread.sleep(5000)
                 attempts++
             }

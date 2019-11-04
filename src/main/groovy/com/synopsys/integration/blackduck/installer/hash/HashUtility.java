@@ -37,6 +37,7 @@ public class HashUtility {
     private static final String HUB_WEBSERVER_ENV_PATH = "C:\\Users\\ekerwin\\Downloads\\original\\hub-2019.8.1\\docker-swarm\\hub-webserver.env";
     private static final String DOCKER_COMPOSE_LOCAL_OVERRIDES_YML_PATH = "C:\\Users\\ekerwin\\Downloads\\original\\hub-2019.8.1\\docker-swarm\\docker-compose.local-overrides.yml";
     private static final String BLACKDUCK_CONFIG_ENV_PATH = "C:\\Users\\ekerwin\\Downloads\\original\\hub-2019.8.1\\docker-swarm\\blackduck-config.env";
+    private static final String ALERT_DOCKER_COMPOSE_LOCAL_OVERRIDES_YML_PATH = "C:\\Users\\ekerwin\\Downloads\\blackduck-alert-5.0.0-deployment\\docker-swarm\\docker-compose.local-overrides.yml";
 
     public static void main(String[] args) throws Exception {
         HashUtility hashUtility = new HashUtility();
@@ -49,6 +50,9 @@ public class HashUtility {
 
         //blackduck-config.env
         hashUtility.hashFileForComputedHashesDotJava(new File(BLACKDUCK_CONFIG_ENV_PATH), "BLACKDUCK_CONFIG_ENV");
+
+        //alert docker-compose.local-overrides.yml
+        hashUtility.hashFileForComputedHashesDotJava(new File(ALERT_DOCKER_COMPOSE_LOCAL_OVERRIDES_YML_PATH), "ALERT_DOCKER_COMPOSE_LOCAL_OVERRIDES_YML");
     }
 
     public String computeHash(File fileToHash) throws BlackDuckInstallerException {

@@ -28,4 +28,7 @@ public class PreComputedHashes {
     public static final String DOCKER_COMPOSE_LOCAL_OVERRIDES_YML = "cc8ee040db78cfa3416bc1f1d5ba8e10a0377446f0cc7ff4a9e5ea8b21182359";
     public static final String BLACKDUCK_CONFIG_ENV = "65bd2a53f058b2822990f71162dfb91d3e5a0afb70f15dbcf4497f80cf55c513";
 
+    //5.0.0 hashes
+    public static final String ALERT_DOCKER_COMPOSE_LOCAL_OVERRIDES_YML = "57c73ab627cdf6e9e791390626bda0b8fe5588262f455564e7a15c8e0b1fed20";
+
 }
