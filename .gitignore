@@ -1,0 +1,17 @@
+# operating system
+.DS_Store
+
+# ide
+.settings/
+.classpath
+.project
+bin/
+*.iml
+.idea/
+out/
+
+# build tool
+.gradle/
+build/
+
+src/test/resources/test.properties
