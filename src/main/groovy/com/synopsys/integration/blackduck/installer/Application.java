@@ -25,9 +25,9 @@ package com.synopsys.integration.blackduck.installer;
 import com.synopsys.integration.blackduck.configuration.BlackDuckServerConfig;
 import com.synopsys.integration.blackduck.configuration.BlackDuckServerConfigBuilder;
 import com.synopsys.integration.blackduck.installer.configure.BlackDuckConfigureService;
-import com.synopsys.integration.blackduck.installer.dockerswarm.AlertInstaller;
-import com.synopsys.integration.blackduck.installer.dockerswarm.DockerCommands;
 import com.synopsys.integration.blackduck.installer.dockerswarm.BlackDuckInstaller;
+import com.synopsys.integration.blackduck.installer.dockerswarm.DockerCommands;
+import com.synopsys.integration.blackduck.installer.dockerswarm.OrchestrationFiles;
 import com.synopsys.integration.blackduck.installer.dockerswarm.edit.BlackDuckConfigEnvEditor;
 import com.synopsys.integration.blackduck.installer.dockerswarm.edit.HubWebServerEnvEditor;
 import com.synopsys.integration.blackduck.installer.dockerswarm.edit.LocalOverridesEditor;
@@ -36,8 +36,6 @@ import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstaller
 import com.synopsys.integration.blackduck.installer.hash.HashUtility;
 import com.synopsys.integration.blackduck.installer.model.BlackDuckConfigurationOptions;
 import com.synopsys.integration.blackduck.installer.model.CustomCertificate;
-import com.synopsys.integration.blackduck.installer.model.InstallMethod;
-import com.synopsys.integration.blackduck.installer.workflow.AlertDownloadUrlDecider;
 import com.synopsys.integration.blackduck.installer.workflow.BlackDuckDownloadUrlDecider;
 import com.synopsys.integration.blackduck.installer.workflow.InstallMethodDecider;
 import com.synopsys.integration.blackduck.service.BlackDuckService;
@@ -85,7 +83,7 @@ public class Application implements ApplicationRunner {
                 throw new BlackDuckInstallerException("The base directory (" + applicationValues.getBaseDirectory() + ") must exist or be creatable.");
             }
 
-            if (applicationValues.getBlackDuckInstallMethod() == null || applicationValues.getBlackDuckInstallMethod().equals(InstallMethod.NONE)) {
+            if (applicationValues.getBlackDuckInstallMethod() == null) {
                 throw new BlackDuckInstallerException("The Black Duck install method was not set - it must be CLEAN, NEW, or UPGRADE.");
             }
 
@@ -94,7 +92,8 @@ public class Application implements ApplicationRunner {
             Expander expander = new Expander();
             IntLogger intLogger = new Slf4jIntLogger(logger);
             HashUtility hashUtility = new HashUtility();
-            DockerCommands dockerCommands = new DockerCommands();
+            OrchestrationFiles orchestrationFiles = new OrchestrationFiles();
+            DockerCommands dockerCommands = new DockerCommands(orchestrationFiles);
             CommonZipExpander commonZipExpander = new CommonZipExpander(intLogger, expander);
             CustomCertificate customCertificate = new CustomCertificate(applicationValues.getBlackDuckInstallCustomCertPath(), applicationValues.getBlackDuckInstallCustomKeyPath());
 
@@ -118,8 +117,6 @@ public class Application implements ApplicationRunner {
             ProxyInfo proxyInfo = proxyInfoBuilder.build();
             IntHttpClient intHttpClient = new IntHttpClient(intLogger, applicationValues.getTimeoutInSeconds(), applicationValues.isAlwaysTrust(), proxyInfo);
 
-            AlertDownloadUrlDecider alertDownloadDecider = new AlertDownloadUrlDecider(applicationValues.getAlertDownloadSource(), applicationValues.getAlertVersion(), applicationValues.getAlertGithubDownloadUrlPrefix(), applicationValues.getAlertArtifactoryUrl(), applicationValues.getAlertArtifactoryRepo(), applicationValues.getAlertArtifactPath(), applicationValues.getAlertArtifact());
-
             ExecutableRunner executableRunner;
             if (applicationValues.isInstallDryRun()) {
                 executableRunner = new DryRunExecutableRunner(intLogger::info);
@@ -128,9 +125,6 @@ public class Application implements ApplicationRunner {
             }
 
             int blackDuckInstallReturnCode = installBlackDuck(baseDirectory, lineSeparator, intLogger, commonZipExpander, customCertificate, blackDuckInstallUseLocalOverrides, hashUtility, intHttpClient, executableRunner, dockerCommands);
-
-            //alert install step
-            int alertInstallReturnCode = installAlert(baseDirectory, lineSeparator, intLogger, commonZipExpander, customCertificate, false, intHttpClient, executableRunner, dockerCommands);
 
             BlackDuckConfigureService blackDuckConfigureService = null;
             BlackDuckConfigurationOptions blackDuckConfigurationOptions = new BlackDuckConfigurationOptions(applicationValues.getBlackDuckConfigureRegistrationKey(), applicationValues.isBlackDuckConfigureAcceptEula());
@@ -159,22 +153,11 @@ public class Application implements ApplicationRunner {
         HubWebServerEnvEditor hubWebServerEnvEditor = new HubWebServerEnvEditor(intLogger, hashUtility, lineSeparator, applicationValues.getBlackDuckInstallWebServerHost());
         BlackDuckConfigEnvEditor blackDuckConfigEnvEditor = new BlackDuckConfigEnvEditor(intLogger, hashUtility, lineSeparator, applicationValues.getBlackDuckInstallProxyHost(), applicationValues.getBlackDuckInstallProxyPort(), applicationValues.getBlackDuckInstallProxyScheme(), applicationValues.getBlackDuckInstallProxyUser(), applicationValues.getBlackDuckInstallCustomKbHost());
         LocalOverridesEditor localOverridesEditor = new LocalOverridesEditor(intLogger, hashUtility, lineSeparator, applicationValues.getBlackDuckStackName(), blackDuckInstallUseLocalOverrides);
-        ZipFileDownloader blackDuckDownloader = new ZipFileDownloader(intLogger, intHttpClient, commonZipExpander, blackDuckDownloadUrlDecider, baseDirectory, "blackduck", applicationValues.getBlackDuckVersion());
+        ZipFileDownloader blackDuckDownloader = new ZipFileDownloader(intLogger, intHttpClient, commonZipExpander, blackDuckDownloadUrlDecider, baseDirectory, "blackduck", applicationValues.getBlackDuckVersion(), applicationValues.isBlackDuckDownloadForce());
         com.synopsys.integration.blackduck.installer.dockerswarm.install.InstallMethod installMethodToUse = installMethodDecider.determineInstallMethod();
 
         BlackDuckInstaller blackDuckInstaller = new BlackDuckInstaller(blackDuckDownloader, blackDuckConfigEnvEditor, hubWebServerEnvEditor, localOverridesEditor, executableRunner, installMethodToUse);
         return blackDuckInstaller.performInstall();
-    }
-
-    private int installAlert(File baseDirectory, String lineSeparator, IntLogger intLogger, CommonZipExpander commonZipExpander, CustomCertificate customCertificate, boolean alertInstallUseLocalOverrides, IntHttpClient intHttpClient, ExecutableRunner executableRunner, DockerCommands dockerCommands) throws BlackDuckInstallerException {
-        AlertDownloadUrlDecider alertDownloadUrlDecider = new AlertDownloadUrlDecider(applicationValues.getAlertDownloadSource(), applicationValues.getAlertVersion(), applicationValues.getAlertGithubDownloadUrlPrefix(), applicationValues.getAlertArtifactoryUrl(), applicationValues.getAlertArtifactoryRepo(), applicationValues.getAlertArtifactPath(), applicationValues.getAlertArtifact());
-        InstallMethodDecider installMethodDecider = new InstallMethodDecider(applicationValues.getAlertInstallMethod(), dockerCommands, applicationValues.getAlertStackName(), customCertificate, alertInstallUseLocalOverrides);
-
-        ZipFileDownloader alertDownloader = new ZipFileDownloader(intLogger, intHttpClient, commonZipExpander, alertDownloadUrlDecider, baseDirectory, "alert", applicationValues.getAlertVersion());
-        com.synopsys.integration.blackduck.installer.dockerswarm.install.InstallMethod installMethodToUse = installMethodDecider.determineInstallMethod();
-
-        AlertInstaller alertInstaller = new AlertInstaller(alertDownloader, executableRunner, installMethodToUse);
-        return alertInstaller.performInstall();
     }
 
     private BlackDuckConfigureService createBlackDuckConfigureService(IntLogger intLogger, BlackDuckConfigurationOptions blackDuckConfigurationOptions) {

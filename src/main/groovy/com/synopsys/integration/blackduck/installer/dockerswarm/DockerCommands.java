@@ -27,6 +27,7 @@ import com.synopsys.integration.executable.Executable;
 import java.io.File;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
 public class DockerCommands {
     private static final String SECRET_CERT = "_WEBSERVER_CUSTOM_CERT_FILE";
@@ -34,13 +35,24 @@ public class DockerCommands {
     private static final String SECRET_ALERT_ENCRYPTION_PASSWORD = "_ALERT_ENCRYPTION_PASSWORD";
     private static final String SECRET_ALERT_ENCRYPTION_GLOBAL_SALT = "_ALERT_ENCRYPTION_GLOBAL_SALT";
 
+    private OrchestrationFiles orchestrationFiles;
+
+    public DockerCommands(OrchestrationFiles orchestrationFiles) {
+        this.orchestrationFiles = orchestrationFiles;
+    }
+
     public Executable startStack(File installDirectory, String stackName) {
         String fullCommand = String.format("docker stack deploy -c docker-compose.yml %s", stackName);
         return createExecutable(installDirectory, fullCommand);
     }
 
-    public Executable startStackWithLocalOverrides(File installDirectory, String stackName) {
-        String fullCommand = String.format("docker stack deploy -c docker-compose.yml -c docker-compose.local-overrides.yml %s", stackName);
+    public Executable startStack(File installDirectory, String stackName, Set<String> additionalOrchestrationFiles) {
+        StringBuilder stringBuilder = new StringBuilder();
+        for (String orchestrationFile : additionalOrchestrationFiles) {
+            stringBuilder.append(" -c ");
+            stringBuilder.append(orchestrationFile);
+        }
+        String fullCommand = String.format("docker stack deploy -c docker-compose.yml%s %s", stringBuilder.toString(), stackName);
         return createExecutable(installDirectory, fullCommand);
     }
 
@@ -97,8 +109,12 @@ public class DockerCommands {
         return createExecutable(fullCommand);
     }
 
+    public Set<String> determineAdditionalOrchestrationFiles(File installDirectory, String... additional) {
+
+    }
+
     private File getWorkingDirectory(File installDirectory) {
-        return new File(installDirectory, "docker-swarm");
+        return orchestrationFiles.dockerSwarmDirectory(installDirectory);
     }
 
     private Executable createExecutable(String fullCommand) {

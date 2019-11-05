@@ -28,7 +28,9 @@ import com.synopsys.integration.executable.Executable;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class NewInstall implements InstallMethod {
     private final DockerCommands dockerCommands;
@@ -56,6 +58,7 @@ public class NewInstall implements InstallMethod {
             executables.add(dockerCommands.createSecretKey(stackName, customCertificate.getCustomKeyPath()));
         }
 
+        Set<String> orchestrationFiles = new HashSet<>();
         if (useLocalOverrides) {
             executables.add(dockerCommands.startStackWithLocalOverrides(installDirectory, stackName));
         } else {

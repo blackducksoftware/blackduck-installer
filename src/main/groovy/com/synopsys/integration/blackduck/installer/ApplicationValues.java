@@ -65,6 +65,9 @@ public class ApplicationValues {
     @Value("${blackduck.download.source}")
     private DownloadSource blackDuckDownloadSource;
 
+    @Value("${blackduck.download.force}")
+    private boolean blackDuckDownloadForce;
+
     @Value("${blackduck.github.tag}")
     private String blackDuckGithubTag;
 
@@ -82,27 +85,6 @@ public class ApplicationValues {
 
     @Value("${blackduck.artifact}")
     private String blackDuckArtifact;
-
-    @Value("${alert.version}")
-    private String alertVersion;
-
-    @Value("${alert.download.source}")
-    private DownloadSource alertDownloadSource;
-
-    @Value("${alert.github.download.url.prefix}")
-    private String alertGithubDownloadUrlPrefix;
-
-    @Value("${alert.artifactory.url}")
-    private String alertArtifactoryUrl;
-
-    @Value("${alert.artifactory.repo}")
-    private String alertArtifactoryRepo;
-
-    @Value("${alert.artifact.path}")
-    private String alertArtifactPath;
-
-    @Value("${alert.artifact}")
-    private String alertArtifact;
 
     @Value("${blackduck.stack.name}")
     private String blackDuckStackName;
@@ -136,12 +118,6 @@ public class ApplicationValues {
 
     @Value("${blackduck.install.use.local.overrides}")
     private boolean blackDuckInstallUseLocalOverrides;
-
-    @Value("${alert.stack.name}")
-    private String alertStackName;
-
-    @Value("${alert.install.method}")
-    private InstallMethod alertInstallMethod;
 
     @Value("${blackduck.install.timeout.in.seconds}")
     private int blackDuckInstallTimeoutInSeconds;
@@ -209,6 +185,10 @@ public class ApplicationValues {
         return blackDuckDownloadSource;
     }
 
+    public boolean isBlackDuckDownloadForce() {
+        return blackDuckDownloadForce;
+    }
+
     public String getBlackDuckGithubTag() {
         return blackDuckGithubTag;
     }
@@ -231,34 +211,6 @@ public class ApplicationValues {
 
     public String getBlackDuckArtifact() {
         return blackDuckArtifact;
-    }
-
-    public String getAlertVersion() {
-        return alertVersion;
-    }
-
-    public DownloadSource getAlertDownloadSource() {
-        return alertDownloadSource;
-    }
-
-    public String getAlertGithubDownloadUrlPrefix() {
-        return alertGithubDownloadUrlPrefix;
-    }
-
-    public String getAlertArtifactoryUrl() {
-        return alertArtifactoryUrl;
-    }
-
-    public String getAlertArtifactoryRepo() {
-        return alertArtifactoryRepo;
-    }
-
-    public String getAlertArtifactPath() {
-        return alertArtifactPath;
-    }
-
-    public String getAlertArtifact() {
-        return alertArtifact;
     }
 
     public String getBlackDuckStackName() {
@@ -303,14 +255,6 @@ public class ApplicationValues {
 
     public boolean isBlackDuckInstallUseLocalOverrides() {
         return blackDuckInstallUseLocalOverrides;
-    }
-
-    public String getAlertStackName() {
-        return alertStackName;
-    }
-
-    public InstallMethod getAlertInstallMethod() {
-        return alertInstallMethod;
     }
 
     public int getBlackDuckInstallTimeoutInSeconds() {
