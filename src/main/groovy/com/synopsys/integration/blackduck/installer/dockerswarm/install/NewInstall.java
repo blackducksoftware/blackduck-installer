@@ -23,6 +23,7 @@
 package com.synopsys.integration.blackduck.installer.dockerswarm.install;
 
 import com.synopsys.integration.blackduck.installer.dockerswarm.DockerCommands;
+import com.synopsys.integration.blackduck.installer.dockerswarm.OrchestrationFiles;
 import com.synopsys.integration.blackduck.installer.model.CustomCertificate;
 import com.synopsys.integration.executable.Executable;
 
@@ -60,10 +61,9 @@ public class NewInstall implements InstallMethod {
 
         Set<String> orchestrationFiles = new HashSet<>();
         if (useLocalOverrides) {
-            executables.add(dockerCommands.startStackWithLocalOverrides(installDirectory, stackName));
-        } else {
-            executables.add(dockerCommands.startStack(installDirectory, stackName));
+            dockerCommands.addAdditionalOrchestrationFile(orchestrationFiles, installDirectory, OrchestrationFiles.LOCAL_OVERRIDES);
         }
+        executables.add(dockerCommands.startStack(installDirectory, stackName, orchestrationFiles));
 
         return executables;
     }

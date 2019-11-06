@@ -109,8 +109,8 @@ public class DockerCommands {
         return createExecutable(fullCommand);
     }
 
-    public Set<String> determineAdditionalOrchestrationFiles(File installDirectory, String... additional) {
-
+    public void addAdditionalOrchestrationFile(Set<String> additionalOrchestrationFiles, File installDirectory, String additionalOrchestrationFile) {
+        orchestrationFiles.addOrchestrationFile(additionalOrchestrationFiles, installDirectory, additionalOrchestrationFile);
     }
 
     private File getWorkingDirectory(File installDirectory) {

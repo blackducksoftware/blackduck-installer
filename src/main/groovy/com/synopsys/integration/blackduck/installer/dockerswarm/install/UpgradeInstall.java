@@ -23,12 +23,15 @@
 package com.synopsys.integration.blackduck.installer.dockerswarm.install;
 
 import com.synopsys.integration.blackduck.installer.dockerswarm.DockerCommands;
+import com.synopsys.integration.blackduck.installer.dockerswarm.OrchestrationFiles;
 import com.synopsys.integration.blackduck.installer.model.CustomCertificate;
 import com.synopsys.integration.executable.Executable;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class UpgradeInstall implements InstallMethod {
     private final DockerCommands dockerCommands;
@@ -54,11 +57,11 @@ public class UpgradeInstall implements InstallMethod {
         executables.add(dockerCommands.stopStack(stackName));
         executables.add(dockerCommands.restartDocker());
 
+        Set<String> orchestrationFiles = new HashSet<>();
         if (useLocalOverrides) {
-            executables.add(dockerCommands.startStackWithLocalOverrides(installDirectory, stackName));
-        } else {
-            executables.add(dockerCommands.startStack(installDirectory, stackName));
+            dockerCommands.addAdditionalOrchestrationFile(orchestrationFiles, installDirectory, OrchestrationFiles.LOCAL_OVERRIDES);
         }
+        executables.add(dockerCommands.startStack(installDirectory, stackName, orchestrationFiles));
 
         return executables;
     }
