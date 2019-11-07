@@ -26,7 +26,6 @@ import com.synopsys.integration.blackduck.installer.dockerswarm.edit.BlackDuckCo
 import com.synopsys.integration.blackduck.installer.dockerswarm.edit.ConfigFileEditor;
 import com.synopsys.integration.blackduck.installer.dockerswarm.edit.HubWebServerEnvEditor;
 import com.synopsys.integration.blackduck.installer.dockerswarm.edit.LocalOverridesEditor;
-import com.synopsys.integration.blackduck.installer.dockerswarm.install.InstallMethod;
 import com.synopsys.integration.blackduck.installer.download.ZipFileDownloader;
 import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
 import com.synopsys.integration.executable.ExecutableRunner;
@@ -37,12 +36,15 @@ public class BlackDuckInstaller extends Installer {
     private final ConfigFileEditor blackDuckConfigEnvEditor;
     private final ConfigFileEditor hubWebServerEnvEditor;
     private final ConfigFileEditor localOverridesEditor;
+    private final boolean useLocalOverrides;
 
-    public BlackDuckInstaller(ZipFileDownloader zipFileDownloader, BlackDuckConfigEnvEditor blackDuckConfigEnvEditor, HubWebServerEnvEditor hubWebServerEnvEditor, LocalOverridesEditor localOverridesEditor, ExecutableRunner executableRunner, InstallMethod installMethod) {
-        super(zipFileDownloader, executableRunner, installMethod);
+    public BlackDuckInstaller(ZipFileDownloader zipFileDownloader, ExecutableRunner executableRunner, InstallMethod installMethod, DockerStackDeploy dockerStackDeploy, BlackDuckConfigEnvEditor blackDuckConfigEnvEditor, HubWebServerEnvEditor hubWebServerEnvEditor, LocalOverridesEditor localOverridesEditor, boolean useLocalOverrides) {
+        super(zipFileDownloader, executableRunner, installMethod, dockerStackDeploy);
+
         this.blackDuckConfigEnvEditor = blackDuckConfigEnvEditor;
         this.hubWebServerEnvEditor = hubWebServerEnvEditor;
         this.localOverridesEditor = localOverridesEditor;
+        this.useLocalOverrides = useLocalOverrides;
     }
 
     @Override
@@ -50,6 +52,16 @@ public class BlackDuckInstaller extends Installer {
         blackDuckConfigEnvEditor.edit(installDirectory);
         hubWebServerEnvEditor.edit(installDirectory);
         localOverridesEditor.edit(installDirectory);
+    }
+
+    @Override
+    public void populateDockerStackDeploy(File installDirectory) {
+        File dockerSwarm = new File(installDirectory, "docker-swarm");
+        addOrchestrationFile(dockerSwarm, OrchestrationFiles.COMPOSE);
+
+        if (useLocalOverrides) {
+            addOrchestrationFile(dockerSwarm, OrchestrationFiles.LOCAL_OVERRIDES);
+        }
     }
 
 }

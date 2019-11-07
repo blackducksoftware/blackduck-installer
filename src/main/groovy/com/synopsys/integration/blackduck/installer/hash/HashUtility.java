@@ -31,7 +31,6 @@ import java.nio.file.Files;
 
 public class HashUtility {
     /*
-    This is a
     If the files to edit *do* change, this utility hopes to make it simpler to update PreComputedHashes.java.
      */
     private static final String HUB_WEBSERVER_ENV_PATH = "C:\\Users\\ekerwin\\Downloads\\original\\hub-2019.8.1\\docker-swarm\\hub-webserver.env";

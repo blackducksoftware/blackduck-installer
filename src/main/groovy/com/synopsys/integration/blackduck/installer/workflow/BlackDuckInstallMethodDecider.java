@@ -23,33 +23,31 @@
 package com.synopsys.integration.blackduck.installer.workflow;
 
 import com.synopsys.integration.blackduck.installer.dockerswarm.DockerCommands;
-import com.synopsys.integration.blackduck.installer.dockerswarm.install.CleanInstall;
-import com.synopsys.integration.blackduck.installer.dockerswarm.install.NewInstall;
-import com.synopsys.integration.blackduck.installer.dockerswarm.install.NoInstall;
-import com.synopsys.integration.blackduck.installer.dockerswarm.install.UpgradeInstall;
+import com.synopsys.integration.blackduck.installer.dockerswarm.blackduckinstall.CleanInstall;
+import com.synopsys.integration.blackduck.installer.dockerswarm.blackduckinstall.NewInstall;
+import com.synopsys.integration.blackduck.installer.dockerswarm.NoInstall;
+import com.synopsys.integration.blackduck.installer.dockerswarm.blackduckinstall.UpgradeInstall;
 import com.synopsys.integration.blackduck.installer.model.CustomCertificate;
 import com.synopsys.integration.blackduck.installer.model.InstallMethod;
 
-public class InstallMethodDecider {
+public class BlackDuckInstallMethodDecider {
     private InstallMethod installMethod;
     private DockerCommands dockerCommands;
     private String stackName;
     private CustomCertificate customCertificate;
-    private boolean useLocalOverrides;
 
-    public InstallMethodDecider(InstallMethod installMethod, DockerCommands dockerCommands, String stackName, CustomCertificate customCertificate, boolean useLocalOverrides) {
+    public BlackDuckInstallMethodDecider(InstallMethod installMethod, DockerCommands dockerCommands, String stackName, CustomCertificate customCertificate) {
         this.installMethod = installMethod;
         this.dockerCommands = dockerCommands;
         this.stackName = stackName;
         this.customCertificate = customCertificate;
-        this.useLocalOverrides = useLocalOverrides;
     }
 
-    public com.synopsys.integration.blackduck.installer.dockerswarm.install.InstallMethod determineInstallMethod() {
-        if (InstallMethod.CLEAN == installMethod) {
-            return getCleanInstall();
-        } else if (InstallMethod.NEW == installMethod) {
+    public com.synopsys.integration.blackduck.installer.dockerswarm.InstallMethod determineInstallMethod() {
+        if (InstallMethod.NEW == installMethod) {
             return getNewInstall();
+        } else if (InstallMethod.CLEAN == installMethod) {
+            return getCleanInstall();
         } else if (InstallMethod.UPGRADE == installMethod) {
             return getUpgradeInstall();
         } else {
@@ -58,15 +56,15 @@ public class InstallMethodDecider {
     }
 
     private NewInstall getNewInstall() {
-        return new NewInstall(dockerCommands, stackName, customCertificate, useLocalOverrides);
+        return new NewInstall(dockerCommands, stackName, customCertificate);
     }
 
     private CleanInstall getCleanInstall() {
-        return new CleanInstall(dockerCommands, stackName, customCertificate, useLocalOverrides, getNewInstall());
+        return new CleanInstall(dockerCommands, stackName, customCertificate, getNewInstall());
     }
 
     private UpgradeInstall getUpgradeInstall() {
-        return new UpgradeInstall(dockerCommands, stackName, customCertificate, useLocalOverrides);
+        return new UpgradeInstall(dockerCommands, stackName);
     }
 
 }

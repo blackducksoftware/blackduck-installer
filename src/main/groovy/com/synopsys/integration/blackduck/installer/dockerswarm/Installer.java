@@ -22,9 +22,9 @@
  */
 package com.synopsys.integration.blackduck.installer.dockerswarm;
 
-import com.synopsys.integration.blackduck.installer.dockerswarm.install.InstallMethod;
 import com.synopsys.integration.blackduck.installer.download.ZipFileDownloader;
 import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
+import com.synopsys.integration.blackduck.installer.model.InstallResult;
 import com.synopsys.integration.executable.Executable;
 import com.synopsys.integration.executable.ExecutableOutput;
 import com.synopsys.integration.executable.ExecutableRunner;
@@ -37,36 +37,58 @@ public abstract class Installer {
     private final ZipFileDownloader zipFileDownloader;
     private final ExecutableRunner executableRunner;
     private final InstallMethod installMethod;
+    private final DockerStackDeploy dockerStackDeploy;
 
-    public Installer(ZipFileDownloader zipFileDownloader, ExecutableRunner executableRunner, InstallMethod installMethod) {
+    public Installer(ZipFileDownloader zipFileDownloader, ExecutableRunner executableRunner, InstallMethod installMethod, DockerStackDeploy dockerStackDeploy) {
         this.zipFileDownloader = zipFileDownloader;
         this.executableRunner = executableRunner;
         this.installMethod = installMethod;
+        this.dockerStackDeploy = dockerStackDeploy;
     }
 
     public abstract void postDownloadProcessing(File installDirectory) throws BlackDuckInstallerException;
 
-    public int performInstall() throws BlackDuckInstallerException {
+    public abstract void populateDockerStackDeploy(File installDirectory);
+
+    public void addAdditionalExecutables(List<Executable> executables) {
+    }
+
+    public void addOrchestrationFile(File orchestrationDirectory, String orchestrationFile) {
+        dockerStackDeploy.addOrchestrationFile(orchestrationDirectory, orchestrationFile);
+    }
+
+    public InstallResult performInstall() throws BlackDuckInstallerException {
         if (!installMethod.shouldPerformInstall()) {
-            return 0;
+            return new InstallResult(0, new File("."));
         }
 
         File installDirectory = zipFileDownloader.download();
 
         postDownloadProcessing(installDirectory);
 
-        List<Executable> executables = installMethod.createExecutables(installDirectory);
+        List<Executable> executables = installMethod.createInitialExecutables(installDirectory);
+        addAdditionalExecutables(executables);
+
         int overallReturnCode = 0;
         for (Executable executable : executables) {
-            try {
-                ExecutableOutput executableOutput = executableRunner.execute(executable);
-                overallReturnCode += Math.abs(executableOutput.getReturnCode());
-            } catch (ExecutableRunnerException e) {
-                throw new BlackDuckInstallerException("Exception running executable: " + executable.getExecutableDescription(), e);
-            }
+            overallReturnCode += runExecutable(executable);
         }
 
-        return overallReturnCode;
+        populateDockerStackDeploy(installDirectory);
+
+        Executable dockerStackDeployExecutable = dockerStackDeploy.createDeployExecutable();
+        overallReturnCode += runExecutable(dockerStackDeployExecutable);
+
+        return new InstallResult(overallReturnCode, installDirectory);
+    }
+
+    private int runExecutable(Executable executable) throws BlackDuckInstallerException {
+        try {
+            ExecutableOutput executableOutput = executableRunner.execute(executable);
+            return Math.abs(executableOutput.getReturnCode());
+        } catch (ExecutableRunnerException e) {
+            throw new BlackDuckInstallerException("Exception running executable: " + executable.getExecutableDescription(), e);
+        }
     }
 
 }

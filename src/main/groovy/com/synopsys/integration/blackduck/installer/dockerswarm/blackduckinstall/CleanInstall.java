@@ -20,10 +20,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.synopsys.integration.blackduck.installer.dockerswarm.install;
+package com.synopsys.integration.blackduck.installer.dockerswarm.blackduckinstall;
 
 import com.synopsys.integration.blackduck.installer.dockerswarm.DockerCommands;
-import com.synopsys.integration.blackduck.installer.model.AlertInstallOptions;
+import com.synopsys.integration.blackduck.installer.dockerswarm.InstallMethod;
 import com.synopsys.integration.blackduck.installer.model.CustomCertificate;
 import com.synopsys.integration.executable.Executable;
 
@@ -31,18 +31,17 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-public class NewInstall implements InstallMethod {
+public class CleanInstall implements InstallMethod {
     private final DockerCommands dockerCommands;
     private final String stackName;
     private final CustomCertificate customCertificate;
-    private final boolean useLocalOverrides;
-    private AlertInstallOptions alertInstallOptions;
+    private final NewInstall newInstall;
 
-    public NewInstall(DockerCommands dockerCommands, String stackName, CustomCertificate customCertificate, boolean useLocalOverrides, boolean installAlert) {
+    public CleanInstall(DockerCommands dockerCommands, String stackName, CustomCertificate customCertificate, NewInstall newInstall) {
         this.dockerCommands = dockerCommands;
         this.stackName = stackName;
         this.customCertificate = customCertificate;
-        this.useLocalOverrides = useLocalOverrides;
+        this.newInstall = newInstall;
     }
 
     @Override
@@ -50,19 +49,19 @@ public class NewInstall implements InstallMethod {
         return true;
     }
 
-    public List<Executable> createExecutables(File installDirectory) {
+    public List<Executable> createInitialExecutables(File installDirectory) {
         List<Executable> executables = new ArrayList<>();
 
+        executables.add(dockerCommands.stopStack(stackName));
+        executables.add(dockerCommands.restartDocker());
+        executables.add(dockerCommands.pruneSystem());
+
         if (!customCertificate.isEmpty()) {
-            executables.add(dockerCommands.createSecretCert(stackName, customCertificate.getCustomCertPath()));
-            executables.add(dockerCommands.createSecretKey(stackName, customCertificate.getCustomKeyPath()));
+            executables.add(dockerCommands.deleteSecret(stackName, customCertificate.getCertificate()));
+            executables.add(dockerCommands.deleteSecret(stackName, customCertificate.getPrivateKey()));
         }
 
-        if (useLocalOverrides) {
-            executables.add(dockerCommands.startStackWithLocalOverrides(installDirectory, stackName));
-        } else {
-            executables.add(dockerCommands.startStack(installDirectory, stackName));
-        }
+        executables.addAll(newInstall.createInitialExecutables(installDirectory));
 
         return executables;
     }

@@ -59,14 +59,20 @@ public class ApplicationValues {
     @Value("${always.trust}")
     private boolean alwaysTrust;
 
+    @Value("${blackduck.stack.name}")
+    private String blackDuckStackName;
+
+    @Value("${blackduck.install.method}")
+    private InstallMethod blackDuckInstallMethod;
+
     @Value("${blackduck.version}")
     private String blackDuckVersion;
 
     @Value("${blackduck.download.source}")
     private DownloadSource blackDuckDownloadSource;
 
-    @Value("${blackduck.github.tag}")
-    private String blackDuckGithubTag;
+    @Value("${blackduck.download.force}")
+    private boolean blackDuckDownloadForce;
 
     @Value("${blackduck.github.download.url.prefix}")
     private String blackDuckGithubDownloadUrlPrefix;
@@ -82,33 +88,6 @@ public class ApplicationValues {
 
     @Value("${blackduck.artifact}")
     private String blackDuckArtifact;
-
-    @Value("${alert.version}")
-    private String alertVersion;
-
-    @Value("${alert.download.source}")
-    private DownloadSource alertDownloadSource;
-
-    @Value("${alert.github.download.url.prefix}")
-    private String alertGithubDownloadUrlPrefix;
-
-    @Value("${alert.artifactory.url}")
-    private String alertArtifactoryUrl;
-
-    @Value("${alert.artifactory.repo}")
-    private String alertArtifactoryRepo;
-
-    @Value("${alert.artifact.path}")
-    private String alertArtifactPath;
-
-    @Value("${alert.artifact}")
-    private String alertArtifact;
-
-    @Value("${blackduck.stack.name}")
-    private String blackDuckStackName;
-
-    @Value("${blackduck.install.method}")
-    private InstallMethod blackDuckInstallMethod;
 
     @Value("${blackduck.install.web.server.host}")
     private String blackDuckInstallWebServerHost;
@@ -137,12 +116,6 @@ public class ApplicationValues {
     @Value("${blackduck.install.use.local.overrides}")
     private boolean blackDuckInstallUseLocalOverrides;
 
-    @Value("${alert.stack.name}")
-    private String alertStackName;
-
-    @Value("${alert.install.method}")
-    private InstallMethod alertInstallMethod;
-
     @Value("${blackduck.install.timeout.in.seconds}")
     private int blackDuckInstallTimeoutInSeconds;
 
@@ -160,6 +133,42 @@ public class ApplicationValues {
 
     @Value("${blackduck.configure.accept.eula}")
     private boolean blackDuckConfigureAcceptEula;
+
+    @Value("${alert.install.method}")
+    private InstallMethod alertInstallMethod;
+
+    @Value("${alert.version}")
+    private String alertVersion;
+
+    @Value("${alert.download.source}")
+    private DownloadSource alertDownloadSource;
+
+    @Value("${alert.download.force}")
+    private boolean alertDownloadForce;
+
+    @Value("${alert.github.download.url.prefix}")
+    private String alertGithubDownloadUrlPrefix;
+
+    @Value("${alert.artifactory.url}")
+    private String alertArtifactoryUrl;
+
+    @Value("${alert.artifactory.repo}")
+    private String alertArtifactoryRepo;
+
+    @Value("${alert.artifact.path}")
+    private String alertArtifactPath;
+
+    @Value("${alert.artifact}")
+    private String alertArtifact;
+
+    @Value("${alert.install.encryption.password.path}")
+    private String alertInstallEncryptionPasswordPath;
+
+    @Value("${alert.install.encryption.global.salt.path}")
+    private String alertInstallEncryptionGlobalSaltPath;
+
+    @Value("${alert.install.use.local.overrides}")
+    private boolean alertInstallUseLocalOverrides;
 
     public String getBaseDirectory() {
         return baseDirectory;
@@ -201,6 +210,14 @@ public class ApplicationValues {
         return alwaysTrust;
     }
 
+    public String getBlackDuckStackName() {
+        return blackDuckStackName;
+    }
+
+    public InstallMethod getBlackDuckInstallMethod() {
+        return blackDuckInstallMethod;
+    }
+
     public String getBlackDuckVersion() {
         return blackDuckVersion;
     }
@@ -209,8 +226,8 @@ public class ApplicationValues {
         return blackDuckDownloadSource;
     }
 
-    public String getBlackDuckGithubTag() {
-        return blackDuckGithubTag;
+    public boolean isBlackDuckDownloadForce() {
+        return blackDuckDownloadForce;
     }
 
     public String getBlackDuckGithubDownloadUrlPrefix() {
@@ -231,42 +248,6 @@ public class ApplicationValues {
 
     public String getBlackDuckArtifact() {
         return blackDuckArtifact;
-    }
-
-    public String getAlertVersion() {
-        return alertVersion;
-    }
-
-    public DownloadSource getAlertDownloadSource() {
-        return alertDownloadSource;
-    }
-
-    public String getAlertGithubDownloadUrlPrefix() {
-        return alertGithubDownloadUrlPrefix;
-    }
-
-    public String getAlertArtifactoryUrl() {
-        return alertArtifactoryUrl;
-    }
-
-    public String getAlertArtifactoryRepo() {
-        return alertArtifactoryRepo;
-    }
-
-    public String getAlertArtifactPath() {
-        return alertArtifactPath;
-    }
-
-    public String getAlertArtifact() {
-        return alertArtifact;
-    }
-
-    public String getBlackDuckStackName() {
-        return blackDuckStackName;
-    }
-
-    public InstallMethod getBlackDuckInstallMethod() {
-        return blackDuckInstallMethod;
     }
 
     public String getBlackDuckInstallWebServerHost() {
@@ -305,14 +286,6 @@ public class ApplicationValues {
         return blackDuckInstallUseLocalOverrides;
     }
 
-    public String getAlertStackName() {
-        return alertStackName;
-    }
-
-    public InstallMethod getAlertInstallMethod() {
-        return alertInstallMethod;
-    }
-
     public int getBlackDuckInstallTimeoutInSeconds() {
         return blackDuckInstallTimeoutInSeconds;
     }
@@ -335,6 +308,54 @@ public class ApplicationValues {
 
     public boolean isBlackDuckConfigureAcceptEula() {
         return blackDuckConfigureAcceptEula;
+    }
+
+    public InstallMethod getAlertInstallMethod() {
+        return alertInstallMethod;
+    }
+
+    public String getAlertVersion() {
+        return alertVersion;
+    }
+
+    public DownloadSource getAlertDownloadSource() {
+        return alertDownloadSource;
+    }
+
+    public boolean isAlertDownloadForce() {
+        return alertDownloadForce;
+    }
+
+    public String getAlertGithubDownloadUrlPrefix() {
+        return alertGithubDownloadUrlPrefix;
+    }
+
+    public String getAlertArtifactoryUrl() {
+        return alertArtifactoryUrl;
+    }
+
+    public String getAlertArtifactoryRepo() {
+        return alertArtifactoryRepo;
+    }
+
+    public String getAlertArtifactPath() {
+        return alertArtifactPath;
+    }
+
+    public String getAlertArtifact() {
+        return alertArtifact;
+    }
+
+    public String getAlertInstallEncryptionPasswordPath() {
+        return alertInstallEncryptionPasswordPath;
+    }
+
+    public String getAlertInstallEncryptionGlobalSaltPath() {
+        return alertInstallEncryptionGlobalSaltPath;
+    }
+
+    public boolean isAlertInstallUseLocalOverrides() {
+        return alertInstallUseLocalOverrides;
     }
 
 }

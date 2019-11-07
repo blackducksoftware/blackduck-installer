@@ -20,27 +20,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.synopsys.integration.blackduck.installer.dockerswarm.install;
+package com.synopsys.integration.blackduck.installer.dockerswarm.blackduckinstall;
 
 import com.synopsys.integration.blackduck.installer.dockerswarm.DockerCommands;
+import com.synopsys.integration.blackduck.installer.dockerswarm.InstallMethod;
+import com.synopsys.integration.blackduck.installer.dockerswarm.OrchestrationFiles;
 import com.synopsys.integration.blackduck.installer.model.CustomCertificate;
 import com.synopsys.integration.executable.Executable;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class UpgradeInstall implements InstallMethod {
     private final DockerCommands dockerCommands;
     private final String stackName;
-    private final CustomCertificate customCertificate;
-    private final boolean useLocalOverrides;
 
-    public UpgradeInstall(DockerCommands dockerCommands, String stackName, CustomCertificate customCertificate, boolean useLocalOverrides) {
+    public UpgradeInstall(DockerCommands dockerCommands, String stackName) {
         this.dockerCommands = dockerCommands;
         this.stackName = stackName;
-        this.customCertificate = customCertificate;
-        this.useLocalOverrides = useLocalOverrides;
     }
 
     @Override
@@ -48,17 +48,11 @@ public class UpgradeInstall implements InstallMethod {
         return true;
     }
 
-    public List<Executable> createExecutables(File installDirectory) {
+    public List<Executable> createInitialExecutables(File installDirectory) {
         List<Executable> executables = new ArrayList<>();
 
         executables.add(dockerCommands.stopStack(stackName));
         executables.add(dockerCommands.restartDocker());
-
-        if (useLocalOverrides) {
-            executables.add(dockerCommands.startStackWithLocalOverrides(installDirectory, stackName));
-        } else {
-            executables.add(dockerCommands.startStack(installDirectory, stackName));
-        }
 
         return executables;
     }

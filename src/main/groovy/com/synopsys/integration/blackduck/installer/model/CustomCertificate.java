@@ -25,33 +25,35 @@ package com.synopsys.integration.blackduck.installer.model;
 import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
 import org.apache.commons.lang3.StringUtils;
 
-public class AlertEncryption {
-    private final DockerSecret password;
-    private final DockerSecret salt;
+import java.util.Optional;
 
-    public AlertEncryption(String passwordPath, String saltPath) throws BlackDuckInstallerException {
-        String[] values = new String[]{passwordPath, saltPath};
+public class CustomCertificate {
+    private final DockerSecret certificate;
+    private final DockerSecret privateKey;
+
+    public CustomCertificate(String customCertPath, String customKeyPath) throws BlackDuckInstallerException {
+        String[] values = new String[]{customCertPath, customKeyPath};
         if (StringUtils.isAllBlank(values)) {
-            password = null;
-            salt = null;
+            certificate = null;
+            privateKey = null;
         } else if (StringUtils.isAnyBlank(values)) {
-            throw new BlackDuckInstallerException("Either both password and salt should be set, or neither should be set.");
+            throw new BlackDuckInstallerException("Either both certificate and private key should be set, or neither should be set.");
         } else {
-            password = DockerSecret.createAlertPassword(passwordPath);
-            salt = DockerSecret.createAlertSalt(saltPath);
+            certificate = DockerSecret.createCert(customCertPath);
+            privateKey = DockerSecret.createKey(customKeyPath);
         }
     }
 
     public boolean isEmpty() {
-        return null == password;
+        return null == certificate;
     }
 
-    public DockerSecret getPassword() {
-        return password;
+    public DockerSecret getCertificate() {
+        return certificate;
     }
 
-    public DockerSecret getSalt() {
-        return salt;
+    public DockerSecret getPrivateKey() {
+        return privateKey;
     }
 
 }

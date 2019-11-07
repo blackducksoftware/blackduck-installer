@@ -20,9 +20,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.synopsys.integration.blackduck.installer.dockerswarm.install;
+package com.synopsys.integration.blackduck.installer.dockerswarm.blackduckinstall;
 
 import com.synopsys.integration.blackduck.installer.dockerswarm.DockerCommands;
+import com.synopsys.integration.blackduck.installer.dockerswarm.InstallMethod;
 import com.synopsys.integration.blackduck.installer.model.CustomCertificate;
 import com.synopsys.integration.executable.Executable;
 
@@ -30,19 +31,15 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-public class CleanInstall implements InstallMethod {
+public class NewInstall implements InstallMethod {
     private final DockerCommands dockerCommands;
     private final String stackName;
     private final CustomCertificate customCertificate;
-    private final boolean useLocalOverrides;
-    private final NewInstall newInstall;
 
-    public CleanInstall(DockerCommands dockerCommands, String stackName, CustomCertificate customCertificate, boolean useLocalOverrides, NewInstall newInstall) {
+    public NewInstall(DockerCommands dockerCommands, String stackName, CustomCertificate customCertificate) {
         this.dockerCommands = dockerCommands;
         this.stackName = stackName;
         this.customCertificate = customCertificate;
-        this.useLocalOverrides = useLocalOverrides;
-        this.newInstall = newInstall;
     }
 
     @Override
@@ -50,19 +47,13 @@ public class CleanInstall implements InstallMethod {
         return true;
     }
 
-    public List<Executable> createExecutables(File installDirectory) {
+    public List<Executable> createInitialExecutables(File installDirectory) {
         List<Executable> executables = new ArrayList<>();
 
-        executables.add(dockerCommands.stopStack(stackName));
-        executables.add(dockerCommands.restartDocker());
-        executables.add(dockerCommands.pruneSystem());
-
         if (!customCertificate.isEmpty()) {
-            executables.add(dockerCommands.deleteSecretCert(stackName));
-            executables.add(dockerCommands.deleteSecretKey(stackName));
+            executables.add(dockerCommands.createSecret(stackName, customCertificate.getCertificate()));
+            executables.add(dockerCommands.createSecret(stackName, customCertificate.getPrivateKey()));
         }
-
-        executables.addAll(newInstall.createExecutables(installDirectory));
 
         return executables;
     }

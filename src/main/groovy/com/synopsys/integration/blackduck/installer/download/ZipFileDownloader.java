@@ -44,8 +44,9 @@ public class ZipFileDownloader {
     private final File baseDirectory;
     private final String name;
     private final String version;
+    private final boolean forceDownload;
 
-    public ZipFileDownloader(IntLogger logger, IntHttpClient intHttpClient, CommonZipExpander commonZipExpander, DownloadUrlDecider downloadUrlDecider, File baseDirectory, String name, String version) {
+    public ZipFileDownloader(IntLogger logger, IntHttpClient intHttpClient, CommonZipExpander commonZipExpander, DownloadUrlDecider downloadUrlDecider, File baseDirectory, String name, String version, boolean forceDownload) {
         this.logger = logger;
         this.intHttpClient = intHttpClient;
         this.commonZipExpander = commonZipExpander;
@@ -53,11 +54,20 @@ public class ZipFileDownloader {
         this.baseDirectory = baseDirectory;
         this.name = name;
         this.version = version;
+        this.forceDownload = forceDownload;
     }
 
     public File download() throws BlackDuckInstallerException {
         File downloadDirectory = new File(baseDirectory, name + "-" + version);
         downloadDirectory.mkdirs();
+        if (downloadDirectory.listFiles().length != 0) {
+            if (!forceDownload) {
+                logger.info(String.format("%s %s has already been downloaded - it won't be downloaded or edited again. To force downloading/editing, please use the appropriate download.force property.", name, version));
+                return downloadDirectory.listFiles()[0];
+            } else {
+                logger.info(String.format("%s %s has already been downloaded, but downloading/editing has been forced, so local changes could be lost.", name, version));
+            }
+        }
 
         String downloadUrl = downloadUrlDecider.determineDownloadUrl().orElseThrow(() -> new BlackDuckInstallerException("No download url could be determined - not enough information provided to use github or artifactory."));
 

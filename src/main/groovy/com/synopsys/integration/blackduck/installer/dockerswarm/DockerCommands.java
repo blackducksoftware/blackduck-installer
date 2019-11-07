@@ -22,37 +22,16 @@
  */
 package com.synopsys.integration.blackduck.installer.dockerswarm;
 
+import com.synopsys.integration.blackduck.installer.model.DockerSecret;
 import com.synopsys.integration.executable.Executable;
 
 import java.io.File;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 public class DockerCommands {
-    public static final String SECRET_CERT = "WEBSERVER_CUSTOM_CERT_FILE";
-    public static final String SECRET_KEY = "WEBSERVER_CUSTOM_KEY_FILE";
-    public static final String SECRET_ALERT_ENCRYPTION_PASSWORD = "ALERT_ENCRYPTION_PASSWORD";
-    public static final String SECRET_ALERT_ENCRYPTION_GLOBAL_SALT = "ALERT_ENCRYPTION_GLOBAL_SALT";
-
-    public Executable startStack(File installDirectory, String stackName) {
-        return startStack(installDirectory, stackName, Collections.emptyList());
-    }
-
-    public Executable startStack(File installDirectory, String stackName, List<String> additionalFiles) {
-        StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.append("docker stack deploy -c docker-compose.yml");
-        for (String additionalFile : additionalFiles) {
-            stringBuilder.append(" -c ");
-            stringBuilder.append(additionalFile);
-        }
-        stringBuilder.append(" ");
-        stringBuilder.append(stackName);
-
-        String fullCommand = stringBuilder.toString();
-        return createExecutable(installDirectory, fullCommand);
-    }
-
     public Executable stopStack(String stackName) {
         String fullCommand = String.format("docker stack rm %s", stackName);
         return createExecutable(fullCommand);
@@ -66,58 +45,23 @@ public class DockerCommands {
         return createExecutable("docker system prune --all --volumes --force");
     }
 
-    public Executable createSecretCert(String stackName, String certPath) {
-        String fullCommand = String.format("docker secret create %s%s %s", stackName, SECRET_CERT, certPath);
+    public Executable createSecret(String stackName, DockerSecret dockerSecret) {
+        String fullCommand = String.format("docker secret create %s_%s %s", stackName, dockerSecret.getLabel(), dockerSecret.getPath());
         return createExecutable(fullCommand);
     }
 
-    public Executable createSecretKey(String stackName, String keyPath) {
-        String fullCommand = String.format("docker secret create %s%s %s", stackName, SECRET_KEY, keyPath);
-        return createExecutable(fullCommand);
+    public Executable deleteSecret(String stackName, DockerSecret dockerSecret) {
+        return deleteSecret(stackName, dockerSecret.getLabel());
     }
 
-    public Executable createSecretAlertPassword(String stackName, String passwordPath) {
-        String fullCommand = String.format("docker secret create %s%s %s", stackName, SECRET_ALERT_ENCRYPTION_PASSWORD, passwordPath);
+    public Executable deleteSecret(String stackName, String secretLabel) {
+        String fullCommand = String.format("docker secret rm %s_%s", stackName, secretLabel);
         return createExecutable(fullCommand);
-    }
-
-    public Executable createSecretAlertSalt(String stackName, String saltPath) {
-        String fullCommand = String.format("docker secret create %s%s %s", stackName, SECRET_KEY, saltPath);
-        return createExecutable(fullCommand);
-    }
-
-    public Executable deleteSecretCert(String stackName) {
-        String fullCommand = String.format("docker secret rm %s%s", stackName, SECRET_CERT);
-        return createExecutable(fullCommand);
-    }
-
-    public Executable deleteSecretKey(String stackName) {
-        String fullCommand = String.format("docker secret rm %s%s", stackName, SECRET_KEY);
-        return createExecutable(fullCommand);
-    }
-
-    public Executable deleteSecretAlertPassword(String stackName) {
-        String fullCommand = String.format("docker secret rm %s%s", stackName, SECRET_ALERT_ENCRYPTION_PASSWORD);
-        return createExecutable(fullCommand);
-    }
-
-    public Executable deleteSecretAlertSalt(String stackName) {
-        String fullCommand = String.format("docker secret rm %s%s", stackName, SECRET_ALERT_ENCRYPTION_GLOBAL_SALT);
-        return createExecutable(fullCommand);
-    }
-
-    private File getWorkingDirectory(File installDirectory) {
-        return new File(installDirectory, "docker-swarm");
     }
 
     private Executable createExecutable(String fullCommand) {
         List<String> commandPieces = Arrays.asList(fullCommand.split(" "));
         return Executable.create(new File("."), commandPieces);
-    }
-
-    private Executable createExecutable(File installDirectory, String fullCommand) {
-        List<String> commandPieces = Arrays.asList(fullCommand.split(" "));
-        return Executable.create(getWorkingDirectory(installDirectory), commandPieces);
     }
 
 }

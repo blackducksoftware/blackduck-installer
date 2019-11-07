@@ -1,4 +1,4 @@
-/*
+/**
  * blackduck-installer
  *
  * Copyright (c) 2019 Synopsys, Inc.
@@ -20,27 +20,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.synopsys.integration.blackduck.installer.model
+package com.synopsys.integration.blackduck.installer.dockerswarm.edit;
 
-import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException
-import org.apache.commons.lang3.StringUtils
+public class HubWebServerEnvTokens {
+    private final String webServerHost;
+    private final boolean useAlert;
 
-class CustomCertificate {
-    String customCertPath
-    String customKeyPath
-
-    CustomCertificate(String customCertPath, String customKeyPath) {
-        this.customCertPath = customCertPath
-        this.customKeyPath = customKeyPath
-
-        String[] values = [customCertPath, customKeyPath]
-        if (StringUtils.isAnyBlank(values) && !StringUtils.isAllBlank(values)) {
-            throw new BlackDuckInstallerException("For blackduck.install.custom.cert.path and blackduck.install.custom.key.path, either both should be set, or neither should be set.")
-        }
+    public HubWebServerEnvTokens(String webServerHost) {
+        this.webServerHost = webServerHost;
+        this.useAlert = false;
     }
 
-    boolean isEmpty() {
-        StringUtils.isAllBlank(customCertPath, customKeyPath)
+    public HubWebServerEnvTokens(String webServerHost, boolean useAlert) {
+        this.webServerHost = webServerHost;
+        this.useAlert = useAlert;
+    }
+
+    public String getWebServerHost() {
+        return webServerHost;
+    }
+
+    public boolean isUseAlert() {
+        return useAlert;
     }
 
 }

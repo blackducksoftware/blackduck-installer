@@ -20,10 +20,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.synopsys.integration.blackduck.installer.dockerswarm.install;
+package com.synopsys.integration.blackduck.installer.dockerswarm;
 
 import com.synopsys.integration.executable.Executable;
-import com.synopsys.integration.executable.ExecutableRunnerException;
 
 import java.io.File;
 import java.util.List;
@@ -31,6 +30,6 @@ import java.util.List;
 public interface InstallMethod {
     boolean shouldPerformInstall();
 
-    List<Executable> createExecutables(File installDirectory);
+    List<Executable> createInitialExecutables(File installDirectory);
 
 }

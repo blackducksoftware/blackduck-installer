@@ -20,25 +20,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.synopsys.integration.blackduck.installer.dockerswarm.install;
-
-import com.synopsys.integration.executable.Executable;
+package com.synopsys.integration.blackduck.installer.model;
 
 import java.io.File;
-import java.util.Collections;
-import java.util.List;
 
-public class NoInstall implements InstallMethod {
-    public NoInstall() {
+public class InstallResult {
+    private int returnCode;
+    private File installDirectory;
+
+    public InstallResult(int returnCode, File installDirectory) {
+        this.returnCode = returnCode;
+        this.installDirectory = installDirectory;
     }
 
-    @Override
-    public boolean shouldPerformInstall() {
-        return false;
+    public int getReturnCode() {
+        return returnCode;
     }
 
-    public List<Executable> createExecutables(File installDirectory) {
-        return Collections.emptyList();
+    public File getInstallDirectory() {
+        return installDirectory;
     }
 
 }
