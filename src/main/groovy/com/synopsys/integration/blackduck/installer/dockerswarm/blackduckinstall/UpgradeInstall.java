@@ -43,11 +43,6 @@ public class UpgradeInstall implements InstallMethod {
         this.stackName = stackName;
     }
 
-    @Override
-    public boolean shouldPerformInstall() {
-        return true;
-    }
-
     public List<Executable> createInitialExecutables(File installDirectory) {
         List<Executable> executables = new ArrayList<>();
 

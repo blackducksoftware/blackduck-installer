@@ -58,7 +58,7 @@ public abstract class Installer {
     }
 
     public InstallResult performInstall() throws BlackDuckInstallerException {
-        if (!installMethod.shouldPerformInstall()) {
+        if (NoInstall.DO_NOT_INSTALL == installMethod) {
             return new InstallResult(0, new File("."));
         }
 

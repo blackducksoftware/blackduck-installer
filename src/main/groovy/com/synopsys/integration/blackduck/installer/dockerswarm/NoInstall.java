@@ -29,12 +29,9 @@ import java.util.Collections;
 import java.util.List;
 
 public class NoInstall implements InstallMethod {
-    public NoInstall() {
-    }
+    public static final NoInstall DO_NOT_INSTALL = new NoInstall();
 
-    @Override
-    public boolean shouldPerformInstall() {
-        return false;
+    private NoInstall() {
     }
 
     public List<Executable> createInitialExecutables(File installDirectory) {

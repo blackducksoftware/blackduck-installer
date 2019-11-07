@@ -41,21 +41,8 @@ public class DockerCommands {
         return createExecutable("systemctl restart docker");
     }
 
-    public Executable pruneSystem() {
-        return createExecutable("docker system prune --all --volumes --force");
-    }
-
     public Executable createSecret(String stackName, DockerSecret dockerSecret) {
         String fullCommand = String.format("docker secret create %s_%s %s", stackName, dockerSecret.getLabel(), dockerSecret.getPath());
-        return createExecutable(fullCommand);
-    }
-
-    public Executable deleteSecret(String stackName, DockerSecret dockerSecret) {
-        return deleteSecret(stackName, dockerSecret.getLabel());
-    }
-
-    public Executable deleteSecret(String stackName, String secretLabel) {
-        String fullCommand = String.format("docker secret rm %s_%s", stackName, secretLabel);
         return createExecutable(fullCommand);
     }
 

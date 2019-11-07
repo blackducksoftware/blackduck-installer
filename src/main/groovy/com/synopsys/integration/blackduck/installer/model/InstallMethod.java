@@ -23,7 +23,6 @@
 package com.synopsys.integration.blackduck.installer.model;
 
 public enum InstallMethod {
-    CLEAN,
     NEW,
     NONE,
     UPGRADE

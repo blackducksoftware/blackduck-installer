@@ -28,8 +28,6 @@ import java.io.File;
 import java.util.List;
 
 public interface InstallMethod {
-    boolean shouldPerformInstall();
-
     List<Executable> createInitialExecutables(File installDirectory);
 
 }

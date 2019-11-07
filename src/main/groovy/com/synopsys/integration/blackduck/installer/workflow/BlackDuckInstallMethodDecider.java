@@ -23,9 +23,8 @@
 package com.synopsys.integration.blackduck.installer.workflow;
 
 import com.synopsys.integration.blackduck.installer.dockerswarm.DockerCommands;
-import com.synopsys.integration.blackduck.installer.dockerswarm.blackduckinstall.CleanInstall;
-import com.synopsys.integration.blackduck.installer.dockerswarm.blackduckinstall.NewInstall;
 import com.synopsys.integration.blackduck.installer.dockerswarm.NoInstall;
+import com.synopsys.integration.blackduck.installer.dockerswarm.blackduckinstall.NewInstall;
 import com.synopsys.integration.blackduck.installer.dockerswarm.blackduckinstall.UpgradeInstall;
 import com.synopsys.integration.blackduck.installer.model.CustomCertificate;
 import com.synopsys.integration.blackduck.installer.model.InstallMethod;
@@ -46,21 +45,15 @@ public class BlackDuckInstallMethodDecider {
     public com.synopsys.integration.blackduck.installer.dockerswarm.InstallMethod determineInstallMethod() {
         if (InstallMethod.NEW == installMethod) {
             return getNewInstall();
-        } else if (InstallMethod.CLEAN == installMethod) {
-            return getCleanInstall();
         } else if (InstallMethod.UPGRADE == installMethod) {
             return getUpgradeInstall();
         } else {
-            return new NoInstall();
+            return NoInstall.DO_NOT_INSTALL;
         }
     }
 
     private NewInstall getNewInstall() {
         return new NewInstall(dockerCommands, stackName, customCertificate);
-    }
-
-    private CleanInstall getCleanInstall() {
-        return new CleanInstall(dockerCommands, stackName, customCertificate, getNewInstall());
     }
 
     private UpgradeInstall getUpgradeInstall() {

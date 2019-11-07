@@ -45,7 +45,7 @@ public class AlertInstallMethodDecider {
         if (InstallMethod.NEW == installMethod) {
             return getNewInstall();
         } else {
-            return new NoInstall();
+            return NoInstall.DO_NOT_INSTALL;
         }
     }
 
