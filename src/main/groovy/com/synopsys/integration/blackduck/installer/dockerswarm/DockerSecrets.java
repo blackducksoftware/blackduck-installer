@@ -22,20 +22,21 @@
  */
 package com.synopsys.integration.blackduck.installer.dockerswarm;
 
-import com.synopsys.integration.executable.Executable;
+import com.synopsys.integration.blackduck.installer.model.DockerSecret;
 
-import java.io.File;
-import java.util.Collections;
-import java.util.List;
+public class DockerSecrets {
+    private String dockerSecrets;
 
-public class NoInstall implements InstallMethod {
-    public static final NoInstall DO_NOT_INSTALL = new NoInstall();
-
-    private NoInstall() {
+    public static DockerSecrets create(String dockerSecretsOutput) {
+        return new DockerSecrets(dockerSecretsOutput);
     }
 
-    public List<Executable> createInitialExecutables(File installDirectory) {
-        return Collections.emptyList();
+    private DockerSecrets(String dockerSecretsOutput) {
+        this.dockerSecrets = dockerSecretsOutput;
+    }
+
+    public boolean doesSecretExist(DockerSecret dockerSecret) {
+        return dockerSecrets.contains(dockerSecret.getLabel());
     }
 
 }

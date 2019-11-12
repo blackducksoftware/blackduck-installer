@@ -23,7 +23,7 @@
 package com.synopsys.integration.blackduck.installer;
 
 import com.synopsys.integration.blackduck.installer.download.DownloadSource;
-import com.synopsys.integration.blackduck.installer.model.InstallMethod;
+import com.synopsys.integration.blackduck.installer.model.DeployMethod;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -62,8 +62,8 @@ public class ApplicationValues {
     @Value("${blackduck.stack.name}")
     private String blackDuckStackName;
 
-    @Value("${blackduck.install.method}")
-    private InstallMethod blackDuckInstallMethod;
+    @Value("${blackduck.deploy.method}")
+    private DeployMethod blackDuckDeployMethod;
 
     @Value("${blackduck.version}")
     private String blackDuckVersion;
@@ -134,8 +134,8 @@ public class ApplicationValues {
     @Value("${blackduck.configure.accept.eula}")
     private boolean blackDuckConfigureAcceptEula;
 
-    @Value("${alert.install.method}")
-    private InstallMethod alertInstallMethod;
+    @Value("${alert.deploy.method}")
+    private DeployMethod alertDeployMethod;
 
     @Value("${alert.version}")
     private String alertVersion;
@@ -214,8 +214,8 @@ public class ApplicationValues {
         return blackDuckStackName;
     }
 
-    public InstallMethod getBlackDuckInstallMethod() {
-        return blackDuckInstallMethod;
+    public DeployMethod getBlackDuckDeployMethod() {
+        return blackDuckDeployMethod;
     }
 
     public String getBlackDuckVersion() {
@@ -310,8 +310,8 @@ public class ApplicationValues {
         return blackDuckConfigureAcceptEula;
     }
 
-    public InstallMethod getAlertInstallMethod() {
-        return alertInstallMethod;
+    public DeployMethod getAlertDeployMethod() {
+        return alertDeployMethod;
     }
 
     public String getAlertVersion() {

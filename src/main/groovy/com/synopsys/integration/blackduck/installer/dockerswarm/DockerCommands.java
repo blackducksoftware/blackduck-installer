@@ -41,6 +41,16 @@ public class DockerCommands {
         return createExecutable("systemctl restart docker");
     }
 
+    public Executable listStackNames() {
+        String fullCommand = "docker stack ls --format \"{{.Name}}\"";
+        return createExecutable(fullCommand);
+    }
+
+    public Executable listSecretNames() {
+        String fullCommand = "docker secret ls --format \"{{.Name}}\"";
+        return createExecutable(fullCommand);
+    }
+
     public Executable createSecret(String stackName, DockerSecret dockerSecret) {
         String fullCommand = String.format("docker secret create %s_%s %s", stackName, dockerSecret.getLabel(), dockerSecret.getPath());
         return createExecutable(fullCommand);

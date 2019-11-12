@@ -20,11 +20,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.synopsys.integration.blackduck.installer.model;
+package com.synopsys.integration.blackduck.installer.dockerswarm;
 
-public enum InstallMethod {
-    NEW,
-    NONE,
-    UPGRADE
+public class DockerStacks {
+    private String dockerStacks;
+
+    public static DockerStacks create(String dockerStacksOutput) {
+        return new DockerStacks(dockerStacksOutput);
+    }
+
+    private DockerStacks(String dockerStacksOutput) {
+        this.dockerStacks = dockerStacksOutput;
+    }
+
+    public boolean doesStackExist(String stackName) {
+        return dockerStacks.contains(stackName);
+    }
 
 }

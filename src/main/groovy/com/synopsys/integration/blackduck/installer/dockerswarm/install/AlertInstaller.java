@@ -20,8 +20,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.synopsys.integration.blackduck.installer.dockerswarm;
+package com.synopsys.integration.blackduck.installer.dockerswarm.install;
 
+import com.synopsys.integration.blackduck.installer.dockerswarm.DockerCommands;
+import com.synopsys.integration.blackduck.installer.dockerswarm.DockerStackDeploy;
+import com.synopsys.integration.blackduck.installer.dockerswarm.OrchestrationFiles;
+import com.synopsys.integration.blackduck.installer.dockerswarm.deploy.AlertDeployer;
 import com.synopsys.integration.blackduck.installer.dockerswarm.edit.*;
 import com.synopsys.integration.blackduck.installer.download.ZipFileDownloader;
 import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
@@ -38,8 +42,8 @@ public class AlertInstaller extends Installer {
     private final ConfigFileEditor alertLocalOverridesEditor;
     private final boolean useLocalOverrides;
 
-    public AlertInstaller(ZipFileDownloader zipFileDownloader, ExecutableRunner executableRunner, InstallMethod installMethod, DockerStackDeploy dockerStackDeploy, DockerStackDeploy deployBlackDuck, File blackDuckInstallDirectory, HubWebServerEnvEditor hubWebServerEnvEditor, AlertLocalOverridesEditor alertLocalOverridesEditor, boolean useLocalOverrides) {
-        super(zipFileDownloader, executableRunner, installMethod, dockerStackDeploy);
+    public AlertInstaller(ZipFileDownloader zipFileDownloader, ExecutableRunner executableRunner, AlertDeployer alertDeployer, DockerStackDeploy dockerStackDeploy, DockerCommands dockerCommands, DockerStackDeploy deployBlackDuck, File blackDuckInstallDirectory, HubWebServerEnvEditor hubWebServerEnvEditor, AlertLocalOverridesEditor alertLocalOverridesEditor, boolean useLocalOverrides) {
+        super(zipFileDownloader, executableRunner, alertDeployer, dockerStackDeploy, dockerCommands);
 
         this.deployBlackDuck = deployBlackDuck;
         this.blackDuckInstallDirectory = blackDuckInstallDirectory;

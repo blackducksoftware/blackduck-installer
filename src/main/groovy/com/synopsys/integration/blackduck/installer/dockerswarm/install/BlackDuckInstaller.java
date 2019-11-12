@@ -20,8 +20,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.synopsys.integration.blackduck.installer.dockerswarm;
+package com.synopsys.integration.blackduck.installer.dockerswarm.install;
 
+import com.synopsys.integration.blackduck.installer.dockerswarm.DockerCommands;
+import com.synopsys.integration.blackduck.installer.dockerswarm.DockerStackDeploy;
+import com.synopsys.integration.blackduck.installer.dockerswarm.OrchestrationFiles;
+import com.synopsys.integration.blackduck.installer.dockerswarm.deploy.BlackDuckDeployer;
 import com.synopsys.integration.blackduck.installer.dockerswarm.edit.BlackDuckConfigEnvEditor;
 import com.synopsys.integration.blackduck.installer.dockerswarm.edit.ConfigFileEditor;
 import com.synopsys.integration.blackduck.installer.dockerswarm.edit.HubWebServerEnvEditor;
@@ -38,8 +42,8 @@ public class BlackDuckInstaller extends Installer {
     private final ConfigFileEditor localOverridesEditor;
     private final boolean useLocalOverrides;
 
-    public BlackDuckInstaller(ZipFileDownloader zipFileDownloader, ExecutableRunner executableRunner, InstallMethod installMethod, DockerStackDeploy dockerStackDeploy, BlackDuckConfigEnvEditor blackDuckConfigEnvEditor, HubWebServerEnvEditor hubWebServerEnvEditor, LocalOverridesEditor localOverridesEditor, boolean useLocalOverrides) {
-        super(zipFileDownloader, executableRunner, installMethod, dockerStackDeploy);
+    public BlackDuckInstaller(ZipFileDownloader zipFileDownloader, ExecutableRunner executableRunner, BlackDuckDeployer blackDuckDeployer, DockerStackDeploy dockerStackDeploy, DockerCommands dockerCommands, BlackDuckConfigEnvEditor blackDuckConfigEnvEditor, HubWebServerEnvEditor hubWebServerEnvEditor, LocalOverridesEditor localOverridesEditor, boolean useLocalOverrides) {
+        super(zipFileDownloader, executableRunner, blackDuckDeployer, dockerStackDeploy, dockerCommands);
 
         this.blackDuckConfigEnvEditor = blackDuckConfigEnvEditor;
         this.hubWebServerEnvEditor = hubWebServerEnvEditor;

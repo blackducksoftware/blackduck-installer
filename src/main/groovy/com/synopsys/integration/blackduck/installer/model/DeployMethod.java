@@ -20,14 +20,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.synopsys.integration.blackduck.installer.dockerswarm;
+package com.synopsys.integration.blackduck.installer.model;
 
-import com.synopsys.integration.executable.Executable;
-
-import java.io.File;
-import java.util.List;
-
-public interface InstallMethod {
-    List<Executable> createInitialExecutables(File installDirectory);
+public enum DeployMethod {
+    DEPLOY,
+    NONE
 
 }

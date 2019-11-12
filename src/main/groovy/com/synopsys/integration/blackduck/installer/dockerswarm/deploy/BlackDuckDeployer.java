@@ -20,38 +20,32 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.synopsys.integration.blackduck.installer.dockerswarm.alertinstall;
+package com.synopsys.integration.blackduck.installer.dockerswarm.deploy;
 
 import com.synopsys.integration.blackduck.installer.dockerswarm.DockerCommands;
-import com.synopsys.integration.blackduck.installer.dockerswarm.InstallMethod;
-import com.synopsys.integration.blackduck.installer.model.AlertEncryption;
+import com.synopsys.integration.blackduck.installer.dockerswarm.DockerSecrets;
+import com.synopsys.integration.blackduck.installer.dockerswarm.DockerStacks;
 import com.synopsys.integration.blackduck.installer.model.CustomCertificate;
 import com.synopsys.integration.executable.Executable;
+import com.synopsys.integration.log.IntLogger;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.List;
 
-public class NewInstall implements InstallMethod {
-    private final DockerCommands dockerCommands;
-    private final String stackName;
-    private final AlertEncryption alertEncryption;
+public class BlackDuckDeployer extends Deployer {
+    private final CustomCertificate customCertificate;
 
-    public NewInstall(DockerCommands dockerCommands, String stackName, AlertEncryption alertEncryption) {
-        this.dockerCommands = dockerCommands;
-        this.stackName = stackName;
-        this.alertEncryption = alertEncryption;
+    public BlackDuckDeployer(IntLogger logger, DockerCommands dockerCommands, String stackName, CustomCertificate customCertificate) {
+        super(logger, dockerCommands, stackName);
+        this.customCertificate = customCertificate;
     }
 
-    public List<Executable> createInitialExecutables(File installDirectory) {
-        List<Executable> executables = new ArrayList<>();
+    public List<Executable> createExecutables(File installDirectory, DockerStacks dockerStacks, DockerSecrets dockerSecrets) {
+        List<Executable> executables = super.createExecutables(installDirectory, dockerStacks, dockerSecrets);
 
-        executables.add(dockerCommands.stopStack(stackName));
-        executables.add(dockerCommands.restartDocker());
-
-        if (!alertEncryption.isEmpty()) {
-            executables.add(dockerCommands.createSecret(stackName, alertEncryption.getPassword()));
-            executables.add(dockerCommands.createSecret(stackName, alertEncryption.getSalt()));
+        if (!customCertificate.isEmpty()) {
+            addSecret(executables, dockerSecrets, customCertificate.getCertificate());
+            addSecret(executables, dockerSecrets, customCertificate.getPrivateKey());
         }
 
         return executables;
