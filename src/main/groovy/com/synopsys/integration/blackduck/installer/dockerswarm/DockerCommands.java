@@ -23,6 +23,7 @@
 package com.synopsys.integration.blackduck.installer.dockerswarm;
 
 import com.synopsys.integration.blackduck.installer.model.DockerSecret;
+import com.synopsys.integration.blackduck.installer.model.DockerService;
 import com.synopsys.integration.executable.Executable;
 
 import java.io.File;
@@ -48,6 +49,16 @@ public class DockerCommands {
 
     public Executable listSecretNames() {
         String fullCommand = "docker secret ls --format \"{{.Name}}\"";
+        return createExecutable(fullCommand);
+    }
+
+    public Executable listServiceNames() {
+        String fullCommand = "docker service ls --format \"{{.Name}}\"";
+        return createExecutable(fullCommand);
+    }
+
+    public Executable removeService(DockerService dockerService) {
+        String fullCommand = String.format("docker service rm %s", dockerService.getDockerName());
         return createExecutable(fullCommand);
     }
 

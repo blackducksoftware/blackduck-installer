@@ -25,36 +25,28 @@ package com.synopsys.integration.blackduck.installer.dockerswarm.install;
 import com.synopsys.integration.blackduck.installer.dockerswarm.DockerCommands;
 import com.synopsys.integration.blackduck.installer.dockerswarm.DockerStackDeploy;
 import com.synopsys.integration.blackduck.installer.dockerswarm.OrchestrationFiles;
-import com.synopsys.integration.blackduck.installer.dockerswarm.deploy.AlertDeployer;
-import com.synopsys.integration.blackduck.installer.dockerswarm.edit.*;
+import com.synopsys.integration.blackduck.installer.dockerswarm.deploy.AlertDockerManager;
+import com.synopsys.integration.blackduck.installer.dockerswarm.edit.AlertLocalOverridesEditor;
+import com.synopsys.integration.blackduck.installer.dockerswarm.edit.ConfigFileEditor;
 import com.synopsys.integration.blackduck.installer.download.ZipFileDownloader;
 import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
-import com.synopsys.integration.executable.Executable;
-import com.synopsys.integration.executable.ExecutableRunner;
+import com.synopsys.integration.blackduck.installer.model.ExecutablesRunner;
 
 import java.io.File;
-import java.util.List;
 
 public class AlertInstaller extends Installer {
-    private final DockerStackDeploy deployBlackDuck;
-    private final File blackDuckInstallDirectory;
-    private final ConfigFileEditor hubWebServerEnvEditor;
     private final ConfigFileEditor alertLocalOverridesEditor;
     private final boolean useLocalOverrides;
 
-    public AlertInstaller(ZipFileDownloader zipFileDownloader, ExecutableRunner executableRunner, AlertDeployer alertDeployer, DockerStackDeploy dockerStackDeploy, DockerCommands dockerCommands, DockerStackDeploy deployBlackDuck, File blackDuckInstallDirectory, HubWebServerEnvEditor hubWebServerEnvEditor, AlertLocalOverridesEditor alertLocalOverridesEditor, boolean useLocalOverrides) {
-        super(zipFileDownloader, executableRunner, alertDeployer, dockerStackDeploy, dockerCommands);
+    public AlertInstaller(ZipFileDownloader zipFileDownloader, ExecutablesRunner executablesRunner, AlertDockerManager alertDockerManager, DockerStackDeploy dockerStackDeploy, DockerCommands dockerCommands, AlertLocalOverridesEditor alertLocalOverridesEditor, boolean useLocalOverrides) {
+        super(zipFileDownloader, executablesRunner, alertDockerManager, dockerStackDeploy, dockerCommands);
 
-        this.deployBlackDuck = deployBlackDuck;
-        this.blackDuckInstallDirectory = blackDuckInstallDirectory;
-        this.hubWebServerEnvEditor = hubWebServerEnvEditor;
         this.alertLocalOverridesEditor = alertLocalOverridesEditor;
         this.useLocalOverrides = useLocalOverrides;
     }
 
     @Override
     public void postDownloadProcessing(File installDirectory) throws BlackDuckInstallerException {
-        hubWebServerEnvEditor.edit(blackDuckInstallDirectory);
         alertLocalOverridesEditor.edit(installDirectory);
     }
 
@@ -67,12 +59,6 @@ public class AlertInstaller extends Installer {
         if (useLocalOverrides) {
             addOrchestrationFile(dockerSwarm, OrchestrationFiles.LOCAL_OVERRIDES);
         }
-    }
-
-    @Override
-    public void addAdditionalExecutables(List<Executable> executables) {
-        super.addAdditionalExecutables(executables);
-        executables.add(deployBlackDuck.createDeployExecutable());
     }
 
 }

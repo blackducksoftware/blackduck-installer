@@ -24,31 +24,34 @@ package com.synopsys.integration.blackduck.installer.dockerswarm.deploy;
 
 import com.synopsys.integration.blackduck.installer.dockerswarm.DockerCommands;
 import com.synopsys.integration.blackduck.installer.dockerswarm.DockerSecrets;
+import com.synopsys.integration.blackduck.installer.dockerswarm.DockerServices;
 import com.synopsys.integration.blackduck.installer.dockerswarm.DockerStacks;
-import com.synopsys.integration.blackduck.installer.model.CustomCertificate;
+import com.synopsys.integration.blackduck.installer.model.DockerSecret;
 import com.synopsys.integration.executable.Executable;
 import com.synopsys.integration.log.IntLogger;
 
 import java.io.File;
 import java.util.List;
 
-public class BlackDuckDeployer extends Deployer {
-    private final CustomCertificate customCertificate;
+public abstract class ProductDockerManager {
+    protected IntLogger logger;
+    protected final DockerCommands dockerCommands;
+    protected final String stackName;
 
-    public BlackDuckDeployer(IntLogger logger, DockerCommands dockerCommands, String stackName, CustomCertificate customCertificate) {
-        super(logger, dockerCommands, stackName);
-        this.customCertificate = customCertificate;
+    public ProductDockerManager(IntLogger logger, DockerCommands dockerCommands, String stackName) {
+        this.logger = logger;
+        this.dockerCommands = dockerCommands;
+        this.stackName = stackName;
     }
 
-    public List<Executable> createExecutables(File installDirectory, DockerStacks dockerStacks, DockerSecrets dockerSecrets) {
-        List<Executable> executables = super.createExecutables(installDirectory, dockerStacks, dockerSecrets);
+    public abstract List<Executable> createExecutables(File installDirectory, DockerStacks dockerStacks, DockerSecrets dockerSecrets, DockerServices dockerServices);
 
-        if (!customCertificate.isEmpty()) {
-            addSecret(executables, dockerSecrets, customCertificate.getCertificate());
-            addSecret(executables, dockerSecrets, customCertificate.getPrivateKey());
+    protected void addSecret(List<Executable> executables, DockerSecrets dockerSecrets, DockerSecret dockerSecret) {
+        if (!dockerSecrets.doesSecretExist(dockerSecret)) {
+            executables.add(dockerCommands.createSecret(stackName, dockerSecret));
+        } else {
+            logger.info(String.format("The secret \"%s\" already existed - it will not be changed.", dockerSecret.getLabel()));
         }
-
-        return executables;
     }
 
 }

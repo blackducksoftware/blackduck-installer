@@ -1,4 +1,4 @@
-/*
+/**
  * blackduck-installer
  *
  * Copyright (c) 2019 Synopsys, Inc.
@@ -20,25 +20,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.synopsys.integration.blackduck.installer.model
+package com.synopsys.integration.blackduck.installer.configure;
 
-import org.apache.commons.lang3.StringUtils
+import java.util.Optional;
 
-class BlackDuckConfigurationOptions {
-    String registrationKey
-    boolean acceptEula
-    boolean createApiToken
-    boolean isDryRun
+public class ConfigureResult {
+    private boolean success;
+    private String apiToken;
 
-    BlackDuckConfigurationOptions(String registrationKey, boolean acceptEula, boolean createApiToken, boolean isDryRun) {
-        this.registrationKey = registrationKey
-        this.acceptEula = acceptEula
-        this.createApiToken = createApiToken
-        this.isDryRun = isDryRun
+    public ConfigureResult(boolean success, String apiToken) {
+        this.success = success;
+        this.apiToken = apiToken;
     }
 
-    boolean shouldConfigure() {
-        return !isDryRun && (StringUtils.isNotBlank(registrationKey) || acceptEula || createApiToken)
+    public boolean isSuccess() {
+        return success;
+    }
+
+    public Optional<String> getApiToken() {
+        return Optional.ofNullable(apiToken);
     }
 
 }

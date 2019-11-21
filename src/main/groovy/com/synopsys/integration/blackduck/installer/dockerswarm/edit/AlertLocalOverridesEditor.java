@@ -25,31 +25,35 @@ package com.synopsys.integration.blackduck.installer.dockerswarm.edit;
 import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
 import com.synopsys.integration.blackduck.installer.hash.HashUtility;
 import com.synopsys.integration.blackduck.installer.hash.PreComputedHashes;
+import com.synopsys.integration.blackduck.installer.model.AlertBlackDuckInstallOptions;
 import com.synopsys.integration.blackduck.installer.model.AlertEncryption;
 import com.synopsys.integration.blackduck.installer.model.CustomCertificate;
 import com.synopsys.integration.log.IntLogger;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
 
-import static com.synopsys.integration.blackduck.installer.dockerswarm.DockerCommands.*;
-
 public class AlertLocalOverridesEditor extends ConfigFileEditor {
     private final String stackName;
     private final String webServerHost;
+    private final String alertAdminEmail;
     private final AlertEncryption alertEncryption;
     private final CustomCertificate customCertificate;
+    private final AlertBlackDuckInstallOptions alertBlackDuckInstallOptions;
     private final boolean shouldEditFile;
 
-    public AlertLocalOverridesEditor(IntLogger logger, HashUtility hashUtility, String lineSeparator, String stackName, String webServerHost, AlertEncryption alertEncryption, CustomCertificate customCertificate, boolean useLocalOverrides) {
+    public AlertLocalOverridesEditor(IntLogger logger, HashUtility hashUtility, String lineSeparator, String stackName, String webServerHost, String alertAdminEmail, AlertEncryption alertEncryption, CustomCertificate customCertificate, AlertBlackDuckInstallOptions alertBlackDuckInstallOptions, boolean useLocalOverrides) {
         super(logger, hashUtility, lineSeparator);
 
         this.stackName = stackName;
         this.webServerHost = webServerHost;
+        this.alertAdminEmail = alertAdminEmail;
         this.alertEncryption = alertEncryption;
         this.customCertificate = customCertificate;
+        this.alertBlackDuckInstallOptions = alertBlackDuckInstallOptions;
         shouldEditFile = useLocalOverrides;
     }
 
@@ -69,9 +73,15 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
         StringBuilder ymlBuilder = new StringBuilder();
         ymlBuilder.append("  alert:\n");
         ymlBuilder.append("    environment:\n");
-        ymlBuilder.append("      - ALERT_HOSTNAME=");
-        ymlBuilder.append(webServerHost);
-        ymlBuilder.append("\n");
+
+        addEnvironmentVariable(ymlBuilder, "ALERT_HOSTNAME", webServerHost);
+        addEnvironmentVariable(ymlBuilder, "ALERT_COMPONENT_SETTINGS_SETTINGS_USER_DEFAULT_ADMIN_EMAIL", alertAdminEmail);
+        addEnvironmentVariable(ymlBuilder, "ALERT_IMPORT_CERT", StringUtils.isNotBlank(alertBlackDuckInstallOptions.getBlackDuckHostForAutoSslImport()));
+        addEnvironmentVariable(ymlBuilder, "PUBLIC_HUB_WEBSERVER_HOST", alertBlackDuckInstallOptions.getBlackDuckHostForAutoSslImport());
+        addEnvironmentVariable(ymlBuilder, "PUBLIC_HUB_WEBSERVER_PORT", alertBlackDuckInstallOptions.getBlackDuckPortForAutoSslImport());
+        addEnvironmentVariable(ymlBuilder, "ALERT_PROVIDER_BLACKDUCK_BLACKDUCK_URL", alertBlackDuckInstallOptions.getBlackDuckUrl());
+        addEnvironmentVariable(ymlBuilder, "ALERT_PROVIDER_BLACKDUCK_BLACKDUCK_API_KEY", alertBlackDuckInstallOptions.getBlackDuckApiToken());
+        addEnvironmentVariable(ymlBuilder, "ALERT_PROVIDER_BLACKDUCK_BLACKDUCK_TIMEOUT", alertBlackDuckInstallOptions.getBlackDuckTimeoutInSeconds());
 
         if (!alertEncryption.isEmpty() || !customCertificate.isEmpty()) {
             appendAlertSecrets(ymlBuilder, alertEncryption, customCertificate);
@@ -83,6 +93,28 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
         } catch (IOException e) {
             throw new BlackDuckInstallerException("Error editing alert local overrides: " + e.getMessage());
         }
+    }
+
+    private void addEnvironmentVariable(StringBuilder ymlBuilder, String key, String value) {
+        if (StringUtils.isNotBlank(value)) {
+            append(ymlBuilder, key, value);
+        }
+    }
+
+    private void addEnvironmentVariable(StringBuilder ymlBuilder, String key, int value) {
+        if (value > 0) {
+            append(ymlBuilder, key, Integer.toString(value));
+        }
+    }
+
+    private void addEnvironmentVariable(StringBuilder ymlBuilder, String key, boolean value) {
+        if (value) {
+            append(ymlBuilder, key, "true");
+        }
+    }
+
+    private void append(StringBuilder ymlBuilder, String key, String value) {
+        ymlBuilder.append(String.format("      - %s=%s\n", key, value));
     }
 
     private void appendAlertSecrets(StringBuilder ymlBuilder, AlertEncryption alertEncryption, CustomCertificate customCertificate) {

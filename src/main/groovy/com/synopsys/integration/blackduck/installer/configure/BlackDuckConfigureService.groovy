@@ -39,39 +39,22 @@ import java.time.Duration
 class BlackDuckConfigureService {
     IntLogger intLogger
     BlackDuckService blackDuckService
+    ApiTokenService apiTokenService
     int installTimeoutInSeconds
     BlackDuckConfigurationOptions blackDuckConfigurationOptions
+    BlackDuckWait blackDuckWait
 
-    BlackDuckConfigureService(IntLogger intLogger, BlackDuckService blackDuckService, int installTimeoutInSeconds, BlackDuckConfigurationOptions blackDuckConfigurationOptions) {
+    BlackDuckConfigureService(IntLogger intLogger, BlackDuckService blackDuckService, ApiTokenService apiTokenService, int installTimeoutInSeconds, BlackDuckConfigurationOptions blackDuckConfigurationOptions, BlackDuckWait blackDuckWait) {
         this.intLogger = intLogger
         this.blackDuckService = blackDuckService
+        this.apiTokenService = apiTokenService
         this.installTimeoutInSeconds = installTimeoutInSeconds
         this.blackDuckConfigurationOptions = blackDuckConfigurationOptions
+        this.blackDuckWait = blackDuckWait
     }
 
-    boolean configureBlackDuck() {
-        int attempts = 0
-        long start = System.currentTimeMillis()
-
-        String currentVersion
-        Duration currentDuration = Duration.ofMillis(0)
-        Duration maximumDuration = Duration.ofMillis(installTimeoutInSeconds * 1000)
-        while (null == currentVersion && currentDuration.compareTo(maximumDuration) <= 0) {
-            try {
-                intLogger.info("Checking the Black Duck server...(try #${attempts}, elapsed: ${DurationFormatUtils.formatDurationHMS(currentDuration.toMillis())})")
-                currentVersion = retrieveCurrentVersion()
-                if (currentVersion) {
-                    intLogger.info("Black Duck server found running version ${currentVersion}.")
-                    break
-                }
-            } catch (IntegrationException e) {
-                intLogger.info(String.format("Black Duck did not respond, waiting 5 seconds and trying again. (%s)", e.getMessage()))
-                Thread.sleep(5000)
-                attempts++
-            }
-
-            currentDuration = Duration.ofMillis(System.currentTimeMillis() - start)
-        }
+    ConfigureResult configureBlackDuck() {
+        blackDuckWait.waitForBlackDuck()
 
         if (StringUtils.isNotBlank(blackDuckConfigurationOptions.registrationKey)) {
             applyRegistrationId(blackDuckConfigurationOptions.registrationKey)
@@ -80,12 +63,13 @@ class BlackDuckConfigureService {
         if (blackDuckConfigurationOptions.acceptEula) {
             acceptEndUserLicenseAgreement()
         }
-    }
 
-    String retrieveCurrentVersion() {
-        CurrentVersionView currentVersionView = blackDuckService.getResponse(ApiDiscovery.CURRENT_VERSION_LINK_RESPONSE)
+        String apiToken
+        if (blackDuckConfigurationOptions.createApiToken) {
+            apiToken = createApiToken()
+        }
 
-        currentVersionView.version
+        return new ConfigureResult(true, apiToken)
     }
 
     void acceptEndUserLicenseAgreement() {
@@ -96,6 +80,14 @@ class BlackDuckConfigureService {
 
         blackDuckService.post(ApiDiscovery.ENDUSERLICENSEAGREEMENT_LINK, endUserLicenseAgreementAction)
         intLogger.info('Successfully accepted the end user license agreement.')
+    }
+
+    String createApiToken() {
+        intLogger.info('Attempting to create an api token...')
+        ApiTokenView apiTokenView = apiTokenService.createApiToken("installer_token")
+        intLogger.info('Successfully created an api token.')
+
+        apiTokenView.token
     }
 
     void applyRegistrationId(String registrationId) {

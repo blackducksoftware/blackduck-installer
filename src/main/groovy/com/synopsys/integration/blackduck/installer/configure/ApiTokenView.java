@@ -1,4 +1,4 @@
-/*
+/**
  * blackduck-installer
  *
  * Copyright (c) 2019 Synopsys, Inc.
@@ -20,25 +20,43 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.synopsys.integration.blackduck.installer.model
+package com.synopsys.integration.blackduck.installer.configure;
 
-import org.apache.commons.lang3.StringUtils
+import com.synopsys.integration.blackduck.api.core.BlackDuckView;
 
-class BlackDuckConfigurationOptions {
-    String registrationKey
-    boolean acceptEula
-    boolean createApiToken
-    boolean isDryRun
+import java.util.List;
 
-    BlackDuckConfigurationOptions(String registrationKey, boolean acceptEula, boolean createApiToken, boolean isDryRun) {
-        this.registrationKey = registrationKey
-        this.acceptEula = acceptEula
-        this.createApiToken = createApiToken
-        this.isDryRun = isDryRun
+public class ApiTokenView extends BlackDuckView {
+    private String name;
+    private String description;
+    private List<String> scopes;
+    private String token;
+
+    public ApiTokenView() {
+        //TODO check if gson really needs this
     }
 
-    boolean shouldConfigure() {
-        return !isDryRun && (StringUtils.isNotBlank(registrationKey) || acceptEula || createApiToken)
+    public ApiTokenView(String name, String description, List<String> scopes, String token) {
+        this.name = name;
+        this.description = description;
+        this.scopes = scopes;
+        this.token = token;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public List<String> getScopes() {
+        return scopes;
+    }
+
+    public String getToken() {
+        return token;
     }
 
 }

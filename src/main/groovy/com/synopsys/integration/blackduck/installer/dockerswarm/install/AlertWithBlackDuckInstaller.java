@@ -24,48 +24,41 @@ package com.synopsys.integration.blackduck.installer.dockerswarm.install;
 
 import com.synopsys.integration.blackduck.installer.dockerswarm.DockerCommands;
 import com.synopsys.integration.blackduck.installer.dockerswarm.DockerStackDeploy;
-import com.synopsys.integration.blackduck.installer.dockerswarm.OrchestrationFiles;
-import com.synopsys.integration.blackduck.installer.dockerswarm.deploy.BlackDuckDockerManager;
-import com.synopsys.integration.blackduck.installer.dockerswarm.edit.BlackDuckConfigEnvEditor;
+import com.synopsys.integration.blackduck.installer.dockerswarm.deploy.AlertDockerManager;
+import com.synopsys.integration.blackduck.installer.dockerswarm.edit.AlertLocalOverridesEditor;
 import com.synopsys.integration.blackduck.installer.dockerswarm.edit.ConfigFileEditor;
 import com.synopsys.integration.blackduck.installer.dockerswarm.edit.HubWebServerEnvEditor;
-import com.synopsys.integration.blackduck.installer.dockerswarm.edit.LocalOverridesEditor;
 import com.synopsys.integration.blackduck.installer.download.ZipFileDownloader;
 import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
 import com.synopsys.integration.blackduck.installer.model.ExecutablesRunner;
+import com.synopsys.integration.executable.Executable;
 
 import java.io.File;
+import java.util.List;
 
-public class BlackDuckInstaller extends Installer {
-    private final ConfigFileEditor blackDuckConfigEnvEditor;
+public class AlertWithBlackDuckInstaller extends AlertInstaller {
+    private final DockerStackDeploy deployBlackDuck;
+    private final File blackDuckInstallDirectory;
     private final ConfigFileEditor hubWebServerEnvEditor;
-    private final ConfigFileEditor localOverridesEditor;
-    private final boolean useLocalOverrides;
 
-    public BlackDuckInstaller(ZipFileDownloader zipFileDownloader, ExecutablesRunner executablesRunner, BlackDuckDockerManager blackDuckDockerManager, DockerStackDeploy dockerStackDeploy, DockerCommands dockerCommands, BlackDuckConfigEnvEditor blackDuckConfigEnvEditor, HubWebServerEnvEditor hubWebServerEnvEditor, LocalOverridesEditor localOverridesEditor, boolean useLocalOverrides) {
-        super(zipFileDownloader, executablesRunner, blackDuckDockerManager, dockerStackDeploy, dockerCommands);
+    public AlertWithBlackDuckInstaller(ZipFileDownloader zipFileDownloader, ExecutablesRunner executablesRunner, AlertDockerManager alertDockerManager, DockerStackDeploy dockerStackDeploy, DockerCommands dockerCommands, DockerStackDeploy deployBlackDuck, File blackDuckInstallDirectory, HubWebServerEnvEditor hubWebServerEnvEditor, AlertLocalOverridesEditor alertLocalOverridesEditor, boolean useLocalOverrides) {
+        super(zipFileDownloader, executablesRunner, alertDockerManager, dockerStackDeploy, dockerCommands, alertLocalOverridesEditor, useLocalOverrides);
 
-        this.blackDuckConfigEnvEditor = blackDuckConfigEnvEditor;
+        this.deployBlackDuck = deployBlackDuck;
+        this.blackDuckInstallDirectory = blackDuckInstallDirectory;
         this.hubWebServerEnvEditor = hubWebServerEnvEditor;
-        this.localOverridesEditor = localOverridesEditor;
-        this.useLocalOverrides = useLocalOverrides;
     }
 
     @Override
     public void postDownloadProcessing(File installDirectory) throws BlackDuckInstallerException {
-        blackDuckConfigEnvEditor.edit(installDirectory);
-        hubWebServerEnvEditor.edit(installDirectory);
-        localOverridesEditor.edit(installDirectory);
+        super.postDownloadProcessing(installDirectory);
+        hubWebServerEnvEditor.edit(blackDuckInstallDirectory);
     }
 
     @Override
-    public void populateDockerStackDeploy(File installDirectory) {
-        File dockerSwarm = new File(installDirectory, "docker-swarm");
-        addOrchestrationFile(dockerSwarm, OrchestrationFiles.COMPOSE);
-
-        if (useLocalOverrides) {
-            addOrchestrationFile(dockerSwarm, OrchestrationFiles.LOCAL_OVERRIDES);
-        }
+    public void addAdditionalExecutables(List<Executable> executables) {
+        super.addAdditionalExecutables(executables);
+        executables.add(deployBlackDuck.createDeployExecutable());
     }
 
 }

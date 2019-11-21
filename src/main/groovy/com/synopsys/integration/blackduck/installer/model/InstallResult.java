@@ -22,15 +22,19 @@
  */
 package com.synopsys.integration.blackduck.installer.model;
 
+import com.synopsys.integration.blackduck.installer.dockerswarm.DockerStackDeploy;
+
 import java.io.File;
 
 public class InstallResult {
     private int returnCode;
     private File installDirectory;
+    private DockerStackDeploy dockerStackDeploy;
 
-    public InstallResult(int returnCode, File installDirectory) {
+    public InstallResult(int returnCode, File installDirectory, DockerStackDeploy dockerStackDeploy) {
         this.returnCode = returnCode;
         this.installDirectory = installDirectory;
+        this.dockerStackDeploy = dockerStackDeploy;
     }
 
     public int getReturnCode() {
@@ -39,6 +43,10 @@ public class InstallResult {
 
     public File getInstallDirectory() {
         return installDirectory;
+    }
+
+    public DockerStackDeploy getDockerStackDeploy() {
+        return dockerStackDeploy;
     }
 
 }

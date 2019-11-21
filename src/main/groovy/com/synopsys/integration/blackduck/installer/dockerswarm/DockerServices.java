@@ -1,4 +1,4 @@
-/*
+/**
  * blackduck-installer
  *
  * Copyright (c) 2019 Synopsys, Inc.
@@ -20,25 +20,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.synopsys.integration.blackduck.installer.model
+package com.synopsys.integration.blackduck.installer.dockerswarm;
 
-import org.apache.commons.lang3.StringUtils
+import com.synopsys.integration.blackduck.installer.model.DockerService;
 
-class BlackDuckConfigurationOptions {
-    String registrationKey
-    boolean acceptEula
-    boolean createApiToken
-    boolean isDryRun
+public class DockerServices {
+    private String dockerServices;
 
-    BlackDuckConfigurationOptions(String registrationKey, boolean acceptEula, boolean createApiToken, boolean isDryRun) {
-        this.registrationKey = registrationKey
-        this.acceptEula = acceptEula
-        this.createApiToken = createApiToken
-        this.isDryRun = isDryRun
+    public static DockerServices create(String dockerServicesOutput) {
+        return new DockerServices(dockerServicesOutput);
     }
 
-    boolean shouldConfigure() {
-        return !isDryRun && (StringUtils.isNotBlank(registrationKey) || acceptEula || createApiToken)
+    private DockerServices(String dockerServicesOutput) {
+        this.dockerServices = dockerServicesOutput;
+    }
+
+    public boolean doesServiceExist(DockerService dockerService) {
+        return dockerServices.contains(dockerService.getDockerName());
     }
 
 }

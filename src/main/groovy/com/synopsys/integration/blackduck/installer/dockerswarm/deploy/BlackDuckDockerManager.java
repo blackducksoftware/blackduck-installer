@@ -24,28 +24,37 @@ package com.synopsys.integration.blackduck.installer.dockerswarm.deploy;
 
 import com.synopsys.integration.blackduck.installer.dockerswarm.DockerCommands;
 import com.synopsys.integration.blackduck.installer.dockerswarm.DockerSecrets;
+import com.synopsys.integration.blackduck.installer.dockerswarm.DockerServices;
 import com.synopsys.integration.blackduck.installer.dockerswarm.DockerStacks;
-import com.synopsys.integration.blackduck.installer.model.AlertEncryption;
+import com.synopsys.integration.blackduck.installer.model.CustomCertificate;
 import com.synopsys.integration.executable.Executable;
 import com.synopsys.integration.log.IntLogger;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 
-public class AlertDeployer extends Deployer {
-    private final AlertEncryption alertEncryption;
+public class BlackDuckDockerManager extends ProductDockerManager {
+    private final CustomCertificate customCertificate;
 
-    public AlertDeployer(IntLogger logger, DockerCommands dockerCommands, String stackName, AlertEncryption alertEncryption) {
+    public BlackDuckDockerManager(IntLogger logger, DockerCommands dockerCommands, String stackName, CustomCertificate customCertificate) {
         super(logger, dockerCommands, stackName);
-        this.alertEncryption = alertEncryption;
+        this.customCertificate = customCertificate;
     }
 
-    public List<Executable> createExecutables(File installDirectory, DockerStacks dockerStacks, DockerSecrets dockerSecrets) {
-        List<Executable> executables = super.createExecutables(installDirectory, dockerStacks, dockerSecrets);
+    public List<Executable> createExecutables(File installDirectory, DockerStacks dockerStacks, DockerSecrets dockerSecrets, DockerServices dockerServices) {
+        List<Executable> executables = new ArrayList<>();
 
-        if (!alertEncryption.isEmpty()) {
-            addSecret(executables, dockerSecrets, alertEncryption.getPassword());
-            addSecret(executables, dockerSecrets, alertEncryption.getSalt());
+        if (dockerStacks.doesStackExist(stackName)) {
+            logger.info(String.format("The stack \"%s\" already existed - removing it and restarting docker.", stackName));
+            executables.add(dockerCommands.stopStack(stackName));
+            //TODO it would be better to list services and wait for nothing stackName_, as the permissions for restarting Docker could be more restrictive
+            executables.add(dockerCommands.restartDocker());
+        }
+
+        if (!customCertificate.isEmpty()) {
+            addSecret(executables, dockerSecrets, customCertificate.getCertificate());
+            addSecret(executables, dockerSecrets, customCertificate.getPrivateKey());
         }
 
         return executables;

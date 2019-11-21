@@ -59,8 +59,8 @@ public class ApplicationValues {
     @Value("${always.trust}")
     private boolean alwaysTrust;
 
-    @Value("${blackduck.stack.name}")
-    private String blackDuckStackName;
+    @Value("${stack.name}")
+    private String stackName;
 
     @Value("${blackduck.deploy.method}")
     private DeployMethod blackDuckDeployMethod;
@@ -125,14 +125,14 @@ public class ApplicationValues {
     @Value("${blackduck.password}")
     private String blackDuckPassword;
 
-    @Value("${blackduck.api.token}")
-    private String blackDuckApiToken;
-
     @Value("${blackduck.configure.registration.key}")
     private String blackDuckConfigureRegistrationKey;
 
     @Value("${blackduck.configure.accept.eula}")
     private boolean blackDuckConfigureAcceptEula;
+
+    @Value("${blackduck.configure.api.token}")
+    private boolean blackDuckConfigureApiToken;
 
     @Value("${alert.deploy.method}")
     private DeployMethod alertDeployMethod;
@@ -161,11 +161,35 @@ public class ApplicationValues {
     @Value("${alert.artifact}")
     private String alertArtifact;
 
+    @Value("${alert.install.port}")
+    private String alertInstallPort;
+
     @Value("${alert.install.encryption.password.path}")
     private String alertInstallEncryptionPasswordPath;
 
     @Value("${alert.install.encryption.global.salt.path}")
     private String alertInstallEncryptionGlobalSaltPath;
+
+    @Value("${alert.install.default.admin.email}")
+    private String alertInstallDefaultAdminEmail;
+
+    @Value("${alert.install.blackduck.url}")
+    private String alertInstallBlackDuckUrl;
+
+    @Value("${alert.install.blackduck.api.token}")
+    private String alertInstallBlackDuckApiToken;
+
+    @Value("${alert.install.blackduck.timeout.in.seconds}")
+    private int alertInstallBlackDuckTimeoutInSeconds;
+
+    @Value("${alert.install.blackduck.auto.ssl.import}")
+    private boolean alertInstallBlackDuckAutoSslImport;
+
+    @Value("${alert.install.blackduck.host.for.auto.ssl.import}")
+    private String alertInstallBlackDuckHostForAutoSslImport;
+
+    @Value("${alert.install.blackduck.port.for.auto.ssl.import}")
+    private int alertInstallBlackDuckPortForAutoSslImport;
 
     @Value("${alert.install.use.local.overrides}")
     private boolean alertInstallUseLocalOverrides;
@@ -210,8 +234,8 @@ public class ApplicationValues {
         return alwaysTrust;
     }
 
-    public String getBlackDuckStackName() {
-        return blackDuckStackName;
+    public String getStackName() {
+        return stackName;
     }
 
     public DeployMethod getBlackDuckDeployMethod() {
@@ -298,16 +322,16 @@ public class ApplicationValues {
         return blackDuckPassword;
     }
 
-    public String getBlackDuckApiToken() {
-        return blackDuckApiToken;
-    }
-
     public String getBlackDuckConfigureRegistrationKey() {
         return blackDuckConfigureRegistrationKey;
     }
 
     public boolean isBlackDuckConfigureAcceptEula() {
         return blackDuckConfigureAcceptEula;
+    }
+
+    public boolean isBlackDuckConfigureApiToken() {
+        return blackDuckConfigureApiToken;
     }
 
     public DeployMethod getAlertDeployMethod() {
@@ -346,12 +370,44 @@ public class ApplicationValues {
         return alertArtifact;
     }
 
+    public String getAlertInstallPort() {
+        return alertInstallPort;
+    }
+
     public String getAlertInstallEncryptionPasswordPath() {
         return alertInstallEncryptionPasswordPath;
     }
 
     public String getAlertInstallEncryptionGlobalSaltPath() {
         return alertInstallEncryptionGlobalSaltPath;
+    }
+
+    public String getAlertInstallDefaultAdminEmail() {
+        return alertInstallDefaultAdminEmail;
+    }
+
+    public String getAlertInstallBlackDuckUrl() {
+        return alertInstallBlackDuckUrl;
+    }
+
+    public String getAlertInstallBlackDuckApiToken() {
+        return alertInstallBlackDuckApiToken;
+    }
+
+    public int getAlertInstallBlackDuckTimeoutInSeconds() {
+        return alertInstallBlackDuckTimeoutInSeconds;
+    }
+
+    public boolean isAlertInstallBlackDuckAutoSslImport() {
+        return alertInstallBlackDuckAutoSslImport;
+    }
+
+    public String getAlertInstallBlackDuckHostForAutoSslImport() {
+        return alertInstallBlackDuckHostForAutoSslImport;
+    }
+
+    public int getAlertInstallBlackDuckPortForAutoSslImport() {
+        return alertInstallBlackDuckPortForAutoSslImport;
     }
 
     public boolean isAlertInstallUseLocalOverrides() {
