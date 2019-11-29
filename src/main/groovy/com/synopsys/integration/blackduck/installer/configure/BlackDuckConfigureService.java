@@ -47,19 +47,15 @@ public class BlackDuckConfigureService {
     private final BlackDuckServerConfig blackDuckServerConfig;
     private final int installTimeoutInSeconds;
     private final BlackDuckConfigurationOptions blackDuckConfigurationOptions;
-    private final BlackDuckWait blackDuckWait;
 
-    public BlackDuckConfigureService(IntLogger intLogger, BlackDuckServerConfig blackDuckServerConfig, int installTimeoutInSeconds, BlackDuckConfigurationOptions blackDuckConfigurationOptions, BlackDuckWait blackDuckWait) {
+    public BlackDuckConfigureService(IntLogger intLogger, BlackDuckServerConfig blackDuckServerConfig, int installTimeoutInSeconds, BlackDuckConfigurationOptions blackDuckConfigurationOptions) {
         this.intLogger = intLogger;
         this.blackDuckServerConfig = blackDuckServerConfig;
         this.installTimeoutInSeconds = installTimeoutInSeconds;
         this.blackDuckConfigurationOptions = blackDuckConfigurationOptions;
-        this.blackDuckWait = blackDuckWait;
     }
 
-    public ConfigureResult configureBlackDuck(File installDirectory) throws InterruptedException, IntegrationException, IOException {
-        blackDuckWait.waitForBlackDuck(installDirectory);
-
+    public ConfigureResult configureBlackDuck() throws IntegrationException, IOException {
         BlackDuckServicesFactory blackDuckServicesFactory = blackDuckServerConfig.createBlackDuckServicesFactory(intLogger);
         Gson gson = blackDuckServicesFactory.getGson();
         ObjectMapper objectMapper = blackDuckServicesFactory.getObjectMapper();
