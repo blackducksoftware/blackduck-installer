@@ -20,23 +20,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.synopsys.integration.blackduck.installer.dockerswarm;
+package com.synopsys.integration.blackduck.installer.dockerswarm.output;
 
-import com.synopsys.integration.blackduck.installer.model.DockerService;
+import com.synopsys.integration.blackduck.installer.model.DockerSecret;
 
-public class DockerServices {
-    private String dockerServices;
+public class DockerSecrets {
+    private String dockerSecrets;
 
-    public static DockerServices create(String dockerServicesOutput) {
-        return new DockerServices(dockerServicesOutput);
+    public static DockerSecrets create(String dockerSecretsOutput) {
+        return new DockerSecrets(dockerSecretsOutput);
     }
 
-    private DockerServices(String dockerServicesOutput) {
-        this.dockerServices = dockerServicesOutput;
+    private DockerSecrets(String dockerSecretsOutput) {
+        this.dockerSecrets = dockerSecretsOutput;
     }
 
-    public boolean doesServiceExist(DockerService dockerService) {
-        return dockerServices.contains(dockerService.getDockerName());
+    public boolean doesSecretExist(DockerSecret dockerSecret) {
+        return dockerSecrets.contains(dockerSecret.getLabel());
     }
 
 }

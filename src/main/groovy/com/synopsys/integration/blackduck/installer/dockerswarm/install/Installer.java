@@ -24,6 +24,9 @@ package com.synopsys.integration.blackduck.installer.dockerswarm.install;
 
 import com.synopsys.integration.blackduck.installer.dockerswarm.*;
 import com.synopsys.integration.blackduck.installer.dockerswarm.deploy.ProductDockerManager;
+import com.synopsys.integration.blackduck.installer.dockerswarm.output.DockerSecrets;
+import com.synopsys.integration.blackduck.installer.dockerswarm.output.DockerServices;
+import com.synopsys.integration.blackduck.installer.dockerswarm.output.DockerStacks;
 import com.synopsys.integration.blackduck.installer.download.ZipFileDownloader;
 import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
 import com.synopsys.integration.blackduck.installer.model.ExecutablesRunner;

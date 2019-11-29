@@ -23,9 +23,9 @@
 package com.synopsys.integration.blackduck.installer.dockerswarm.deploy;
 
 import com.synopsys.integration.blackduck.installer.dockerswarm.DockerCommands;
-import com.synopsys.integration.blackduck.installer.dockerswarm.DockerSecrets;
-import com.synopsys.integration.blackduck.installer.dockerswarm.DockerServices;
-import com.synopsys.integration.blackduck.installer.dockerswarm.DockerStacks;
+import com.synopsys.integration.blackduck.installer.dockerswarm.output.DockerSecrets;
+import com.synopsys.integration.blackduck.installer.dockerswarm.output.DockerServices;
+import com.synopsys.integration.blackduck.installer.dockerswarm.output.DockerStacks;
 import com.synopsys.integration.blackduck.installer.model.AlertEncryption;
 import com.synopsys.integration.blackduck.installer.model.DockerService;
 import com.synopsys.integration.executable.Executable;

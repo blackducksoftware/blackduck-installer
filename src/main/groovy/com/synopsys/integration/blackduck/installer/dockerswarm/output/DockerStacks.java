@@ -20,7 +20,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.synopsys.integration.blackduck.installer.dockerswarm;
+package com.synopsys.integration.blackduck.installer.dockerswarm.output;
 
 public class DockerStacks {
     private String dockerStacks;

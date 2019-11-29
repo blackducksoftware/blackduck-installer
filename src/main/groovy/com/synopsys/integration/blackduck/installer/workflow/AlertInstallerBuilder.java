@@ -29,10 +29,7 @@ import com.synopsys.integration.blackduck.installer.dockerswarm.DockerCommands;
 import com.synopsys.integration.blackduck.installer.dockerswarm.DockerStackDeploy;
 import com.synopsys.integration.blackduck.installer.dockerswarm.deploy.AlertDockerManager;
 import com.synopsys.integration.blackduck.installer.dockerswarm.edit.AlertLocalOverridesEditor;
-import com.synopsys.integration.blackduck.installer.dockerswarm.edit.HubWebServerEnvEditor;
-import com.synopsys.integration.blackduck.installer.dockerswarm.edit.HubWebServerEnvTokens;
 import com.synopsys.integration.blackduck.installer.dockerswarm.install.AlertInstaller;
-import com.synopsys.integration.blackduck.installer.dockerswarm.install.AlertWithBlackDuckInstaller;
 import com.synopsys.integration.blackduck.installer.download.AlertGithubDownloadUrl;
 import com.synopsys.integration.blackduck.installer.download.ArtifactoryDownloadUrl;
 import com.synopsys.integration.blackduck.installer.download.ZipFileDownloader;
@@ -56,11 +53,6 @@ public class AlertInstallerBuilder {
     private DockerCommands dockerCommands;
     private AlertLocalOverridesEditor alertLocalOverridesEditor;
     private boolean useLocalOverrides;
-
-    private boolean installWithBlackDuck = false;
-    private DockerStackDeploy deployBlackDuck;
-    private File blackDuckInstallDirectory;
-    private HubWebServerEnvEditor hubWebServerEnvEditor;
 
     public void setRequiredProperties(DeployProductProperties deployProductProperties, DeployAlertProperties deployAlertProperties, ApplicationValues applicationValues) {
         this.applicationValues = applicationValues;
@@ -92,19 +84,8 @@ public class AlertInstallerBuilder {
         alertDockerManager = new AlertDockerManager(intLogger, dockerCommands, applicationValues.getStackName(), alertEncryption, alertService);
     }
 
-    public void setBlackDuckInstallProperties(File blackDuckInstallDirectory, DockerStackDeploy deployBlackDuck) {
-        installWithBlackDuck = true;
-        HubWebServerEnvTokens hubWebServerEnvTokens = new HubWebServerEnvTokens(applicationValues.getBlackDuckInstallWebServerHost(), true);
-        hubWebServerEnvEditor = new HubWebServerEnvEditor(intLogger, hashUtility, lineSeparator, hubWebServerEnvTokens);
-        this.deployBlackDuck = deployBlackDuck;
-        this.blackDuckInstallDirectory = blackDuckInstallDirectory;
+    public AlertInstaller build() {
+        return new AlertInstaller(alertDownloader, executablesRunner, alertDockerManager, dockerStackDeploy, dockerCommands, alertLocalOverridesEditor, useLocalOverrides);
     }
 
-    public AlertInstaller build() {
-        if (!installWithBlackDuck) {
-            return new AlertInstaller(alertDownloader, executablesRunner, alertDockerManager, dockerStackDeploy, dockerCommands, alertLocalOverridesEditor, useLocalOverrides);
-        } else {
-            return new AlertWithBlackDuckInstaller(alertDownloader, executablesRunner, alertDockerManager, dockerStackDeploy, dockerCommands, deployBlackDuck, blackDuckInstallDirectory, hubWebServerEnvEditor, alertLocalOverridesEditor, useLocalOverrides);
-        }
-    }
 }
