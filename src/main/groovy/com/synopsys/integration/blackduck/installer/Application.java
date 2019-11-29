@@ -38,13 +38,19 @@ import com.synopsys.integration.blackduck.installer.download.ArtifactoryDownload
 import com.synopsys.integration.blackduck.installer.download.BlackDuckGithubDownloadUrl;
 import com.synopsys.integration.blackduck.installer.download.ZipFileDownloader;
 import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
+import com.synopsys.integration.blackduck.installer.exception.IntegrationKeyStoreException;
 import com.synopsys.integration.blackduck.installer.hash.HashUtility;
+import com.synopsys.integration.blackduck.installer.keystore.KeyStoreManager;
+import com.synopsys.integration.blackduck.installer.keystore.KeyStoreRequest;
+import com.synopsys.integration.blackduck.installer.keystore.OpenSslOutputParser;
+import com.synopsys.integration.blackduck.installer.keystore.OpenSslRunner;
 import com.synopsys.integration.blackduck.installer.model.*;
 import com.synopsys.integration.blackduck.installer.workflow.AlertBlackDuckInstallOptionsBuilder;
 import com.synopsys.integration.blackduck.installer.workflow.AlertInstallerBuilder;
 import com.synopsys.integration.blackduck.installer.workflow.DownloadUrlDecider;
 import com.synopsys.integration.blackduck.rest.BlackDuckHttpClient;
 import com.synopsys.integration.blackduck.service.*;
+import com.synopsys.integration.exception.IntegrationException;
 import com.synopsys.integration.executable.DryRunExecutableRunner;
 import com.synopsys.integration.executable.ExecutableRunner;
 import com.synopsys.integration.executable.ProcessBuilderRunner;
@@ -66,7 +72,9 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.MalformedURLException;
+import java.security.KeyStore;
 
 @SpringBootApplication
 public class Application implements ApplicationRunner {
@@ -102,7 +110,8 @@ public class Application implements ApplicationRunner {
             Expander expander = new Expander();
             IntLogger intLogger = new Slf4jIntLogger(logger);
             HashUtility hashUtility = new HashUtility();
-            DockerCommands dockerCommands = new DockerCommands();
+            ExecutableCreator executableCreator = new ExecutableCreator();
+            DockerCommands dockerCommands = new DockerCommands(executableCreator);
             CommonZipExpander commonZipExpander = new CommonZipExpander(intLogger, expander);
             CustomCertificate customCertificate = new CustomCertificate(applicationValues.getBlackDuckInstallCustomCertPath(), applicationValues.getBlackDuckInstallCustomKeyPath());
             AlertEncryption alertEncryption = new AlertEncryption(applicationValues.getAlertInstallEncryptionPasswordPath(), applicationValues.getAlertInstallEncryptionGlobalSaltPath());
@@ -129,6 +138,11 @@ public class Application implements ApplicationRunner {
                 executableRunner = new ProcessBuilderRunner();
             }
             ExecutablesRunner executablesRunner = new ExecutablesRunner(executableRunner);
+            OpenSslOutputParser openSslOutputParser = new OpenSslOutputParser();
+            OpenSslRunner openSslRunner = new OpenSslRunner(intLogger, executablesRunner, openSslOutputParser);
+            KeyStoreManager keyStoreManager = new KeyStoreManager();
+            KeyStoreRequest keyStoreRequest = new KeyStoreRequest(new File(applicationValues.getKeyStoreFile()), applicationValues.getKeyStoreType(), applicationValues.getKeyStorePassword());
+            UpdateKeyStoreService updateKeyStoreService = new UpdateKeyStoreService(intLogger, keyStoreManager, keyStoreRequest, applicationValues.isKeyStoreUpdate(), applicationValues.isKeyStoreUpdateForce(), applicationValues.getBlackDuckInstallWebServerHost(), 443, openSslRunner);
             DockerStackDeploy deployStack = new DockerStackDeploy(applicationValues.getStackName());
 
             DeployProductProperties deployProductProperties = new DeployProductProperties(baseDirectory, lineSeparator, intLogger, hashUtility, dockerCommands, commonZipExpander, customCertificate, intHttpClient, executablesRunner, deployStack);
@@ -138,17 +152,17 @@ public class Application implements ApplicationRunner {
             DeployAlertProperties deployAlertProperties = new DeployAlertProperties(alertService, alertBlackDuckInstallOptionsBuilder, alertEncryption);
 
             if (DeployMethod.DEPLOY == applicationValues.getBlackDuckDeployMethod()) {
-                deployBlackDuck(deployProductProperties, deployAlertProperties);
+                deployBlackDuck(deployProductProperties, deployAlertProperties, updateKeyStoreService);
             } else if (DeployMethod.DEPLOY == applicationValues.getAlertDeployMethod()) {
                 deployAlertAlone(deployProductProperties, deployAlertProperties);
             }
-        } catch (BlackDuckInstallerException | InterruptedException e) {
+        } catch (InterruptedException | IntegrationException | IOException e) {
             logger.error("The installer could not complete successfully: " + e.getMessage());
         }
 
     }
 
-    private void deployBlackDuck(DeployProductProperties deployProductProperties, DeployAlertProperties deployAlertProperties) throws BlackDuckInstallerException, InterruptedException {
+    private void deployBlackDuck(DeployProductProperties deployProductProperties, DeployAlertProperties deployAlertProperties, UpdateKeyStoreService updateKeyStoreService) throws IntegrationException, InterruptedException, IOException {
         InstallResult blackDuckInstallResult = installBlackDuck(deployProductProperties);
 
         if (blackDuckInstallResult.getReturnCode() == 0) {
@@ -164,17 +178,12 @@ public class Application implements ApplicationRunner {
             builder.setPassword(applicationValues.getBlackDuckPassword());
 
             BlackDuckServerConfig blackDuckServerConfig = builder.build();
-            BlackDuckServicesFactory blackDuckServicesFactory = blackDuckServerConfig.createBlackDuckServicesFactory(deployProductProperties.getIntLogger());
-            BlackDuckService blackDuckService = blackDuckServicesFactory.createBlackDuckService();
-            BlackDuckWait blackDuckWait = new BlackDuckWait(deployProductProperties.getIntLogger(), applicationValues.getBlackDuckInstallTimeoutInSeconds(), blackDuckService);
+            BlackDuckWait blackDuckWait = new BlackDuckWait(deployProductProperties.getIntLogger(), applicationValues.getBlackDuckInstallTimeoutInSeconds(), blackDuckServerConfig, updateKeyStoreService);
 
             if (blackDuckConfigurationOptions.shouldConfigure()) {
                 logger.info("Black Duck will now be configured.");
-                BlackDuckHttpClient blackDuckHttpClient = blackDuckServicesFactory.getBlackDuckHttpClient();
-                Gson gson = blackDuckServicesFactory.getGson();
-                ObjectMapper objectMapper = blackDuckServicesFactory.getObjectMapper();
-                BlackDuckConfigureService blackDuckConfigureService = createBlackDuckConfigureService(deployProductProperties.getIntLogger(), blackDuckService, blackDuckHttpClient, gson, objectMapper, blackDuckWait, blackDuckConfigurationOptions);
-                ConfigureResult configureResult = blackDuckConfigureService.configureBlackDuck();
+                BlackDuckConfigureService blackDuckConfigureService = new BlackDuckConfigureService(deployProductProperties.getIntLogger(), blackDuckServerConfig, applicationValues.getBlackDuckInstallTimeoutInSeconds(), blackDuckConfigurationOptions, blackDuckWait);
+                ConfigureResult configureResult = blackDuckConfigureService.configureBlackDuck(blackDuckInstallResult.getInstallDirectory());
                 if (configureResult.isSuccess() && configureResult.getApiToken().isPresent()) {
                     deployAlertProperties.setBlackDuckApiToken(configureResult.getApiToken().get());
                 }
@@ -209,7 +218,7 @@ public class Application implements ApplicationRunner {
         return blackDuckInstaller.performInstall();
     }
 
-    private void deployAlertWithBlackDuck(DeployProductProperties deployProductProperties, DeployAlertProperties deployAlertProperties, InstallResult blackDuckInstallResult, BlackDuckWait blackDuckWait) throws BlackDuckInstallerException, InterruptedException {
+    private void deployAlertWithBlackDuck(DeployProductProperties deployProductProperties, DeployAlertProperties deployAlertProperties, InstallResult blackDuckInstallResult, BlackDuckWait blackDuckWait) throws BlackDuckInstallerException, InterruptedException, IntegrationKeyStoreException {
         logger.info("The Alert install (with Black Duck) will now be attempted...");
         InstallResult alertInstallResult = installAlertWithBlackDuck(deployProductProperties, deployAlertProperties, blackDuckInstallResult.getInstallDirectory());
         if (alertInstallResult.getReturnCode() == 0) {
@@ -217,7 +226,7 @@ public class Application implements ApplicationRunner {
             if (applicationValues.isAlertInstallBlackDuckAutoSslImport()) {
                 logger.info("Alert will now attempt to automatically import the Black Duck certificate.");
                 AlertWithBlackDuckCertificateService alertWithBlackDuckCertificateService = createAlertWithBlackDuckCertificateService(deployProductProperties.getIntLogger(), blackDuckWait, deployProductProperties.getDockerCommands(), deployAlertProperties.getAlertService(), deployProductProperties.getExecutablesRunner());
-                alertWithBlackDuckCertificateService.configureCertificate(alertInstallResult.getDockerStackDeploy());
+                alertWithBlackDuckCertificateService.configureCertificate(alertInstallResult.getDockerStackDeploy(), blackDuckInstallResult.getInstallDirectory());
             }
         } else {
             logger.warn("At least one Alert install command was not successful - please check the output for any errors.");
@@ -251,18 +260,6 @@ public class Application implements ApplicationRunner {
         return alertInstaller.performInstall();
     }
 
-    private BlackDuckConfigureService createBlackDuckConfigureService(IntLogger intLogger, BlackDuckService blackDuckService, BlackDuckHttpClient blackDuckHttpClient, Gson gson, ObjectMapper objectMapper, BlackDuckWait blackDuckWait, BlackDuckConfigurationOptions blackDuckConfigurationOptions) throws BlackDuckInstallerException {
-        BlackDuckJsonTransformer blackDuckJsonTransformer = new BlackDuckJsonTransformer(gson, objectMapper, intLogger);
-        BlackDuckResponseTransformer blackDuckResponseTransformer = new BlackDuckResponseTransformer(blackDuckHttpClient, blackDuckJsonTransformer);
-        BlackDuckResponsesTransformer blackDuckResponsesTransformer = new BlackDuckResponsesTransformer(blackDuckHttpClient, blackDuckJsonTransformer);
-        try {
-            ApiTokenService apiTokenService = new ApiTokenService(blackDuckHttpClient, gson, blackDuckJsonTransformer, blackDuckResponseTransformer, blackDuckResponsesTransformer);
-            return new BlackDuckConfigureService(intLogger, blackDuckService, apiTokenService, applicationValues.getBlackDuckInstallTimeoutInSeconds(), blackDuckConfigurationOptions, blackDuckWait);
-        } catch (MalformedURLException e) {
-            throw new BlackDuckInstallerException("Could not configure the apiTokenService because of a badly formed URL." + e.getMessage());
-        }
-    }
-
     private AlertWithBlackDuckCertificateService createAlertWithBlackDuckCertificateService(IntLogger logger, BlackDuckWait blackDuckWait, DockerCommands dockerCommands, DockerService alertService, ExecutablesRunner executablesRunner) {
         String alertUrl = String.format("https://%s:%s/alert", applicationValues.getBlackDuckInstallWebServerHost(), applicationValues.getAlertInstallPort());
         logger.info("Alert url: " + alertUrl);
@@ -270,4 +267,5 @@ public class Application implements ApplicationRunner {
 
         return new AlertWithBlackDuckCertificateService(logger, blackDuckWait, httpClient, alertUrl, applicationValues.getBlackDuckInstallTimeoutInSeconds(), dockerCommands, alertService, executablesRunner);
     }
+
 }

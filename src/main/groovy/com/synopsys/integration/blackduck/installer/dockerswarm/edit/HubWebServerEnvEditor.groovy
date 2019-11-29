@@ -29,7 +29,6 @@ import com.synopsys.integration.log.IntLogger
 
 class HubWebServerEnvEditor extends PropertyFileEditor {
     public static final String WEBSERVER_HOST_KEY = 'PUBLIC_HUB_WEBSERVER_HOST='
-    public static final String USE_ALERT_KEY = 'USE_ALERT='
 
     def tokensToEdit = [:]
 
@@ -37,7 +36,6 @@ class HubWebServerEnvEditor extends PropertyFileEditor {
         super(logger, hashUtility, lineSeparator)
 
         addTokenIfApplicable(tokensToEdit, WEBSERVER_HOST_KEY, hubWebServerEnvTokens.webServerHost)
-        addTokenIfApplicable(tokensToEdit, USE_ALERT_KEY, hubWebServerEnvTokens.useAlert ? 1 : 0)
     }
 
     String getFilename() {

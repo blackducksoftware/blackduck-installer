@@ -59,6 +59,21 @@ public class ApplicationValues {
     @Value("${always.trust}")
     private boolean alwaysTrust;
 
+    @Value("${keystore.update}")
+    private boolean keyStoreUpdate;
+
+    @Value("${keystore.update.force}")
+    private boolean keyStoreUpdateForce;
+
+    @Value("${keystore.file}")
+    private String keyStoreFile;
+
+    @Value("${keystore.type}")
+    private String keyStoreType;
+
+    @Value("${keystore.password}")
+    private char[] keyStorePassword;
+
     @Value("${stack.name}")
     private String stackName;
 
@@ -232,6 +247,26 @@ public class ApplicationValues {
 
     public boolean isAlwaysTrust() {
         return alwaysTrust;
+    }
+
+    public boolean isKeyStoreUpdate() {
+        return keyStoreUpdate;
+    }
+
+    public boolean isKeyStoreUpdateForce() {
+        return keyStoreUpdateForce;
+    }
+
+    public String getKeyStoreFile() {
+        return keyStoreFile;
+    }
+
+    public String getKeyStoreType() {
+        return keyStoreType;
+    }
+
+    public char[] getKeyStorePassword() {
+        return keyStorePassword;
     }
 
     public String getStackName() {
@@ -413,5 +448,4 @@ public class ApplicationValues {
     public boolean isAlertInstallUseLocalOverrides() {
         return alertInstallUseLocalOverrides;
     }
-
 }

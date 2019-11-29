@@ -24,6 +24,7 @@ package com.synopsys.integration.blackduck.installer.dockerswarm;
 
 import com.synopsys.integration.blackduck.installer.model.DockerSecret;
 import com.synopsys.integration.blackduck.installer.model.DockerService;
+import com.synopsys.integration.blackduck.installer.model.ExecutableCreator;
 import com.synopsys.integration.executable.Executable;
 
 import java.io.File;
@@ -33,43 +34,44 @@ import java.util.List;
 import java.util.Set;
 
 public class DockerCommands {
+    private ExecutableCreator executableCreator;
+
+    public DockerCommands(ExecutableCreator executableCreator) {
+        this.executableCreator = executableCreator;
+    }
+
     public Executable stopStack(String stackName) {
         String fullCommand = String.format("docker stack rm %s", stackName);
-        return createExecutable(fullCommand);
+        return executableCreator.createExecutable(fullCommand);
     }
 
     public Executable restartDocker() {
-        return createExecutable("systemctl restart docker");
+        return executableCreator.createExecutable("systemctl restart docker");
     }
 
     public Executable listStackNames() {
         String fullCommand = "docker stack ls --format \"{{.Name}}\"";
-        return createExecutable(fullCommand);
+        return executableCreator.createExecutable(fullCommand);
     }
 
     public Executable listSecretNames() {
         String fullCommand = "docker secret ls --format \"{{.Name}}\"";
-        return createExecutable(fullCommand);
+        return executableCreator.createExecutable(fullCommand);
     }
 
     public Executable listServiceNames() {
         String fullCommand = "docker service ls --format \"{{.Name}}\"";
-        return createExecutable(fullCommand);
+        return executableCreator.createExecutable(fullCommand);
     }
 
     public Executable removeService(DockerService dockerService) {
         String fullCommand = String.format("docker service rm %s", dockerService.getDockerName());
-        return createExecutable(fullCommand);
+        return executableCreator.createExecutable(fullCommand);
     }
 
     public Executable createSecret(String stackName, DockerSecret dockerSecret) {
         String fullCommand = String.format("docker secret create %s_%s %s", stackName, dockerSecret.getLabel(), dockerSecret.getPath());
-        return createExecutable(fullCommand);
-    }
-
-    private Executable createExecutable(String fullCommand) {
-        List<String> commandPieces = Arrays.asList(fullCommand.split(" "));
-        return Executable.create(new File("."), commandPieces);
+        return executableCreator.createExecutable(fullCommand);
     }
 
 }

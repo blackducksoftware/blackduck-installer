@@ -24,26 +24,34 @@ package com.synopsys.integration.blackduck.installer.configure;
 
 import com.synopsys.integration.blackduck.api.generated.discovery.ApiDiscovery;
 import com.synopsys.integration.blackduck.api.generated.response.CurrentVersionView;
+import com.synopsys.integration.blackduck.configuration.BlackDuckServerConfig;
+import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
+import com.synopsys.integration.blackduck.installer.exception.IntegrationKeyStoreException;
 import com.synopsys.integration.blackduck.service.BlackDuckService;
+import com.synopsys.integration.blackduck.service.BlackDuckServicesFactory;
 import com.synopsys.integration.exception.IntegrationException;
 import com.synopsys.integration.log.IntLogger;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.DurationFormatUtils;
 
+import javax.net.ssl.SSLHandshakeException;
+import java.io.File;
 import java.time.Duration;
 
 public class BlackDuckWait {
     private final IntLogger intLogger;
     private final int timeoutInSeconds;
-    private final BlackDuckService blackDuckService;
+    private final BlackDuckServerConfig blackDuckServerConfig;
+    private final UpdateKeyStoreService updateKeyStoreService;
 
-    public BlackDuckWait(IntLogger intLogger, int timeoutInSeconds, BlackDuckService blackDuckService) {
+    public BlackDuckWait(IntLogger intLogger, int timeoutInSeconds, BlackDuckServerConfig blackDuckServerConfig, UpdateKeyStoreService updateKeyStoreService) {
         this.intLogger = intLogger;
         this.timeoutInSeconds = timeoutInSeconds;
-        this.blackDuckService = blackDuckService;
+        this.blackDuckServerConfig = blackDuckServerConfig;
+        this.updateKeyStoreService = updateKeyStoreService;
     }
 
-    public boolean waitForBlackDuck() throws InterruptedException {
+    public boolean waitForBlackDuck(File installDirectory) throws InterruptedException, BlackDuckInstallerException, IntegrationKeyStoreException {
         int attempts = 0;
         long start = System.currentTimeMillis();
 
@@ -59,9 +67,22 @@ public class BlackDuckWait {
                     return true;
                 }
             } catch (IntegrationException e) {
-                intLogger.info(String.format("Black Duck did not respond, waiting 30 seconds and trying again. (%s)", e.getMessage()));
-                Thread.sleep(30000);
-                attempts++;
+                if (e.getCause() instanceof SSLHandshakeException) {
+                    intLogger.info("The Black Duck server is responding, but its certificate is not in the java keystore.");
+                    if (updateKeyStoreService.canAttemptKeyStoreUpdate()) {
+                        intLogger.info("Since keystore.update=true, an automatic update of the keystore will be attempted.");
+                        try {
+                            updateKeyStoreService.updateKeyStoreWithBlackDuckCertificate(installDirectory);
+                        } catch (BlackDuckInstallerException | IntegrationKeyStoreException ex) {
+                            intLogger.error("The keystore could not be updated successfully - Black Duck can not be configured.");
+                            throw ex;
+                        }
+                    }
+                } else {
+                    intLogger.info(String.format("The Black Duck server is not responding successfully yet, waiting 30 seconds and trying again. (%s)", e.getMessage()));
+                    Thread.sleep(30000);
+                    attempts++;
+                }
             }
 
             currentDuration = Duration.ofMillis(System.currentTimeMillis() - start);
@@ -71,6 +92,8 @@ public class BlackDuckWait {
     }
 
     private String retrieveCurrentVersion() throws IntegrationException {
+        BlackDuckServicesFactory blackDuckServicesFactory = blackDuckServerConfig.createBlackDuckServicesFactory(intLogger);
+        BlackDuckService blackDuckService = blackDuckServicesFactory.createBlackDuckService();
         CurrentVersionView currentVersionView = blackDuckService.getResponse(ApiDiscovery.CURRENT_VERSION_LINK_RESPONSE);
 
         return currentVersionView.getVersion();

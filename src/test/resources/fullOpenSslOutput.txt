@@ -1,0 +1,83 @@
+CONNECTED(00000003)
+depth=0 C = US, ST = Massachusetts, L = Burlington, O = "Black Duck Software, Inc.", OU = Engineering, CN = hub-webserver
+verify error:num=20:unable to get local issuer certificate
+verify return:1
+depth=0 C = US, ST = Massachusetts, L = Burlington, O = "Black Duck Software, Inc.", OU = Engineering, CN = hub-webserver
+verify error:num=21:unable to verify the first certificate
+verify return:1
+---
+Certificate chain
+ 0 s:/C=US/ST=Massachusetts/L=Burlington/O=Black Duck Software, Inc./OU=Engineering/CN=hub-webserver
+   i:/C=US/ST=Massachusetts/L=Burlington/O=Black Duck Software, Inc./OU=Engineering/CN=blackducksoftware
+---
+Server certificate
+-----BEGIN CERTIFICATE-----
+MIIEZjCCA06gAwIBAgIUTKhMIyCnkION5FoLvg4og5QSRwkwDQYJKoZIhvcNAQEL
+BQAwgZAxCzAJBgNVBAYTAlVTMRYwFAYDVQQIEw1NYXNzYWNodXNldHRzMRMwEQYD
+VQQHEwpCdXJsaW5ndG9uMSIwIAYDVQQKExlCbGFjayBEdWNrIFNvZnR3YXJlLCBJ
+bmMuMRQwEgYDVQQLEwtFbmdpbmVlcmluZzEaMBgGA1UEAxMRYmxhY2tkdWNrc29m
+dHdhcmUwHhcNMTkxMTI2MTU0MjAwWhcNMjIxMTI1MTU0MjAwWjCBjDELMAkGA1UE
+BhMCVVMxFjAUBgNVBAgTDU1hc3NhY2h1c2V0dHMxEzARBgNVBAcTCkJ1cmxpbmd0
+b24xIjAgBgNVBAoTGUJsYWNrIER1Y2sgU29mdHdhcmUsIEluYy4xFDASBgNVBAsT
+C0VuZ2luZWVyaW5nMRYwFAYDVQQDEw1odWItd2Vic2VydmVyMIIBIjANBgkqhkiG
+9w0BAQEFAAOCAQ8AMIIBCgKCAQEA7/KZGYajz261MkIvsmczOJFw94tXJbTPBJ+x
+tzgrRlmMRjDmJ2QM3uarf7VtHQkSOoMbvZtb5SMU/Iig122FsrUGbzbet9qi7kDN
+NRhg+CIQ9RHHxHsGxLj+s4NSi8Kx6SAdqJkFXGJjj4A6gBPca25BJ2jbaiplADWJ
+qfFvF9VTTMn0iMwLWirOg9FYGzSNBV/nqsLRFotTlTRbP/OnW8PfLs4jXW013vqv
+f9rVTD5997epJvW+ht97E2nWzZNjUvOg23lC5hNQameJ6hbUkMx7hgwCoNnLqGpn
+poJIOQyPQg8FLdQuZh4jPXuVr9ZgKt/Ppkmz1MYFPfdST01uawIDAQABo4G5MIG2
+MA4GA1UdDwEB/wQEAwIFoDAdBgNVHSUEFjAUBggrBgEFBQcDAgYIKwYBBQUHAwEw
+DAYDVR0TAQH/BAIwADAdBgNVHQ4EFgQUBV7YLZo1CCqVqHgn1mZ8BYN8ivAwHwYD
+VR0jBBgwFoAUVC8F5oZHZm35VcOSahI7SU1aHMYwNwYDVR0RBDAwLoIWaW50LWJk
+c3RhcmxhYnMuZGMxLmxhboIJbG9jYWxob3N0ggl3ZWJzZXJ2ZXIwDQYJKoZIhvcN
+AQELBQADggEBAIKlpjKM+AgSPT533TARJ+TrBmml+1LZuSN2iY/JLHnMy6dXyg+5
+qRV0PSojlTf5Xy/XfNrrHS5nU+nWo1nycfZTlIwGuoJ40k+mzgOAvuLDMRZ1PKHR
+sG81QhqWrspcCfvX3FdvnNZoMjrNz9/EH/Qya/7Xj/8+r8+yHSdC+gwlq9nLpmt6
+OcZlNrUis2uAFllBBJdSTZxMI6mAesksHBRTeTCTcCYKDyLOxgyFzawld4GI9Eqs
+b5LTzkGiAjzeHE72BrqLAKl/+iqRsKOOBqQ5Zt+2k0EzFqXRm2ut7pybt9kkKtkr
+CKheh57eTTUDOqrHdA5OSEp/OE9enN3FusY=
+-----END CERTIFICATE-----
+subject=/C=US/ST=Massachusetts/L=Burlington/O=Black Duck Software, Inc./OU=Engineering/CN=hub-webserver
+issuer=/C=US/ST=Massachusetts/L=Burlington/O=Black Duck Software, Inc./OU=Engineering/CN=blackducksoftware
+---
+No client certificate CA names sent
+Peer signing digest: SHA512
+Server Temp Key: ECDH, P-256, 256 bits
+---
+SSL handshake has read 1805 bytes and written 427 bytes
+---
+New, TLSv1/SSLv3, Cipher is ECDHE-RSA-AES128-GCM-SHA256
+Server public key is 2048 bit
+Secure Renegotiation IS supported
+Compression: NONE
+Expansion: NONE
+No ALPN negotiated
+SSL-Session:
+    Protocol  : TLSv1.2
+    Cipher    : ECDHE-RSA-AES128-GCM-SHA256
+    Session-ID: 4091111145FD3845A04ED8ABD0CEA005C4D2C0DFB190BE6720632B9E0DBF8EDA
+    Session-ID-ctx:
+    Master-Key: 281C20624161884EDBFBC530C338B2E3A6FF642E32F82AA4117B938C06A68FFAAD793C90AA26F3CD2ADFD308F6EE829E
+    Key-Arg   : None
+    Krb5 Principal: None
+    PSK identity: None
+    PSK identity hint: None
+    TLS session ticket lifetime hint: 300 (seconds)
+    TLS session ticket:
+    0000 - 27 50 0b bd c7 98 0c 31-c3 ac e6 c6 e2 71 34 94   'P.....1.....q4.
+    0010 - cf 30 5d 31 43 e5 a4 b0-48 30 fc 43 50 fe dd 4e   .0]1C...H0.CP..N
+    0020 - 74 f6 57 8e 11 17 d7 79-e8 c0 e2 59 bc 80 3b be   t.W....y...Y..;.
+    0030 - e0 73 7e e8 20 bc 61 60-e4 9b ba 53 f2 6e e2 f0   .s~. .a`...S.n..
+    0040 - 63 95 02 6d 3a 04 ea 60-2c 8f 91 90 a6 0f 55 5d   c..m:..`,.....U]
+    0050 - 25 59 99 cc f7 7f f9 e9-7b df 4c 7d 13 ba 70 8d   %Y......{.L}..p.
+    0060 - 5c fa 59 62 c9 a1 01 98-55 ff 7a a0 5a f6 ad 27   \.Yb....U.z.Z..'
+    0070 - 6e c3 1d 94 51 a4 02 47-d7 58 ca 9a 29 8b 7f e9   n...Q..G.X..)...
+    0080 - 37 f5 07 4e 29 11 57 90-95 85 13 11 7d 0a 09 ea   7..N).W.....}...
+    0090 - ab 5b 3c 61 56 7f 6f 48-de 43 89 26 08 d7 80 e1   .[<aV.oH.C.&....
+    00a0 - 9b b9 a6 bb 5b fb b0 16-a0 2f 4c d9 4c a4 7b b9   ....[..../L.L.{.
+
+    Start Time: 1574785808
+    Timeout   : 300 (sec)
+    Verify return code: 21 (unable to verify the first certificate)
+---
+

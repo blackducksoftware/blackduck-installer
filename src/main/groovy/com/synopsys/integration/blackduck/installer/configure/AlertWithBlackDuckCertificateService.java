@@ -25,6 +25,7 @@ package com.synopsys.integration.blackduck.installer.configure;
 import com.synopsys.integration.blackduck.installer.dockerswarm.DockerCommands;
 import com.synopsys.integration.blackduck.installer.dockerswarm.DockerStackDeploy;
 import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
+import com.synopsys.integration.blackduck.installer.exception.IntegrationKeyStoreException;
 import com.synopsys.integration.blackduck.installer.model.DockerService;
 import com.synopsys.integration.blackduck.installer.model.ExecutablesRunner;
 import com.synopsys.integration.exception.IntegrationException;
@@ -37,6 +38,7 @@ import com.synopsys.integration.rest.request.Response;
 import org.apache.commons.lang3.time.DurationFormatUtils;
 import org.apache.http.entity.ContentType;
 
+import java.io.File;
 import java.io.IOException;
 import java.time.Duration;
 
@@ -75,9 +77,10 @@ public class AlertWithBlackDuckCertificateService {
      * startup. Sometimes, Alert will become healthy before Black Duck, so we have to force Alert to become healthy only
      * AFTER Black Duck is healthy.
      */
-    public void configureCertificate(DockerStackDeploy alertStackDeploy) throws BlackDuckInstallerException, InterruptedException {
+    //TODO USE_ALERT=1 no longer has any legitimate effect, this should all be unnecessary
+    public void configureCertificate(DockerStackDeploy alertStackDeploy, File blackDuckInstallDirectory) throws BlackDuckInstallerException, InterruptedException, IntegrationKeyStoreException {
         waitForAlertHealthy();
-        blackDuckWait.waitForBlackDuck();
+        blackDuckWait.waitForBlackDuck(blackDuckInstallDirectory);
 
         logger.info(String.format("Removing the service \"%s\".", alertService.getDockerName()));
         executablesRunner.runExecutable(dockerCommands.removeService(alertService));
