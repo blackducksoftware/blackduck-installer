@@ -20,7 +20,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.synopsys.integration.blackduck.installer.workflow;
+package com.synopsys.integration.blackduck.installer.dockerswarm.install;
 
 import com.synopsys.integration.blackduck.installer.ApplicationValues;
 import com.synopsys.integration.blackduck.installer.model.AlertBlackDuckInstallOptions;
