@@ -20,7 +20,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.synopsys.integration.blackduck.installer.workflow;
+package com.synopsys.integration.blackduck.installer.dockerswarm.install;
 
 import com.synopsys.integration.blackduck.installer.ApplicationValues;
 import com.synopsys.integration.blackduck.installer.DeployAlertProperties;
@@ -29,38 +29,37 @@ import com.synopsys.integration.blackduck.installer.dockerswarm.DockerCommands;
 import com.synopsys.integration.blackduck.installer.dockerswarm.DockerStackDeploy;
 import com.synopsys.integration.blackduck.installer.dockerswarm.deploy.AlertDockerManager;
 import com.synopsys.integration.blackduck.installer.dockerswarm.edit.AlertLocalOverridesEditor;
-import com.synopsys.integration.blackduck.installer.dockerswarm.install.AlertInstaller;
 import com.synopsys.integration.blackduck.installer.download.AlertGithubDownloadUrl;
 import com.synopsys.integration.blackduck.installer.download.ArtifactoryDownloadUrl;
 import com.synopsys.integration.blackduck.installer.download.ZipFileDownloader;
 import com.synopsys.integration.blackduck.installer.hash.HashUtility;
-import com.synopsys.integration.blackduck.installer.model.*;
+import com.synopsys.integration.blackduck.installer.model.AlertBlackDuckInstallOptions;
+import com.synopsys.integration.blackduck.installer.model.AlertEncryption;
+import com.synopsys.integration.blackduck.installer.model.CustomCertificate;
+import com.synopsys.integration.blackduck.installer.model.DockerService;
+import com.synopsys.integration.blackduck.installer.workflow.DownloadUrlDecider;
 import com.synopsys.integration.log.IntLogger;
 import com.synopsys.integration.rest.client.IntHttpClient;
 import com.synopsys.integration.util.CommonZipExpander;
 
 import java.io.File;
 
-public class AlertInstallerBuilder {
+public class AlertInstallerCreator {
     private ApplicationValues applicationValues;
-    private IntLogger intLogger;
-    private HashUtility hashUtility;
-    private String lineSeparator;
-    private ZipFileDownloader alertDownloader;
-    private ExecutablesRunner executablesRunner;
-    private AlertDockerManager alertDockerManager;
-    private DockerStackDeploy dockerStackDeploy;
-    private DockerCommands dockerCommands;
-    private AlertLocalOverridesEditor alertLocalOverridesEditor;
-    private boolean useLocalOverrides;
+    private DeployProductProperties deployProductProperties;
+    private DeployAlertProperties deployAlertProperties;
 
-    public void setRequiredProperties(DeployProductProperties deployProductProperties, DeployAlertProperties deployAlertProperties, ApplicationValues applicationValues) {
+    public AlertInstallerCreator(ApplicationValues applicationValues, DeployProductProperties deployProductProperties, DeployAlertProperties deployAlertProperties) {
         this.applicationValues = applicationValues;
-        this.intLogger = deployProductProperties.getIntLogger();
-        this.hashUtility = deployProductProperties.getHashUtility();
-        this.lineSeparator = deployProductProperties.getLineSeparator();
-        this.executablesRunner = deployProductProperties.getExecutablesRunner();
-        this.dockerCommands = deployProductProperties.getDockerCommands();
+        this.deployProductProperties = deployProductProperties;
+        this.deployAlertProperties = deployAlertProperties;
+    }
+
+    public AlertInstaller create() {
+        IntLogger intLogger = deployProductProperties.getIntLogger();
+        HashUtility hashUtility = deployProductProperties.getHashUtility();
+        String lineSeparator = deployProductProperties.getLineSeparator();
+        DockerCommands dockerCommands = deployProductProperties.getDockerCommands();
         IntHttpClient intHttpClient = deployProductProperties.getIntHttpClient();
         CommonZipExpander commonZipExpander = deployProductProperties.getCommonZipExpander();
         File baseDirectory = deployProductProperties.getBaseDirectory();
@@ -74,18 +73,16 @@ public class AlertInstallerBuilder {
         ArtifactoryDownloadUrl alertArtifactoryDownloadUrl = new ArtifactoryDownloadUrl(applicationValues.getAlertArtifactoryUrl(), applicationValues.getAlertArtifactoryRepo(), applicationValues.getAlertArtifactPath(), applicationValues.getAlertArtifact(), applicationValues.getAlertVersion());
         DownloadUrlDecider downloadUrlDecider = new DownloadUrlDecider(applicationValues.getAlertDownloadSource(), alertGithubDownloadUrl::getDownloadUrl, alertArtifactoryDownloadUrl::getDownloadUrl);
 
-        useLocalOverrides = applicationValues.isAlertInstallUseLocalOverrides();
+        boolean useLocalOverrides = applicationValues.isAlertInstallUseLocalOverrides();
         if (!deployProductProperties.getCustomCertificate().isEmpty() || !alertEncryption.isEmpty() || !alertBlackDuckInstallOptions.isEmpty()) {
             useLocalOverrides = true;
         }
-        alertLocalOverridesEditor = new AlertLocalOverridesEditor(intLogger, hashUtility, lineSeparator, applicationValues.getStackName(), applicationValues.getBlackDuckInstallWebServerHost(), applicationValues.getAlertInstallDefaultAdminEmail(), alertEncryption, customCertificate, alertBlackDuckInstallOptions, useLocalOverrides);
-        alertDownloader = new ZipFileDownloader(intLogger, intHttpClient, commonZipExpander, downloadUrlDecider, baseDirectory, "blackduck-alert", applicationValues.getAlertVersion(), applicationValues.isAlertDownloadForce());
-        dockerStackDeploy = new DockerStackDeploy(applicationValues.getStackName());
-        alertDockerManager = new AlertDockerManager(intLogger, dockerCommands, applicationValues.getStackName(), alertEncryption, alertService);
-    }
+        AlertLocalOverridesEditor alertLocalOverridesEditor = new AlertLocalOverridesEditor(intLogger, hashUtility, lineSeparator, applicationValues.getStackName(), applicationValues.getBlackDuckInstallWebServerHost(), applicationValues.getAlertInstallDefaultAdminEmail(), alertEncryption, customCertificate, alertBlackDuckInstallOptions, useLocalOverrides);
+        ZipFileDownloader alertDownloader = new ZipFileDownloader(intLogger, intHttpClient, commonZipExpander, downloadUrlDecider, baseDirectory, "blackduck-alert", applicationValues.getAlertVersion(), applicationValues.isAlertDownloadForce());
+        DockerStackDeploy dockerStackDeploy = new DockerStackDeploy(applicationValues.getStackName());
+        AlertDockerManager alertDockerManager = new AlertDockerManager(intLogger, dockerCommands, applicationValues.getStackName(), alertEncryption, alertService);
 
-    public AlertInstaller build() {
-        return new AlertInstaller(alertDownloader, executablesRunner, alertDockerManager, dockerStackDeploy, dockerCommands, alertLocalOverridesEditor, useLocalOverrides);
+        return new AlertInstaller(alertDownloader, deployProductProperties.getExecutablesRunner(), alertDockerManager, dockerStackDeploy, dockerCommands, alertLocalOverridesEditor, useLocalOverrides);
     }
 
 }
