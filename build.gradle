@@ -9,11 +9,12 @@ buildscript {
 plugins {
 	id 'org.springframework.boot' version '2.2.0.RELEASE'
 	id 'io.spring.dependency-management' version '1.0.8.RELEASE'
-	id 'groovy'
 }
 
 group = 'com.synopsys.integration'
 version = '0.0.1'
+project.ext.javaSourceCompatibility = JavaVersion.VERSION_11
+project.ext.javaTargetCompatibility = JavaVersion.VERSION_11
 
 apply plugin: 'com.blackducksoftware.integration.solution'
 
@@ -21,7 +22,6 @@ dependencies {
 	implementation 'com.blackducksoftware.integration:blackduck-common:44.4.0'
 
 	implementation 'org.springframework.boot:spring-boot-starter'
-	implementation 'org.codehaus.groovy:groovy'
 
 	testImplementation('org.springframework.boot:spring-boot-starter-test') {
 		exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'

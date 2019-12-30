@@ -1,4 +1,4 @@
-/*
+/**
  * blackduck-installer
  *
  * Copyright (c) 2019 Synopsys, Inc.
@@ -20,25 +20,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.synopsys.integration.blackduck.installer.model
+package com.synopsys.integration.blackduck.installer.dockerswarm.edit;
 
-import org.apache.commons.lang3.StringUtils
+import java.io.File;
 
-class BlackDuckConfigurationOptions {
-    String registrationKey
-    boolean acceptEula
-    boolean createApiToken
-    boolean isDryRun
+public class ConfigFile {
+    private File fileToEdit;
+    private File originalCopy;
 
-    BlackDuckConfigurationOptions(String registrationKey, boolean acceptEula, boolean createApiToken, boolean isDryRun) {
-        this.registrationKey = registrationKey
-        this.acceptEula = acceptEula
-        this.createApiToken = createApiToken
-        this.isDryRun = isDryRun
+    public ConfigFile(File fileToEdit, File originalCopy) {
+        this.fileToEdit = fileToEdit;
+        this.originalCopy = originalCopy;
     }
 
-    boolean shouldConfigure() {
-        return !isDryRun && (StringUtils.isNotBlank(registrationKey) || acceptEula || createApiToken)
+    public File getFileToEdit() {
+        return fileToEdit;
+    }
+
+    public File getOriginalCopy() {
+        return originalCopy;
     }
 
 }

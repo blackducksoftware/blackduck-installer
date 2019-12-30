@@ -27,8 +27,7 @@ import com.synopsys.integration.blackduck.installer.hash.HashUtility;
 import com.synopsys.integration.log.IntLogger;
 import org.apache.commons.lang3.StringUtils;
 
-import java.io.IOException;
-import java.io.Writer;
+import java.io.*;
 import java.util.Map;
 
 public abstract class PropertyFileEditor extends ConfigFileEditor {
@@ -52,7 +51,19 @@ public abstract class PropertyFileEditor extends ConfigFileEditor {
         }
     }
 
-    protected void editLine(Writer writer, Map<String, String> tokensToValues, String line) throws BlackDuckInstallerException {
+    protected void writeLinesWithTokenValues(Writer writer, Map<String, String> tokensToValues, File originalCopy) throws BlackDuckInstallerException {
+        try (BufferedReader reader = new BufferedReader(new FileReader(originalCopy))) {
+            String line = reader.readLine();
+            while (null != line) {
+                writeLineWithTokenValues(writer, tokensToValues, line);
+                line = reader.readLine();
+            }
+        } catch (IOException e) {
+            throw new BlackDuckInstallerException(String.format("Error reading original copy %s", originalCopy.getAbsolutePath()), e);
+        }
+    }
+
+    protected void writeLineWithTokenValues(Writer writer, Map<String, String> tokensToValues, String line) throws BlackDuckInstallerException {
         String fixedLine = fixLine(tokensToValues, line);
         try {
             writer.append(fixedLine + lineSeparator);
