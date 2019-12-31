@@ -196,7 +196,7 @@ public class Application implements ApplicationRunner {
         }
     }
 
-    private void deployAlert(AlertInstaller alertInstaller, AlertWait alertWait) throws BlackDuckInstallerException, InterruptedException {
+    private void deployAlert(AlertInstaller alertInstaller, AlertWait alertWait) throws IntegrationException, BlackDuckInstallerException, InterruptedException {
         InstallResult alertInstallResult = alertInstaller.performInstall();
 
         if (alertInstallResult.getReturnCode() == 0) {

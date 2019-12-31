@@ -21,6 +21,9 @@ apply plugin: 'com.blackducksoftware.integration.solution'
 dependencies {
 	implementation 'com.blackducksoftware.integration:blackduck-common:44.4.0'
 
+	//temporary - ejk
+	implementation 'com.blackducksoftware.integration:integration-common:18.1.0-SNAPSHOT'
+
 	implementation 'org.springframework.boot:spring-boot-starter'
 
 	testImplementation('org.springframework.boot:spring-boot-starter-test') {

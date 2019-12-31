@@ -22,31 +22,37 @@
  */
 package com.synopsys.integration.blackduck.installer.configure;
 
+import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
 import com.synopsys.integration.exception.IntegrationException;
 import com.synopsys.integration.log.IntLogger;
 import com.synopsys.integration.rest.client.IntHttpClient;
 import com.synopsys.integration.rest.request.Request;
-import com.synopsys.integration.wait.WaitJob;
+import com.synopsys.integration.rest.request.Response;
+import com.synopsys.integration.wait.WaitJobTask;
 
-public class AlertWait {
+import java.io.IOException;
+
+public class AlertWaitJobTask implements WaitJobTask {
     private final IntLogger intLogger;
-    private final int timeoutInSeconds;
     private final IntHttpClient intHttpClient;
     private final Request alertRequest;
 
-    public AlertWait(IntLogger intLogger, int timeoutInSeconds, IntHttpClient intHttpClient, Request alertRequest) {
+    public AlertWaitJobTask(IntLogger intLogger, IntHttpClient intHttpClient, Request alertRequest) {
         this.intLogger = intLogger;
-        this.timeoutInSeconds = timeoutInSeconds;
         this.intHttpClient = intHttpClient;
         this.alertRequest = alertRequest;
     }
 
-    public boolean waitForAlert() throws InterruptedException, IntegrationException {
-        AlertWaitJobTask alertWaitJobTask = new AlertWaitJobTask(intLogger, intHttpClient, alertRequest);
-        WaitJob waitJob = WaitJob.createUsingSystemTimeWhenInvoked(intLogger, timeoutInSeconds, 30, alertWaitJobTask);
+    @Override
+    public boolean isComplete() throws BlackDuckInstallerException {
+        try (Response response = intHttpClient.execute(alertRequest)) {
+            // at the moment, any valid http response is considered healthy
+            intLogger.info(String.format("Alert server responded with %s - this means it is online!", response.getStatusCode()));
+            return true;
+        } catch (IntegrationException | IOException e) {
+            intLogger.info(String.format("Exception trying to verify Alert. This may be okay as Alert may not be available yet: ", e.getMessage()));
+        }
 
-        intLogger.info("Checking the Alert server...");
-        return waitJob.waitFor();
+        return false;
     }
-
 }
