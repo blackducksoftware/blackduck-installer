@@ -70,12 +70,12 @@ public class BlackDuckConfigureService {
             applyRegistrationId(blackDuckConfigurationOptions.getRegistrationKey(), blackDuckService);
         }
 
-        if (blackDuckConfigurationOptions.getAcceptEula()) {
+        if (blackDuckConfigurationOptions.isAcceptEula()) {
             acceptEndUserLicenseAgreement(blackDuckService);
         }
 
         String apiToken = null;
-        if (blackDuckConfigurationOptions.getCreateApiToken()) {
+        if (blackDuckConfigurationOptions.isCreateApiToken()) {
             try {
                 ApiTokenService apiTokenService = new ApiTokenService(blackDuckHttpClient, gson, blackDuckJsonTransformer, blackDuckResponseTransformer, blackDuckResponsesTransformer);
                 apiToken = createApiToken(apiTokenService);
