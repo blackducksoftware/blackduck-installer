@@ -1,7 +1,7 @@
 /**
  * blackduck-installer
  *
- * Copyright (c) 2019 Synopsys, Inc.
+ * Copyright (c) 2020 Synopsys, Inc.
  *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements. See the NOTICE file
@@ -25,48 +25,37 @@ package com.synopsys.integration.blackduck.installer.configure;
 import com.synopsys.integration.exception.IntegrationException;
 import com.synopsys.integration.log.IntLogger;
 import com.synopsys.integration.rest.client.IntHttpClient;
+import com.synopsys.integration.rest.proxy.ProxyInfo;
 import com.synopsys.integration.rest.request.Request;
-import com.synopsys.integration.rest.request.Response;
-import org.apache.commons.lang3.time.DurationFormatUtils;
+import com.synopsys.integration.wait.WaitJob;
 
-import java.io.IOException;
-import java.time.Duration;
+import java.io.File;
 
 public class AlertWait {
     private final IntLogger intLogger;
     private final int timeoutInSeconds;
-    private final IntHttpClient intHttpClient;
+    private final int httpTimeoutInSeconds;
+    private final boolean alwaysTrust;
+    private final ProxyInfo proxyInfo;
     private final Request alertRequest;
+    private final UpdateKeyStoreService updateKeyStoreService;
 
-    public AlertWait(IntLogger intLogger, int timeoutInSeconds, IntHttpClient intHttpClient, Request alertRequest) {
+    public AlertWait(IntLogger intLogger, int timeoutInSeconds, int httpTimeoutInSeconds, boolean alwaysTrust, ProxyInfo proxyInfo, Request alertRequest, UpdateKeyStoreService updateKeyStoreService) {
         this.intLogger = intLogger;
         this.timeoutInSeconds = timeoutInSeconds;
-        this.intHttpClient = intHttpClient;
+        this.httpTimeoutInSeconds = httpTimeoutInSeconds;
+        this.alwaysTrust = alwaysTrust;
+        this.proxyInfo = proxyInfo;
         this.alertRequest = alertRequest;
+        this.updateKeyStoreService = updateKeyStoreService;
     }
 
-    public boolean waitForAlert() throws InterruptedException {
-        int attempts = 0;
-        long start = System.currentTimeMillis();
+    public boolean waitForAlert(File installDirectory) throws InterruptedException, IntegrationException {
+        AlertWaitJobTask alertWaitJobTask = new AlertWaitJobTask(intLogger, httpTimeoutInSeconds, alwaysTrust, proxyInfo, alertRequest, updateKeyStoreService, installDirectory);
+        WaitJob waitJob = WaitJob.createUsingSystemTimeWhenInvoked(intLogger, timeoutInSeconds, 30, alertWaitJobTask);
 
-        Duration currentDuration = Duration.ofMillis(0);
-        Duration maximumDuration = Duration.ofMillis(timeoutInSeconds * 1000);
-        while (currentDuration.compareTo(maximumDuration) <= 0) {
-            intLogger.info(String.format("Checking the Alert server...(try #%s, elapsed: %s)", attempts, DurationFormatUtils.formatDurationHMS(currentDuration.toMillis())));
-            try (Response response = intHttpClient.execute(alertRequest)) {
-                // at the moment, any valid http response is considered healthy
-                intLogger.info(String.format("Alert server responded with %s - this means it is online!", response.getStatusCode()));
-                return true;
-            } catch (IntegrationException | IOException e) {
-                intLogger.info(String.format("Exception trying to verify Alert. This may be okay as Alert may not be available yet: ", e.getMessage()));
-            }
-
-            intLogger.info(String.format("The Alert server is not responding successfully yet, waiting 30 seconds and trying again."));
-            Thread.sleep(30000);
-            attempts++;
-            currentDuration = Duration.ofMillis(System.currentTimeMillis() - start);
-        }
-
-        return false;
+        intLogger.info("Checking the Alert server...");
+        return waitJob.waitFor();
     }
+
 }

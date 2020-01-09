@@ -1,7 +1,7 @@
 /**
  * blackduck-installer
  *
- * Copyright (c) 2019 Synopsys, Inc.
+ * Copyright (c) 2020 Synopsys, Inc.
  *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements. See the NOTICE file
@@ -56,7 +56,7 @@ public abstract class Installer {
 
     public abstract void postDownloadProcessing(File installDirectory) throws BlackDuckInstallerException;
 
-    public abstract void populateDockerStackDeploy(File installDirectory);
+    public abstract void populateDockerStackDeploy(InstallerDockerData installerDockerData);
 
     public void addAdditionalExecutables(List<Executable> executables) {
     }
@@ -80,7 +80,8 @@ public abstract class Installer {
         int overallReturnCode = 0;
         overallReturnCode += executablesRunner.runExecutables(executables);
 
-        populateDockerStackDeploy(installDirectory);
+        InstallerDockerData installerDockerData = new InstallerDockerData(installDirectory, dockerStacks, dockerSecrets, dockerServices);
+        populateDockerStackDeploy(installerDockerData);
 
         Executable dockerStackDeployExecutable = dockerStackDeploy.createDeployExecutable();
         overallReturnCode += executablesRunner.runExecutableCode(dockerStackDeployExecutable);

@@ -1,7 +1,7 @@
 /**
  * blackduck-installer
  *
- * Copyright (c) 2019 Synopsys, Inc.
+ * Copyright (c) 2020 Synopsys, Inc.
  *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements. See the NOTICE file
@@ -35,12 +35,14 @@ import com.synopsys.integration.blackduck.installer.model.ExecutablesRunner;
 import java.io.File;
 
 public class AlertInstaller extends Installer {
+    private final String stackName;
     private final ConfigFileEditor alertLocalOverridesEditor;
     private final boolean useLocalOverrides;
 
-    public AlertInstaller(ZipFileDownloader zipFileDownloader, ExecutablesRunner executablesRunner, AlertDockerManager alertDockerManager, DockerStackDeploy dockerStackDeploy, DockerCommands dockerCommands, AlertLocalOverridesEditor alertLocalOverridesEditor, boolean useLocalOverrides) {
+    public AlertInstaller(ZipFileDownloader zipFileDownloader, ExecutablesRunner executablesRunner, AlertDockerManager alertDockerManager, DockerStackDeploy dockerStackDeploy, DockerCommands dockerCommands, String stackName, AlertLocalOverridesEditor alertLocalOverridesEditor, boolean useLocalOverrides) {
         super(zipFileDownloader, executablesRunner, alertDockerManager, dockerStackDeploy, dockerCommands);
 
+        this.stackName = stackName;
         this.alertLocalOverridesEditor = alertLocalOverridesEditor;
         this.useLocalOverrides = useLocalOverrides;
     }
@@ -51,10 +53,13 @@ public class AlertInstaller extends Installer {
     }
 
     @Override
-    public void populateDockerStackDeploy(File installDirectory) {
-        File dockerSwarm = new File(installDirectory, "docker-swarm");
-        File hub = new File(dockerSwarm, "hub");
-        addOrchestrationFile(hub, OrchestrationFiles.COMPOSE);
+    public void populateDockerStackDeploy(InstallerDockerData installerDockerData) {
+        File dockerSwarm = new File(installerDockerData.getInstallDirectory(), "docker-swarm");
+        File composeYmlDirectory = new File(dockerSwarm, "standalone");
+        if (installerDockerData.getDockerStacks().doesStackExist(stackName)) {
+            composeYmlDirectory = new File(dockerSwarm, "hub");
+        }
+        addOrchestrationFile(composeYmlDirectory, OrchestrationFiles.COMPOSE);
 
         if (useLocalOverrides) {
             addOrchestrationFile(dockerSwarm, OrchestrationFiles.LOCAL_OVERRIDES);

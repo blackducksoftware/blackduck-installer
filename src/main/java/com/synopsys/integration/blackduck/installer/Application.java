@@ -1,7 +1,7 @@
 /**
  * blackduck-installer
  *
- * Copyright (c) 2019 Synopsys, Inc.
+ * Copyright (c) 2020 Synopsys, Inc.
  *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements. See the NOTICE file
@@ -101,7 +101,7 @@ public class Application implements ApplicationRunner {
             ExecutableCreator executableCreator = new ExecutableCreator();
             DockerCommands dockerCommands = new DockerCommands(executableCreator);
             CommonZipExpander commonZipExpander = new CommonZipExpander(intLogger, expander);
-            CustomCertificate customCertificate = new CustomCertificate(applicationValues.getBlackDuckInstallCustomCertPath(), applicationValues.getBlackDuckInstallCustomKeyPath());
+            CustomCertificate customCertificate = new CustomCertificate(applicationValues.getCustomCertificatePath(), applicationValues.getCustomCertificateKeyPath());
             AlertEncryption alertEncryption = new AlertEncryption(applicationValues.getAlertInstallEncryptionPasswordPath(), applicationValues.getAlertInstallEncryptionGlobalSaltPath());
 
             CredentialsBuilder credentialsBuilder = Credentials.newBuilder();
@@ -135,16 +135,18 @@ public class Application implements ApplicationRunner {
             DockerService alertService = new DockerService(applicationValues.getStackName(), AlertDockerManager.ALERT_SERVICE_NAME);
             AlertBlackDuckInstallOptionsBuilder alertBlackDuckInstallOptionsBuilder = new AlertBlackDuckInstallOptionsBuilder(applicationValues);
             DeployAlertProperties deployAlertProperties = new DeployAlertProperties(alertService, alertBlackDuckInstallOptionsBuilder, alertEncryption);
+            AlertBlackDuckInstallOptions alertBlackDuckInstallOptions = deployAlertProperties.getAlertBlackDuckInstallOptions();
+
+            OpenSslOutputParser openSslOutputParser = new OpenSslOutputParser();
+            OpenSslRunner openSslRunner = new OpenSslRunner(intLogger, executablesRunner, openSslOutputParser);
+            KeyStoreManager keyStoreManager = new KeyStoreManager();
+            KeyStoreRequest keyStoreRequest = new KeyStoreRequest(new File(applicationValues.getKeyStoreFile()), applicationValues.getKeyStoreType(), applicationValues.getKeyStorePassword());
 
             if (DeployMethod.DEPLOY == applicationValues.getBlackDuckDeployMethod()) {
                 logger.info("Attempting to deploy Black Duck.");
-                OpenSslOutputParser openSslOutputParser = new OpenSslOutputParser();
-                OpenSslRunner openSslRunner = new OpenSslRunner(intLogger, executablesRunner, openSslOutputParser);
-                KeyStoreManager keyStoreManager = new KeyStoreManager();
-                KeyStoreRequest keyStoreRequest = new KeyStoreRequest(new File(applicationValues.getKeyStoreFile()), applicationValues.getKeyStoreType(), applicationValues.getKeyStorePassword());
-                UpdateKeyStoreService updateKeyStoreService = new UpdateKeyStoreService(intLogger, keyStoreManager, keyStoreRequest, applicationValues.isKeyStoreUpdate(), applicationValues.isKeyStoreUpdateForce(), applicationValues.getBlackDuckInstallWebServerHost(), 443, openSslRunner);
+                UpdateKeyStoreService blackDuckUpdateKeyStoreService = UpdateKeyStoreService.createForBlackDuck(intLogger, keyStoreManager, keyStoreRequest, applicationValues.isKeyStoreUpdate(), applicationValues.isKeyStoreUpdateForce(), applicationValues.getWebServerHost(), 443, openSslRunner);
                 BlackDuckServerConfig blackDuckServerConfig = createBlackDuckServerConfig(intLogger);
-                BlackDuckWait blackDuckWait = new BlackDuckWait(intLogger, applicationValues.getBlackDuckInstallTimeoutInSeconds(), blackDuckServerConfig, updateKeyStoreService);
+                BlackDuckWait blackDuckWait = new BlackDuckWait(intLogger, applicationValues.getBlackDuckInstallTimeoutInSeconds(), blackDuckServerConfig, blackDuckUpdateKeyStoreService);
                 BlackDuckConfigureService blackDuckConfigureService = new BlackDuckConfigureService(deployProductProperties.getIntLogger(), blackDuckServerConfig, applicationValues.getBlackDuckInstallTimeoutInSeconds(), blackDuckConfigurationOptions);
                 //TODO pass in the req'd properties instead of applicationValues
                 BlackDuckInstallerCreator blackDuckInstallerCreator = new BlackDuckInstallerCreator(applicationValues, deployProductProperties);
@@ -156,7 +158,8 @@ public class Application implements ApplicationRunner {
                     logger.info("Attempting to deploy Alert once Black Duck is healthy.");
                     blackDuckDeployResult.getApiToken().ifPresent(deployAlertProperties::setBlackDuckApiToken);
 
-                    AlertWait alertWait = createAlertWait(intLogger);
+                    UpdateKeyStoreService alertUpdateKeyStoreService = UpdateKeyStoreService.createForAlert(intLogger, keyStoreManager, keyStoreRequest, applicationValues.isKeyStoreUpdate(), applicationValues.isKeyStoreUpdateForce(), applicationValues.getWebServerHost(), 8443, openSslRunner);
+                    AlertWait alertWait = createAlertWait(intLogger, alertUpdateKeyStoreService, alertBlackDuckInstallOptions);
                     //TODO pass in the req'd properties instead of applicationValues
                     AlertInstallerCreator alertInstallerCreator = new AlertInstallerCreator(applicationValues, deployProductProperties, deployAlertProperties);
                     AlertInstaller alertInstaller = alertInstallerCreator.create();
@@ -165,7 +168,8 @@ public class Application implements ApplicationRunner {
             } else {
                 logger.info("Attempting to deploy Alert.");
 
-                AlertWait alertWait = createAlertWait(intLogger);
+                UpdateKeyStoreService alertUpdateKeyStoreService = UpdateKeyStoreService.createForAlert(intLogger, keyStoreManager, keyStoreRequest, applicationValues.isKeyStoreUpdate(), applicationValues.isKeyStoreUpdateForce(), applicationValues.getWebServerHost(), 8443, openSslRunner);
+                AlertWait alertWait = createAlertWait(intLogger, alertUpdateKeyStoreService, alertBlackDuckInstallOptions);
                 //TODO pass in the req'd properties instead of applicationValues
                 AlertInstallerCreator alertInstallerCreator = new AlertInstallerCreator(applicationValues, deployProductProperties, deployAlertProperties);
                 AlertInstaller alertInstaller = alertInstallerCreator.create();
@@ -196,11 +200,11 @@ public class Application implements ApplicationRunner {
         }
     }
 
-    private void deployAlert(AlertInstaller alertInstaller, AlertWait alertWait) throws BlackDuckInstallerException, InterruptedException {
+    private void deployAlert(AlertInstaller alertInstaller, AlertWait alertWait) throws IntegrationException, BlackDuckInstallerException, InterruptedException {
         InstallResult alertInstallResult = alertInstaller.performInstall();
 
         if (alertInstallResult.getReturnCode() == 0) {
-            alertWait.waitForAlert();
+            alertWait.waitForAlert(alertInstallResult.getInstallDirectory());
             logger.info("The Alert install was successful!");
         } else {
             throw new BlackDuckInstallerException("At least one Alert install command was not successful, the install can not continue - please check the output for any errors.");
@@ -211,7 +215,7 @@ public class Application implements ApplicationRunner {
         BlackDuckServerConfigBuilder builder = BlackDuckServerConfig.newBuilder();
         builder.setLogger(intLogger);
 
-        builder.setUrl("https://" + applicationValues.getBlackDuckInstallWebServerHost());
+        builder.setUrl("https://" + applicationValues.getWebServerHost());
         builder.setTimeoutInSeconds(applicationValues.getTimeoutInSeconds());
         builder.setTrustCert(applicationValues.isAlwaysTrust());
         builder.setUsername(applicationValues.getBlackDuckUsername());
@@ -220,14 +224,13 @@ public class Application implements ApplicationRunner {
         return builder.build();
     }
 
-    private AlertWait createAlertWait(IntLogger intLogger) {
-        String alertUrl = String.format("https://%s:%s/alert", applicationValues.getBlackDuckInstallWebServerHost(), applicationValues.getAlertInstallPort());
+    private AlertWait createAlertWait(IntLogger intLogger, UpdateKeyStoreService alertUpdateKeyStoreService, AlertBlackDuckInstallOptions alertBlackDuckInstallOptions) {
+        String alertUrl = String.format("https://%s:%s/alert", applicationValues.getWebServerHost(), applicationValues.getAlertInstallPort());
         Request.Builder requestBuilder = Request.newBuilder();
         requestBuilder.uri(alertUrl);
         requestBuilder.mimeType(ContentType.TEXT_HTML.getMimeType());
         Request alertRequest = requestBuilder.build();
-        IntHttpClient httpClient = new IntHttpClient(intLogger, applicationValues.getTimeoutInSeconds(), applicationValues.isAlwaysTrust(), ProxyInfo.NO_PROXY_INFO);
-        return new AlertWait(intLogger, applicationValues.getBlackDuckInstallTimeoutInSeconds(), httpClient, alertRequest);
+        return new AlertWait(intLogger, applicationValues.getBlackDuckInstallTimeoutInSeconds(), applicationValues.getTimeoutInSeconds(), applicationValues.isAlwaysTrust(), ProxyInfo.NO_PROXY_INFO, alertRequest, alertUpdateKeyStoreService);
     }
 
 }

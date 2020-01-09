@@ -1,7 +1,7 @@
 /**
  * blackduck-installer
  *
- * Copyright (c) 2019 Synopsys, Inc.
+ * Copyright (c) 2020 Synopsys, Inc.
  *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements. See the NOTICE file
@@ -44,10 +44,10 @@ public class AlertBlackDuckInstallOptionsBuilder {
         String blackDuckHostForAutoSslImport = null;
         int blackDuckPortForAutoSslImport = 0;
 
-        if (StringUtils.isNotBlank(applicationValues.getBlackDuckInstallWebServerHost())) {
-            blackDuckUrl = "https://" + applicationValues.getBlackDuckInstallWebServerHost();
+        if (StringUtils.isNotBlank(applicationValues.getWebServerHost())) {
+            blackDuckUrl = "https://" + applicationValues.getWebServerHost();
             if (applicationValues.isAlertInstallBlackDuckAutoSslImport()) {
-                blackDuckHostForAutoSslImport = applicationValues.getBlackDuckInstallWebServerHost();
+                blackDuckHostForAutoSslImport = applicationValues.getWebServerHost();
             }
         }
 
