@@ -1,7 +1,7 @@
 /**
  * blackduck-installer
  *
- * Copyright (c) 2019 Synopsys, Inc.
+ * Copyright (c) 2020 Synopsys, Inc.
  *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements. See the NOTICE file
@@ -27,6 +27,7 @@ import com.synopsys.integration.blackduck.installer.dockerswarm.output.DockerSec
 import com.synopsys.integration.blackduck.installer.dockerswarm.output.DockerServices;
 import com.synopsys.integration.blackduck.installer.dockerswarm.output.DockerStacks;
 import com.synopsys.integration.blackduck.installer.model.AlertEncryption;
+import com.synopsys.integration.blackduck.installer.model.CustomCertificate;
 import com.synopsys.integration.blackduck.installer.model.DockerService;
 import com.synopsys.integration.executable.Executable;
 import com.synopsys.integration.log.IntLogger;
@@ -38,11 +39,13 @@ import java.util.List;
 public class AlertDockerManager extends ProductDockerManager {
     public static final String ALERT_SERVICE_NAME = "alert";
 
+    private final CustomCertificate customCertificate;
     private final AlertEncryption alertEncryption;
     private final DockerService alertService;
 
-    public AlertDockerManager(IntLogger logger, DockerCommands dockerCommands, String stackName, AlertEncryption alertEncryption, DockerService alertService) {
+    public AlertDockerManager(IntLogger logger, DockerCommands dockerCommands, String stackName, CustomCertificate customCertificate, AlertEncryption alertEncryption, DockerService alertService) {
         super(logger, dockerCommands, stackName);
+        this.customCertificate = customCertificate;
         this.alertEncryption = alertEncryption;
         this.alertService = alertService;
     }
@@ -58,6 +61,11 @@ public class AlertDockerManager extends ProductDockerManager {
         if (!alertEncryption.isEmpty()) {
             addSecret(executables, dockerSecrets, alertEncryption.getPassword());
             addSecret(executables, dockerSecrets, alertEncryption.getSalt());
+        }
+
+        if (!customCertificate.isEmpty()) {
+            addSecret(executables, dockerSecrets, customCertificate.getCertificate());
+            addSecret(executables, dockerSecrets, customCertificate.getPrivateKey());
         }
 
         return executables;

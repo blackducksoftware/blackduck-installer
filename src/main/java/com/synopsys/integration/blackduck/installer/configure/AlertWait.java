@@ -1,7 +1,7 @@
 /**
  * blackduck-installer
  *
- * Copyright (c) 2019 Synopsys, Inc.
+ * Copyright (c) 2020 Synopsys, Inc.
  *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements. See the NOTICE file
@@ -25,24 +25,33 @@ package com.synopsys.integration.blackduck.installer.configure;
 import com.synopsys.integration.exception.IntegrationException;
 import com.synopsys.integration.log.IntLogger;
 import com.synopsys.integration.rest.client.IntHttpClient;
+import com.synopsys.integration.rest.proxy.ProxyInfo;
 import com.synopsys.integration.rest.request.Request;
 import com.synopsys.integration.wait.WaitJob;
+
+import java.io.File;
 
 public class AlertWait {
     private final IntLogger intLogger;
     private final int timeoutInSeconds;
-    private final IntHttpClient intHttpClient;
+    private final int httpTimeoutInSeconds;
+    private final boolean alwaysTrust;
+    private final ProxyInfo proxyInfo;
     private final Request alertRequest;
+    private final UpdateKeyStoreService updateKeyStoreService;
 
-    public AlertWait(IntLogger intLogger, int timeoutInSeconds, IntHttpClient intHttpClient, Request alertRequest) {
+    public AlertWait(IntLogger intLogger, int timeoutInSeconds, int httpTimeoutInSeconds, boolean alwaysTrust, ProxyInfo proxyInfo, Request alertRequest, UpdateKeyStoreService updateKeyStoreService) {
         this.intLogger = intLogger;
         this.timeoutInSeconds = timeoutInSeconds;
-        this.intHttpClient = intHttpClient;
+        this.httpTimeoutInSeconds = httpTimeoutInSeconds;
+        this.alwaysTrust = alwaysTrust;
+        this.proxyInfo = proxyInfo;
         this.alertRequest = alertRequest;
+        this.updateKeyStoreService = updateKeyStoreService;
     }
 
-    public boolean waitForAlert() throws InterruptedException, IntegrationException {
-        AlertWaitJobTask alertWaitJobTask = new AlertWaitJobTask(intLogger, intHttpClient, alertRequest);
+    public boolean waitForAlert(File installDirectory) throws InterruptedException, IntegrationException {
+        AlertWaitJobTask alertWaitJobTask = new AlertWaitJobTask(intLogger, httpTimeoutInSeconds, alwaysTrust, proxyInfo, alertRequest, updateKeyStoreService, installDirectory);
         WaitJob waitJob = WaitJob.createUsingSystemTimeWhenInvoked(intLogger, timeoutInSeconds, 30, alertWaitJobTask);
 
         intLogger.info("Checking the Alert server...");

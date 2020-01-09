@@ -1,7 +1,7 @@
 /**
  * blackduck-installer
  *
- * Copyright (c) 2019 Synopsys, Inc.
+ * Copyright (c) 2020 Synopsys, Inc.
  *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements. See the NOTICE file
@@ -65,20 +65,7 @@ public class BlackDuckWaitJobTask implements WaitJobTask {
             }
         } catch (IntegrationException e) {
             if (e.getCause() instanceof SSLHandshakeException) {
-                intLogger.info("The Black Duck server is responding, but its certificate is not in the java keystore.");
-                if (!updateKeyStoreService.canAttemptKeyStoreUpdate()) {
-                    intLogger.error("Since keystore.update=false, no automatic update of the keystore will be attempted.");
-                    throw new BlackDuckInstallerException("The keystore is not setup properly (either add the certificate manually, or set keystore.update=true) - Black Duck can not be configured.");
-                } else {
-                    intLogger.info("Since keystore.update=true, an automatic update of the keystore will be attempted.");
-                    try {
-                        updateKeyStoreService.updateKeyStoreWithBlackDuckCertificate(installDirectory);
-                    } catch (BlackDuckInstallerException | IntegrationKeyStoreException ex) {
-                        throw new BlackDuckInstallerException("The keystore could not be updated successfully - Black Duck can not be configured.", ex);
-                    }
-                }
-
-                intLogger.info("Couldn't check the version because of a missing certificate - the next check should work.");
+                updateKeyStoreService.handleSSLHandshakeException(installDirectory);
                 return false;
             }
         }

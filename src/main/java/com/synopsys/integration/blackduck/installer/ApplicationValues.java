@@ -1,7 +1,7 @@
 /**
  * blackduck-installer
  *
- * Copyright (c) 2019 Synopsys, Inc.
+ * Copyright (c) 2020 Synopsys, Inc.
  *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements. See the NOTICE file
@@ -77,6 +77,15 @@ public class ApplicationValues {
     @Value("${stack.name}")
     private String stackName;
 
+    @Value("${web.server.host}")
+    private String webServerHost;
+
+    @Value("${custom.certificate.path}")
+    private String customCertificatePath;
+
+    @Value("${custom.certificate.key.path}")
+    private String customCertificateKeyPath;
+
     @Value("${blackduck.deploy.method}")
     private DeployMethod blackDuckDeployMethod;
 
@@ -104,9 +113,6 @@ public class ApplicationValues {
     @Value("${blackduck.artifact}")
     private String blackDuckArtifact;
 
-    @Value("${blackduck.install.web.server.host}")
-    private String blackDuckInstallWebServerHost;
-
     @Value("${blackduck.install.proxy.host}")
     private String blackDuckInstallProxyHost;
 
@@ -121,12 +127,6 @@ public class ApplicationValues {
 
     @Value("${blackduck.install.custom.kb.host}")
     private String blackDuckInstallCustomKbHost;
-
-    @Value("${blackduck.install.custom.key.path}")
-    private String blackDuckInstallCustomKeyPath;
-
-    @Value("${blackduck.install.custom.cert.path}")
-    private String blackDuckInstallCustomCertPath;
 
     @Value("${blackduck.install.use.local.overrides}")
     private boolean blackDuckInstallUseLocalOverrides;
@@ -213,239 +213,480 @@ public class ApplicationValues {
         return baseDirectory;
     }
 
+    public void setBaseDirectory(String baseDirectory) {
+        this.baseDirectory = baseDirectory;
+    }
+
     public boolean isInstallDryRun() {
         return installDryRun;
+    }
+
+    public void setInstallDryRun(boolean installDryRun) {
+        this.installDryRun = installDryRun;
     }
 
     public int getTimeoutInSeconds() {
         return timeoutInSeconds;
     }
 
+    public void setTimeoutInSeconds(int timeoutInSeconds) {
+        this.timeoutInSeconds = timeoutInSeconds;
+    }
+
     public String getProxyHost() {
         return proxyHost;
+    }
+
+    public void setProxyHost(String proxyHost) {
+        this.proxyHost = proxyHost;
     }
 
     public int getProxyPort() {
         return proxyPort;
     }
 
+    public void setProxyPort(int proxyPort) {
+        this.proxyPort = proxyPort;
+    }
+
     public String getProxyUsername() {
         return proxyUsername;
+    }
+
+    public void setProxyUsername(String proxyUsername) {
+        this.proxyUsername = proxyUsername;
     }
 
     public String getProxyPassword() {
         return proxyPassword;
     }
 
+    public void setProxyPassword(String proxyPassword) {
+        this.proxyPassword = proxyPassword;
+    }
+
     public String getProxyNtlmDomain() {
         return proxyNtlmDomain;
+    }
+
+    public void setProxyNtlmDomain(String proxyNtlmDomain) {
+        this.proxyNtlmDomain = proxyNtlmDomain;
     }
 
     public String getProxyNtlmWorkstation() {
         return proxyNtlmWorkstation;
     }
 
+    public void setProxyNtlmWorkstation(String proxyNtlmWorkstation) {
+        this.proxyNtlmWorkstation = proxyNtlmWorkstation;
+    }
+
     public boolean isAlwaysTrust() {
         return alwaysTrust;
+    }
+
+    public void setAlwaysTrust(boolean alwaysTrust) {
+        this.alwaysTrust = alwaysTrust;
     }
 
     public boolean isKeyStoreUpdate() {
         return keyStoreUpdate;
     }
 
+    public void setKeyStoreUpdate(boolean keyStoreUpdate) {
+        this.keyStoreUpdate = keyStoreUpdate;
+    }
+
     public boolean isKeyStoreUpdateForce() {
         return keyStoreUpdateForce;
+    }
+
+    public void setKeyStoreUpdateForce(boolean keyStoreUpdateForce) {
+        this.keyStoreUpdateForce = keyStoreUpdateForce;
     }
 
     public String getKeyStoreFile() {
         return keyStoreFile;
     }
 
+    public void setKeyStoreFile(String keyStoreFile) {
+        this.keyStoreFile = keyStoreFile;
+    }
+
     public String getKeyStoreType() {
         return keyStoreType;
+    }
+
+    public void setKeyStoreType(String keyStoreType) {
+        this.keyStoreType = keyStoreType;
     }
 
     public char[] getKeyStorePassword() {
         return keyStorePassword;
     }
 
+    public void setKeyStorePassword(char[] keyStorePassword) {
+        this.keyStorePassword = keyStorePassword;
+    }
+
     public String getStackName() {
         return stackName;
+    }
+
+    public void setStackName(String stackName) {
+        this.stackName = stackName;
+    }
+
+    public String getWebServerHost() {
+        return webServerHost;
+    }
+
+    public void setWebServerHost(String webServerHost) {
+        this.webServerHost = webServerHost;
+    }
+
+    public String getCustomCertificatePath() {
+        return customCertificatePath;
+    }
+
+    public void setCustomCertificatePath(String customCertificatePath) {
+        this.customCertificatePath = customCertificatePath;
+    }
+
+    public String getCustomCertificateKeyPath() {
+        return customCertificateKeyPath;
+    }
+
+    public void setCustomCertificateKeyPath(String customCertificateKeyPath) {
+        this.customCertificateKeyPath = customCertificateKeyPath;
     }
 
     public DeployMethod getBlackDuckDeployMethod() {
         return blackDuckDeployMethod;
     }
 
+    public void setBlackDuckDeployMethod(DeployMethod blackDuckDeployMethod) {
+        this.blackDuckDeployMethod = blackDuckDeployMethod;
+    }
+
     public String getBlackDuckVersion() {
         return blackDuckVersion;
+    }
+
+    public void setBlackDuckVersion(String blackDuckVersion) {
+        this.blackDuckVersion = blackDuckVersion;
     }
 
     public DownloadSource getBlackDuckDownloadSource() {
         return blackDuckDownloadSource;
     }
 
+    public void setBlackDuckDownloadSource(DownloadSource blackDuckDownloadSource) {
+        this.blackDuckDownloadSource = blackDuckDownloadSource;
+    }
+
     public boolean isBlackDuckDownloadForce() {
         return blackDuckDownloadForce;
+    }
+
+    public void setBlackDuckDownloadForce(boolean blackDuckDownloadForce) {
+        this.blackDuckDownloadForce = blackDuckDownloadForce;
     }
 
     public String getBlackDuckGithubDownloadUrlPrefix() {
         return blackDuckGithubDownloadUrlPrefix;
     }
 
+    public void setBlackDuckGithubDownloadUrlPrefix(String blackDuckGithubDownloadUrlPrefix) {
+        this.blackDuckGithubDownloadUrlPrefix = blackDuckGithubDownloadUrlPrefix;
+    }
+
     public String getBlackDuckArtifactoryUrl() {
         return blackDuckArtifactoryUrl;
+    }
+
+    public void setBlackDuckArtifactoryUrl(String blackDuckArtifactoryUrl) {
+        this.blackDuckArtifactoryUrl = blackDuckArtifactoryUrl;
     }
 
     public String getBlackDuckArtifactoryRepo() {
         return blackDuckArtifactoryRepo;
     }
 
+    public void setBlackDuckArtifactoryRepo(String blackDuckArtifactoryRepo) {
+        this.blackDuckArtifactoryRepo = blackDuckArtifactoryRepo;
+    }
+
     public String getBlackDuckArtifactPath() {
         return blackDuckArtifactPath;
+    }
+
+    public void setBlackDuckArtifactPath(String blackDuckArtifactPath) {
+        this.blackDuckArtifactPath = blackDuckArtifactPath;
     }
 
     public String getBlackDuckArtifact() {
         return blackDuckArtifact;
     }
 
-    public String getBlackDuckInstallWebServerHost() {
-        return blackDuckInstallWebServerHost;
+    public void setBlackDuckArtifact(String blackDuckArtifact) {
+        this.blackDuckArtifact = blackDuckArtifact;
     }
 
     public String getBlackDuckInstallProxyHost() {
         return blackDuckInstallProxyHost;
     }
 
+    public void setBlackDuckInstallProxyHost(String blackDuckInstallProxyHost) {
+        this.blackDuckInstallProxyHost = blackDuckInstallProxyHost;
+    }
+
     public int getBlackDuckInstallProxyPort() {
         return blackDuckInstallProxyPort;
+    }
+
+    public void setBlackDuckInstallProxyPort(int blackDuckInstallProxyPort) {
+        this.blackDuckInstallProxyPort = blackDuckInstallProxyPort;
     }
 
     public String getBlackDuckInstallProxyScheme() {
         return blackDuckInstallProxyScheme;
     }
 
+    public void setBlackDuckInstallProxyScheme(String blackDuckInstallProxyScheme) {
+        this.blackDuckInstallProxyScheme = blackDuckInstallProxyScheme;
+    }
+
     public String getBlackDuckInstallProxyUser() {
         return blackDuckInstallProxyUser;
+    }
+
+    public void setBlackDuckInstallProxyUser(String blackDuckInstallProxyUser) {
+        this.blackDuckInstallProxyUser = blackDuckInstallProxyUser;
     }
 
     public String getBlackDuckInstallCustomKbHost() {
         return blackDuckInstallCustomKbHost;
     }
 
-    public String getBlackDuckInstallCustomKeyPath() {
-        return blackDuckInstallCustomKeyPath;
-    }
-
-    public String getBlackDuckInstallCustomCertPath() {
-        return blackDuckInstallCustomCertPath;
+    public void setBlackDuckInstallCustomKbHost(String blackDuckInstallCustomKbHost) {
+        this.blackDuckInstallCustomKbHost = blackDuckInstallCustomKbHost;
     }
 
     public boolean isBlackDuckInstallUseLocalOverrides() {
         return blackDuckInstallUseLocalOverrides;
     }
 
+    public void setBlackDuckInstallUseLocalOverrides(boolean blackDuckInstallUseLocalOverrides) {
+        this.blackDuckInstallUseLocalOverrides = blackDuckInstallUseLocalOverrides;
+    }
+
     public int getBlackDuckInstallTimeoutInSeconds() {
         return blackDuckInstallTimeoutInSeconds;
+    }
+
+    public void setBlackDuckInstallTimeoutInSeconds(int blackDuckInstallTimeoutInSeconds) {
+        this.blackDuckInstallTimeoutInSeconds = blackDuckInstallTimeoutInSeconds;
     }
 
     public String getBlackDuckUsername() {
         return blackDuckUsername;
     }
 
+    public void setBlackDuckUsername(String blackDuckUsername) {
+        this.blackDuckUsername = blackDuckUsername;
+    }
+
     public String getBlackDuckPassword() {
         return blackDuckPassword;
+    }
+
+    public void setBlackDuckPassword(String blackDuckPassword) {
+        this.blackDuckPassword = blackDuckPassword;
     }
 
     public String getBlackDuckConfigureRegistrationKey() {
         return blackDuckConfigureRegistrationKey;
     }
 
+    public void setBlackDuckConfigureRegistrationKey(String blackDuckConfigureRegistrationKey) {
+        this.blackDuckConfigureRegistrationKey = blackDuckConfigureRegistrationKey;
+    }
+
     public boolean isBlackDuckConfigureAcceptEula() {
         return blackDuckConfigureAcceptEula;
+    }
+
+    public void setBlackDuckConfigureAcceptEula(boolean blackDuckConfigureAcceptEula) {
+        this.blackDuckConfigureAcceptEula = blackDuckConfigureAcceptEula;
     }
 
     public boolean isBlackDuckConfigureApiToken() {
         return blackDuckConfigureApiToken;
     }
 
+    public void setBlackDuckConfigureApiToken(boolean blackDuckConfigureApiToken) {
+        this.blackDuckConfigureApiToken = blackDuckConfigureApiToken;
+    }
+
     public DeployMethod getAlertDeployMethod() {
         return alertDeployMethod;
+    }
+
+    public void setAlertDeployMethod(DeployMethod alertDeployMethod) {
+        this.alertDeployMethod = alertDeployMethod;
     }
 
     public String getAlertVersion() {
         return alertVersion;
     }
 
+    public void setAlertVersion(String alertVersion) {
+        this.alertVersion = alertVersion;
+    }
+
     public DownloadSource getAlertDownloadSource() {
         return alertDownloadSource;
+    }
+
+    public void setAlertDownloadSource(DownloadSource alertDownloadSource) {
+        this.alertDownloadSource = alertDownloadSource;
     }
 
     public boolean isAlertDownloadForce() {
         return alertDownloadForce;
     }
 
+    public void setAlertDownloadForce(boolean alertDownloadForce) {
+        this.alertDownloadForce = alertDownloadForce;
+    }
+
     public String getAlertGithubDownloadUrlPrefix() {
         return alertGithubDownloadUrlPrefix;
+    }
+
+    public void setAlertGithubDownloadUrlPrefix(String alertGithubDownloadUrlPrefix) {
+        this.alertGithubDownloadUrlPrefix = alertGithubDownloadUrlPrefix;
     }
 
     public String getAlertArtifactoryUrl() {
         return alertArtifactoryUrl;
     }
 
+    public void setAlertArtifactoryUrl(String alertArtifactoryUrl) {
+        this.alertArtifactoryUrl = alertArtifactoryUrl;
+    }
+
     public String getAlertArtifactoryRepo() {
         return alertArtifactoryRepo;
+    }
+
+    public void setAlertArtifactoryRepo(String alertArtifactoryRepo) {
+        this.alertArtifactoryRepo = alertArtifactoryRepo;
     }
 
     public String getAlertArtifactPath() {
         return alertArtifactPath;
     }
 
+    public void setAlertArtifactPath(String alertArtifactPath) {
+        this.alertArtifactPath = alertArtifactPath;
+    }
+
     public String getAlertArtifact() {
         return alertArtifact;
+    }
+
+    public void setAlertArtifact(String alertArtifact) {
+        this.alertArtifact = alertArtifact;
     }
 
     public String getAlertInstallPort() {
         return alertInstallPort;
     }
 
+    public void setAlertInstallPort(String alertInstallPort) {
+        this.alertInstallPort = alertInstallPort;
+    }
+
     public String getAlertInstallEncryptionPasswordPath() {
         return alertInstallEncryptionPasswordPath;
+    }
+
+    public void setAlertInstallEncryptionPasswordPath(String alertInstallEncryptionPasswordPath) {
+        this.alertInstallEncryptionPasswordPath = alertInstallEncryptionPasswordPath;
     }
 
     public String getAlertInstallEncryptionGlobalSaltPath() {
         return alertInstallEncryptionGlobalSaltPath;
     }
 
+    public void setAlertInstallEncryptionGlobalSaltPath(String alertInstallEncryptionGlobalSaltPath) {
+        this.alertInstallEncryptionGlobalSaltPath = alertInstallEncryptionGlobalSaltPath;
+    }
+
     public String getAlertInstallDefaultAdminEmail() {
         return alertInstallDefaultAdminEmail;
+    }
+
+    public void setAlertInstallDefaultAdminEmail(String alertInstallDefaultAdminEmail) {
+        this.alertInstallDefaultAdminEmail = alertInstallDefaultAdminEmail;
     }
 
     public String getAlertInstallBlackDuckUrl() {
         return alertInstallBlackDuckUrl;
     }
 
+    public void setAlertInstallBlackDuckUrl(String alertInstallBlackDuckUrl) {
+        this.alertInstallBlackDuckUrl = alertInstallBlackDuckUrl;
+    }
+
     public String getAlertInstallBlackDuckApiToken() {
         return alertInstallBlackDuckApiToken;
+    }
+
+    public void setAlertInstallBlackDuckApiToken(String alertInstallBlackDuckApiToken) {
+        this.alertInstallBlackDuckApiToken = alertInstallBlackDuckApiToken;
     }
 
     public int getAlertInstallBlackDuckTimeoutInSeconds() {
         return alertInstallBlackDuckTimeoutInSeconds;
     }
 
+    public void setAlertInstallBlackDuckTimeoutInSeconds(int alertInstallBlackDuckTimeoutInSeconds) {
+        this.alertInstallBlackDuckTimeoutInSeconds = alertInstallBlackDuckTimeoutInSeconds;
+    }
+
     public boolean isAlertInstallBlackDuckAutoSslImport() {
         return alertInstallBlackDuckAutoSslImport;
+    }
+
+    public void setAlertInstallBlackDuckAutoSslImport(boolean alertInstallBlackDuckAutoSslImport) {
+        this.alertInstallBlackDuckAutoSslImport = alertInstallBlackDuckAutoSslImport;
     }
 
     public String getAlertInstallBlackDuckHostForAutoSslImport() {
         return alertInstallBlackDuckHostForAutoSslImport;
     }
 
+    public void setAlertInstallBlackDuckHostForAutoSslImport(String alertInstallBlackDuckHostForAutoSslImport) {
+        this.alertInstallBlackDuckHostForAutoSslImport = alertInstallBlackDuckHostForAutoSslImport;
+    }
+
     public int getAlertInstallBlackDuckPortForAutoSslImport() {
         return alertInstallBlackDuckPortForAutoSslImport;
+    }
+
+    public void setAlertInstallBlackDuckPortForAutoSslImport(int alertInstallBlackDuckPortForAutoSslImport) {
+        this.alertInstallBlackDuckPortForAutoSslImport = alertInstallBlackDuckPortForAutoSslImport;
     }
 
     public boolean isAlertInstallUseLocalOverrides() {
         return alertInstallUseLocalOverrides;
     }
+
+    public void setAlertInstallUseLocalOverrides(boolean alertInstallUseLocalOverrides) {
+        this.alertInstallUseLocalOverrides = alertInstallUseLocalOverrides;
+    }
+
 }

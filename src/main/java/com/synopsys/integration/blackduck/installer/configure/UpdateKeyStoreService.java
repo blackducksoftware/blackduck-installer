@@ -1,7 +1,7 @@
 /**
  * blackduck-installer
  *
- * Copyright (c) 2019 Synopsys, Inc.
+ * Copyright (c) 2020 Synopsys, Inc.
  *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements. See the NOTICE file
@@ -43,18 +43,30 @@ public class UpdateKeyStoreService {
     private final KeyStoreRequest keyStoreRequest;
     private final boolean keyStoreUpdate;
     private final boolean keyStoreUpdateForce;
-    private final String blackDuckHost;
-    private final int blackDuckPort;
+    private final String host;
+    private final int port;
+    private final String aliasNamespace;
+    private final String serverLabel;
     private final OpenSslRunner openSslRunner;
 
-    public UpdateKeyStoreService(IntLogger intLogger, KeyStoreManager keyStoreManager, KeyStoreRequest keyStoreRequest, boolean keyStoreUpdate, boolean keyStoreUpdateForce, String blackDuckHost, int blackDuckPort, OpenSslRunner openSslRunner) {
+    public static UpdateKeyStoreService createForBlackDuck(IntLogger intLogger, KeyStoreManager keyStoreManager, KeyStoreRequest keyStoreRequest, boolean keyStoreUpdate, boolean keyStoreUpdateForce, String blackDuckHost, int blackDuckPort, OpenSslRunner openSslRunner) {
+        return new UpdateKeyStoreService(intLogger, keyStoreManager, keyStoreRequest, keyStoreUpdate, keyStoreUpdateForce, blackDuckHost, blackDuckPort, "blackduck", "Black Duck", openSslRunner);
+    }
+
+    public static UpdateKeyStoreService createForAlert(IntLogger intLogger, KeyStoreManager keyStoreManager, KeyStoreRequest keyStoreRequest, boolean keyStoreUpdate, boolean keyStoreUpdateForce, String alertHost, int alertPort, OpenSslRunner openSslRunner) {
+        return new UpdateKeyStoreService(intLogger, keyStoreManager, keyStoreRequest, keyStoreUpdate, keyStoreUpdateForce, alertHost, alertPort, "alert", "Alert", openSslRunner);
+    }
+
+    public UpdateKeyStoreService(IntLogger intLogger, KeyStoreManager keyStoreManager, KeyStoreRequest keyStoreRequest, boolean keyStoreUpdate, boolean keyStoreUpdateForce, String host, int port, String aliasNamespace, String serverLabel, OpenSslRunner openSslRunner) {
         this.intLogger = intLogger;
         this.keyStoreManager = keyStoreManager;
         this.keyStoreRequest = keyStoreRequest;
         this.keyStoreUpdate = keyStoreUpdate;
         this.keyStoreUpdateForce = keyStoreUpdateForce;
-        this.blackDuckHost = blackDuckHost;
-        this.blackDuckPort = blackDuckPort;
+        this.host = host;
+        this.port = port;
+        this.aliasNamespace = aliasNamespace;
+        this.serverLabel = serverLabel;
         this.openSslRunner = openSslRunner;
     }
 
@@ -62,13 +74,13 @@ public class UpdateKeyStoreService {
         return keyStoreUpdate;
     }
 
-    public boolean updateKeyStoreWithBlackDuckCertificate(File installDirectory) throws BlackDuckInstallerException, IntegrationKeyStoreException {
+    public boolean updateKeyStoreWithCertificate(File installDirectory) throws BlackDuckInstallerException, IntegrationKeyStoreException {
         if (!keyStoreUpdate) {
             intLogger.warn("The keystore can not be automatically updated unless update.keystore=true.");
             return false;
         }
 
-        String alias = blackDuckHost + "_blackduck";
+        String alias = host + "_" + aliasNamespace;
         KeyStore keyStore = keyStoreManager.createKeyStore(keyStoreRequest);
         try {
             if (keyStore.containsAlias(alias)) {
@@ -84,8 +96,8 @@ public class UpdateKeyStoreService {
             throw new IntegrationKeyStoreException(String.format("Could not check the keystore for alias %s: %s", alias, e.getMessage()), e);
         }
 
-        String certificateContents = openSslRunner.createCertificateContents(blackDuckHost, blackDuckPort);
-        File certificateFile = new File(installDirectory, String.format("%s_blackduck_cert.pem", blackDuckHost));
+        String certificateContents = openSslRunner.createCertificateContents(host, port);
+        File certificateFile = new File(installDirectory, String.format("%s_%s_cert.pem", host, aliasNamespace));
         try {
             FileUtils.write(certificateFile, certificateContents, StandardCharsets.UTF_8);
         } catch (IOException e) {
@@ -95,6 +107,23 @@ public class UpdateKeyStoreService {
         CertificateRequest certificateRequest = new CertificateRequest(certificateFile, alias, "X.509");
         keyStoreManager.addCertificateToKeyStore(keyStore, keyStoreRequest, certificateRequest);
         return true;
+    }
+
+    public void handleSSLHandshakeException(File installDirectory) throws BlackDuckInstallerException {
+        intLogger.info(String.format("The %s server is responding, but its certificate is not in the java keystore.", serverLabel));
+
+        if (!canAttemptKeyStoreUpdate()) {
+            intLogger.error("Since keystore.update=false, no automatic update of the keystore will be attempted.");
+            throw new BlackDuckInstallerException(String.format("The keystore is not setup properly (either add the certificate manually, or set keystore.update=true) - %s can not be configured.", serverLabel));
+        } else {
+            intLogger.info("Since keystore.update=true, an automatic update of the keystore will be attempted.");
+            try {
+                updateKeyStoreWithCertificate(installDirectory);
+            } catch (BlackDuckInstallerException | IntegrationKeyStoreException e) {
+                throw new BlackDuckInstallerException(String.format("The keystore could not be updated successfully - %s can not be configured.", serverLabel), e);
+            }
+        }
+        intLogger.info("Couldn't check the version because of a missing certificate - the next check should work.");
     }
 
 }
