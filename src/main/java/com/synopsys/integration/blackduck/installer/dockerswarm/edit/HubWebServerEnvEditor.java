@@ -30,6 +30,7 @@ import com.synopsys.integration.log.IntLogger;
 import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 public class HubWebServerEnvEditor extends PropertyFileEditor {
     public static final String WEBSERVER_HOST_KEY = "PUBLIC_HUB_WEBSERVER_HOST=";
@@ -46,7 +47,8 @@ public class HubWebServerEnvEditor extends PropertyFileEditor {
         return "hub-webserver.env";
     }
 
-    public String getComputedHash() {
+    @Override
+    public Set<String> getSupportedComputedHashes() {
         return PreComputedHashes.HUB_WEBSERVER_ENV;
     }
 

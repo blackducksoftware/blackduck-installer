@@ -35,6 +35,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
+import java.util.Set;
 
 public class AlertLocalOverridesEditor extends ConfigFileEditor {
     private final String stackName;
@@ -61,7 +62,8 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
         return "docker-compose.local-overrides.yml";
     }
 
-    public String getComputedHash() {
+    @Override
+    public Set<String> getSupportedComputedHashes() {
         return PreComputedHashes.ALERT_DOCKER_COMPOSE_LOCAL_OVERRIDES_YML;
     }
 

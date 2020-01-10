@@ -1,8 +1,8 @@
 /**
  * blackduck-installer
- *
+ * <p>
  * Copyright (c) 2020 Synopsys, Inc.
- *
+ * <p>
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information
@@ -10,9 +10,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License. You may obtain a copy of the License at
- *
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -25,46 +25,73 @@ package com.synopsys.integration.blackduck.installer.hash;
 import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
 import org.apache.commons.codec.digest.DigestUtils;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.Files;
+import java.util.Enumeration;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 public class HashUtility {
     /*
     If the files to edit *do* change, this utility hopes to make it simpler to update PreComputedHashes.java.
      */
-    private static final String HUB_WEBSERVER_ENV_PATH = "C:\\Users\\ekerwin\\Downloads\\original\\hub-2019.8.1\\docker-swarm\\hub-webserver.env";
-    private static final String DOCKER_COMPOSE_LOCAL_OVERRIDES_YML_PATH = "C:\\Users\\ekerwin\\Downloads\\original\\hub-2019.8.1\\docker-swarm\\docker-compose.local-overrides.yml";
-    private static final String BLACKDUCK_CONFIG_ENV_PATH = "C:\\Users\\ekerwin\\Downloads\\original\\hub-2019.8.1\\docker-swarm\\blackduck-config.env";
-    private static final String ALERT_DOCKER_COMPOSE_LOCAL_OVERRIDES_YML_PATH = "C:\\Users\\ekerwin\\Downloads\\blackduck-alert-5.0.0-deployment\\docker-swarm\\docker-compose.local-overrides.yml";
+    private static final Set<String> ZIP_FILE_PATHS = Set.of("/Users/ekerwin/Downloads/hub-2019.8.1.zip", "/Users/ekerwin/Downloads/hub-2019.10.0.zip", "/Users/ekerwin/Downloads/hub-2019.10.1.zip", "/Users/ekerwin/Downloads/hub-2019.12.0.zip", "/Users/ekerwin/Downloads/blackduck-alert-5.0.0-deployment.zip", "/Users/ekerwin/Downloads/blackduck-alert-5.0.1-deployment.zip", "/Users/ekerwin/Downloads/blackduck-alert-5.1.0-deployment.zip");
+
+    private static final Pattern VERSION_PATTERN = Pattern.compile("(\\d+(\\.\\d+)*)");
 
     public static void main(String[] args) throws Exception {
+        Set<String> entriesToLookFor = Set.of("blackduck-config.env", "docker-compose.local-overrides.yml", "hub-webserver.env");
+
         HashUtility hashUtility = new HashUtility();
 
-        //hub-webserver.env
-        hashUtility.hashFileForComputedHashesDotJava(new File(HUB_WEBSERVER_ENV_PATH), "HUB_WEBSERVER_ENV");
+        for (String zipFilePath : ZIP_FILE_PATHS) {
+            ZipFile zipFile = new ZipFile(zipFilePath);
+            Enumeration<? extends ZipEntry> zipEntries = zipFile.entries();
+            String version = hashUtility.getVersion(zipFilePath);
+            while (zipEntries.hasMoreElements()) {
+                ZipEntry entry = zipEntries.nextElement();
+                String entryName = entry.getName();
+                String filename = entry.getName().substring(entryName.lastIndexOf('/') + 1);
 
-        //docker-compose.local-overrides.yml
-        hashUtility.hashFileForComputedHashesDotJava(new File(DOCKER_COMPOSE_LOCAL_OVERRIDES_YML_PATH), "DOCKER_COMPOSE_LOCAL_OVERRIDES_YML");
-
-        //blackduck-config.env
-        hashUtility.hashFileForComputedHashesDotJava(new File(BLACKDUCK_CONFIG_ENV_PATH), "BLACKDUCK_CONFIG_ENV");
-
-        //alert docker-compose.local-overrides.yml
-        hashUtility.hashFileForComputedHashesDotJava(new File(ALERT_DOCKER_COMPOSE_LOCAL_OVERRIDES_YML_PATH), "ALERT_DOCKER_COMPOSE_LOCAL_OVERRIDES_YML");
-    }
-
-    public String computeHash(File fileToHash) throws BlackDuckInstallerException {
-        try {
-            return DigestUtils.sha256Hex(Files.readAllBytes(fileToHash.toPath()));
-        } catch (IOException e) {
-            throw new BlackDuckInstallerException(String.format("Could not hash the file (%s): %s", fileToHash.getAbsolutePath(), e.getMessage()));
+                if (entryName.contains("docker-swarm") && entriesToLookFor.contains(filename)) {
+                    hashUtility.hashFileForComputedHashesDotJava(zipFile.getInputStream(entry), String.format("%s_%s", filename, version));
+                }
+            }
         }
     }
 
-    private void hashFileForComputedHashesDotJava(File fileToHash, String name) throws BlackDuckInstallerException {
-        String hash = computeHash(fileToHash);
-        System.out.println("public static final String " + name + " = \"" + hash + "\";");
+    public String computeHash(File toHash, String name) throws BlackDuckInstallerException {
+        try {
+            return computeHash(new FileInputStream(toHash), name);
+        } catch (FileNotFoundException e) {
+            throw new BlackDuckInstallerException(String.format("Could not hash file %s: %s", name, e.getMessage()));
+        }
+    }
+
+    public String computeHash(InputStream toHash, String name) throws BlackDuckInstallerException {
+        try {
+            return DigestUtils.sha256Hex(toHash);
+        } catch (IOException e) {
+            throw new BlackDuckInstallerException(String.format("Could not hash %s: %s", name, e.getMessage()));
+        }
+    }
+
+    private void hashFileForComputedHashesDotJava(InputStream toHash, String name) throws BlackDuckInstallerException {
+        String hash = computeHash(toHash, name);
+        System.out.println("public static final String " + convertNonAlpha(name) + " = \"" + hash + "\";");
+    }
+
+    private String convertNonAlpha(String s) {
+        return s.toUpperCase().replaceAll("[^A-Z0-9]", "_");
+    }
+
+    private String getVersion(String filename) {
+        Matcher matcher = VERSION_PATTERN.matcher(filename);
+        matcher.find();
+        return matcher.group();
     }
 
 }

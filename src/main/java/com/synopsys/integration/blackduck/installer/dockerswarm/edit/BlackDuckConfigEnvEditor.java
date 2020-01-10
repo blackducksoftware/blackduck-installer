@@ -30,6 +30,7 @@ import com.synopsys.integration.log.IntLogger;
 import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 public class BlackDuckConfigEnvEditor extends PropertyFileEditor {
     public static final String HUB_PROXY_HOST_KEY = "HUB_PROXY_HOST=";
@@ -56,7 +57,8 @@ public class BlackDuckConfigEnvEditor extends PropertyFileEditor {
         return "blackduck-config.env";
     }
 
-    public String getComputedHash() {
+    @Override
+    public Set<String> getSupportedComputedHashes() {
         return PreComputedHashes.BLACKDUCK_CONFIG_ENV;
     }
 

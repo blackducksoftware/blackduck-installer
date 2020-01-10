@@ -31,6 +31,7 @@ import org.apache.commons.io.IOUtils;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Set;
 
 public class LocalOverridesEditor extends ConfigFileEditor {
     private final String stackName;
@@ -47,7 +48,8 @@ public class LocalOverridesEditor extends ConfigFileEditor {
         return "docker-compose.local-overrides.yml";
     }
 
-    public String getComputedHash() {
+    @Override
+    public Set<String> getSupportedComputedHashes() {
         return PreComputedHashes.DOCKER_COMPOSE_LOCAL_OVERRIDES_YML;
     }
 

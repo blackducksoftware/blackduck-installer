@@ -29,6 +29,7 @@ import org.apache.commons.io.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Set;
 
 public abstract class ConfigFileEditor {
     private IntLogger logger;
@@ -44,7 +45,7 @@ public abstract class ConfigFileEditor {
 
     public abstract String getFilename();
 
-    public abstract String getComputedHash();
+    public abstract Set<String> getSupportedComputedHashes();
 
     public abstract void edit(File installDirectory) throws BlackDuckInstallerException;
 
@@ -53,9 +54,9 @@ public abstract class ConfigFileEditor {
         File original = new File(dockerSwarm, getFilename());
         File originalCopy = copyOriginalIfNeeded(original);
 
-        String currentHash = hashUtility.computeHash(originalCopy);
-        if (!currentHash.equals(getComputedHash())) {
-            logger.warn(String.format("The file '%s' is different than expected - it may not have been automatically edited correctly. Please double-check this file for any errors.", original.getAbsolutePath()));
+        String currentHash = hashUtility.computeHash(originalCopy, originalCopy.getName());
+        if (!getSupportedComputedHashes().contains(currentHash)) {
+            logger.warn(String.format("The file '%s' is from an unsupported version - it may not have been automatically edited correctly. Please double-check this file for any errors.", original.getAbsolutePath()));
         }
 
         return new ConfigFile(original, originalCopy);
