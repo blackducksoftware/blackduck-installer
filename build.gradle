@@ -13,11 +13,25 @@ plugins {
 }
 
 group = 'com.synopsys.integration'
-version = '0.0.2-SNAPSHOT'
+version = '0.0.3-SNAPSHOT'
 project.ext.javaSourceCompatibility = JavaVersion.VERSION_11
 project.ext.javaTargetCompatibility = JavaVersion.VERSION_11
 
 apply plugin: 'com.blackducksoftware.integration.solution'
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifact("${buildDir}/libs/${project.name}-${version}.jar")
+        }
+    }
+}
+
+artifactory {
+    publish {
+        defaults { publications('mavenJava') }
+    }
+}
 
 dependencies {
 	implementation 'com.blackducksoftware.integration:blackduck-common:44.4.0'
