@@ -33,6 +33,10 @@ public class ConfigureResult {
         this.apiToken = apiToken;
     }
 
+    public ConfigureResult(boolean success) {
+        this(success, null);
+    }
+
     public boolean isSuccess() {
         return success;
     }

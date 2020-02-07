@@ -1,8 +1,8 @@
 /**
  * blackduck-installer
- *
+ * <p>
  * Copyright (c) 2020 Synopsys, Inc.
- *
+ * <p>
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information
@@ -10,9 +10,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License. You may obtain a copy of the License at
- *
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -51,7 +51,6 @@ import com.synopsys.integration.rest.proxy.ProxyInfoBuilder;
 import com.synopsys.integration.rest.request.Request;
 import com.synopsys.integration.util.CommonZipExpander;
 import org.apache.commons.compress.archivers.examples.Expander;
-import org.apache.http.client.config.CookieSpecs;
 import org.apache.http.entity.ContentType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -121,6 +120,7 @@ public class Application implements ApplicationRunner {
 
             ExecutableRunner executableRunner;
             if (applicationValues.isInstallDryRun()) {
+                //TODO add logging for clarity
                 executableRunner = new DryRunExecutableRunner(intLogger::info);
             } else {
                 executableRunner = new ProcessBuilderRunner();

@@ -25,40 +25,53 @@ package com.synopsys.integration.blackduck.installer.configure;
 import com.google.gson.Gson;
 import com.synopsys.integration.blackduck.api.core.BlackDuckPath;
 import com.synopsys.integration.blackduck.api.core.BlackDuckPathMultipleResponses;
+import com.synopsys.integration.blackduck.api.core.BlackDuckResponse;
 import com.synopsys.integration.blackduck.rest.BlackDuckHttpClient;
 import com.synopsys.integration.blackduck.service.BlackDuckJsonTransformer;
 import com.synopsys.integration.blackduck.service.BlackDuckResponseTransformer;
 import com.synopsys.integration.blackduck.service.BlackDuckResponsesTransformer;
 import com.synopsys.integration.blackduck.service.BlackDuckService;
+import com.synopsys.integration.blackduck.service.model.PagedRequest;
 import com.synopsys.integration.blackduck.service.model.RequestFactory;
 import com.synopsys.integration.exception.IntegrationException;
 import com.synopsys.integration.rest.request.Request;
 import com.synopsys.integration.rest.request.Response;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Predicate;
 
 public class ApiTokenService extends BlackDuckService {
     public static final BlackDuckPath API_TOKEN_LINK = new BlackDuckPath("/api/current-user/tokens");
     public static final BlackDuckPathMultipleResponses<ApiTokenView> API_TOKEN_LINK_RESPONSE = new BlackDuckPathMultipleResponses<>(API_TOKEN_LINK, ApiTokenView.class);
 
-    private final URL baseUrl;
+    private final String tokensUri;
 
     public ApiTokenService(BlackDuckHttpClient blackDuckHttpClient, Gson gson, BlackDuckJsonTransformer blackDuckJsonTransformer, BlackDuckResponseTransformer blackDuckResponseTransformer, BlackDuckResponsesTransformer blackDuckResponsesTransformer) throws MalformedURLException {
         super(blackDuckHttpClient, gson, blackDuckJsonTransformer, blackDuckResponseTransformer, blackDuckResponsesTransformer);
 
-        baseUrl = new URL(blackDuckHttpClient.getBaseUrl());
+        URL baseUrl = new URL(blackDuckHttpClient.getBaseUrl());
+        tokensUri = new URL(baseUrl, API_TOKEN_LINK.getPath()).toString();
+    }
+
+    public Optional<ApiTokenView> getExistingApiToken(String tokenName) throws IntegrationException {
+        List<ApiTokenView> allApiTokens = getAllResponses(tokensUri, ApiTokenView.class);
+        return allApiTokens
+                .stream()
+                .filter(apiTokenView -> apiTokenView.getName().equals(tokenName))
+                .findAny();
     }
 
     public ApiTokenView createApiToken(String tokenName) throws IOException, IntegrationException {
-        String createApiTokenUrl = new URL(baseUrl, API_TOKEN_LINK.getPath()).toString();
-
         ApiTokenRequest apiTokenRequest = ApiTokenRequest.CREATE_READ_WRITE(tokenName);
 
         ApiTokenView apiTokenView;
         String json = convertToJson(apiTokenRequest);
-        Request request = RequestFactory.createCommonPostRequestBuilder(json).uri(createApiTokenUrl).build();
+        Request request = RequestFactory.createCommonPostRequestBuilder(json).uri(tokensUri).build();
         try (Response response = execute(request)) {
             // ekerwin 2019-11-15 We have to get the token from the initial response from the POST, otherwise it is null.
             apiTokenView = transformResponse(response, ApiTokenView.class);

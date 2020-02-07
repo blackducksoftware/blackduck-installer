@@ -41,8 +41,11 @@ import org.apache.commons.lang3.StringUtils;
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.util.Optional;
 
 public class BlackDuckConfigureService {
+    public static final String TOKEN_NAME = "installer_token";
+
     private final IntLogger intLogger;
     private final BlackDuckServerConfig blackDuckServerConfig;
     private final int installTimeoutInSeconds;
@@ -74,17 +77,23 @@ public class BlackDuckConfigureService {
             acceptEndUserLicenseAgreement(blackDuckService);
         }
 
-        String apiToken = null;
+        ConfigureResult configureResult = new ConfigureResult(true);
         if (blackDuckConfigurationOptions.isCreateApiToken()) {
             try {
                 ApiTokenService apiTokenService = new ApiTokenService(blackDuckHttpClient, gson, blackDuckJsonTransformer, blackDuckResponseTransformer, blackDuckResponsesTransformer);
-                apiToken = createApiToken(apiTokenService);
+                Optional<ApiTokenView> apiTokenView = apiTokenService.getExistingApiToken(TOKEN_NAME);
+                if (apiTokenView.isPresent()) {
+                    intLogger.warn(String.format("A token named %s already exists - no new token will be created."));
+                } else {
+                    ApiTokenView createdApiTokenView = apiTokenService.createApiToken(TOKEN_NAME);
+                    configureResult = new ConfigureResult(true, createdApiTokenView.getToken());
+                }
             } catch (MalformedURLException e) {
                 throw new BlackDuckInstallerException("Could not configure the apiTokenService because of a badly formed URL." + e.getMessage());
             }
         }
 
-        return new ConfigureResult(true, apiToken);
+        return configureResult;
     }
 
     public void acceptEndUserLicenseAgreement(BlackDuckService blackDuckService) throws IntegrationException {
@@ -97,12 +106,17 @@ public class BlackDuckConfigureService {
         intLogger.info("Successfully accepted the end user license agreement.");
     }
 
-    public String createApiToken(ApiTokenService apiTokenService) throws IOException, IntegrationException {
+    public Optional<String> createApiToken(ApiTokenService apiTokenService) throws IOException, IntegrationException {
         intLogger.info("Attempting to create an api token...");
-        ApiTokenView apiTokenView = apiTokenService.createApiToken("installer_token");
-        intLogger.info("Successfully created an api token.");
-
-        return apiTokenView.getToken();
+        Optional<ApiTokenView> existingToken = apiTokenService.getExistingApiToken(TOKEN_NAME);
+        if (existingToken.isPresent()) {
+            intLogger.warn(String.format("An api token named %s already exists - no new token will be created.", TOKEN_NAME));
+            return Optional.empty();
+        } else {
+            ApiTokenView apiTokenView = apiTokenService.createApiToken(TOKEN_NAME);
+            intLogger.info("Successfully created an api token.");
+            return Optional.of(apiTokenView.getToken());
+        }
     }
 
     public void applyRegistrationId(final String registrationId, BlackDuckService blackDuckService) throws IntegrationException {
