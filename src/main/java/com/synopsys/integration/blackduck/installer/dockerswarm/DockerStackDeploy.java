@@ -39,7 +39,11 @@ public class DockerStackDeploy {
     }
 
     public void addOrchestrationFile(File orchestrationDirectory, String orchestrationFile) {
-        additionalOrchestrationFiles.add(new File(orchestrationDirectory, orchestrationFile).getAbsolutePath());
+        addOrchestrationFile(new File(orchestrationDirectory, orchestrationFile));
+    }
+
+    public void addOrchestrationFile(File orchestrationFile) {
+        additionalOrchestrationFiles.add(orchestrationFile.getAbsolutePath());
     }
 
     public Executable createDeployExecutable() {

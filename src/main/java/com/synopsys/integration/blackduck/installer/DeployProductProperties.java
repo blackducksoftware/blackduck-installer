@@ -27,6 +27,7 @@ import com.synopsys.integration.blackduck.installer.dockerswarm.DockerStackDeplo
 import com.synopsys.integration.blackduck.installer.hash.HashUtility;
 import com.synopsys.integration.blackduck.installer.model.CustomCertificate;
 import com.synopsys.integration.blackduck.installer.model.ExecutablesRunner;
+import com.synopsys.integration.blackduck.installer.model.FilePathTransformer;
 import com.synopsys.integration.log.IntLogger;
 import com.synopsys.integration.rest.client.IntHttpClient;
 import com.synopsys.integration.util.CommonZipExpander;
@@ -38,6 +39,7 @@ public class DeployProductProperties {
     private final String lineSeparator;
     private final IntLogger intLogger;
     private final HashUtility hashUtility;
+    private final FilePathTransformer filePathTransformer;
     private final DockerCommands dockerCommands;
     private final CommonZipExpander commonZipExpander;
     private final CustomCertificate customCertificate;
@@ -45,11 +47,12 @@ public class DeployProductProperties {
     private final ExecutablesRunner executablesRunner;
     private final DockerStackDeploy deployStack;
 
-    public DeployProductProperties(File baseDirectory, String lineSeparator, IntLogger intLogger, HashUtility hashUtility, DockerCommands dockerCommands, CommonZipExpander commonZipExpander, CustomCertificate customCertificate, IntHttpClient intHttpClient, ExecutablesRunner executablesRunner, DockerStackDeploy deployStack) {
+    public DeployProductProperties(File baseDirectory, String lineSeparator, IntLogger intLogger, HashUtility hashUtility, FilePathTransformer filePathTransformer, DockerCommands dockerCommands, CommonZipExpander commonZipExpander, CustomCertificate customCertificate, IntHttpClient intHttpClient, ExecutablesRunner executablesRunner, DockerStackDeploy deployStack) {
         this.baseDirectory = baseDirectory;
         this.lineSeparator = lineSeparator;
         this.intLogger = intLogger;
         this.hashUtility = hashUtility;
+        this.filePathTransformer = filePathTransformer;
         this.dockerCommands = dockerCommands;
         this.commonZipExpander = commonZipExpander;
         this.customCertificate = customCertificate;
@@ -72,6 +75,10 @@ public class DeployProductProperties {
 
     public HashUtility getHashUtility() {
         return hashUtility;
+    }
+
+    public FilePathTransformer getFilePathTransformer() {
+        return filePathTransformer;
     }
 
     public DockerCommands getDockerCommands() {

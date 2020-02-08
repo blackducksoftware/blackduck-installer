@@ -1,0 +1,26 @@
+{
+  "toAdd": [
+    {
+      "key": "HUB_KB_HOST",
+      "value": "custom_kb_host"
+    }
+  ],
+  "toEdit": [
+    {
+      "key": "HUB_PROXY_HOST",
+      "value": "proxy_host"
+    },
+    {
+      "key": "HUB_PROXY_PORT",
+      "value": "123"
+    },
+    {
+      "key": "HUB_PROXY_SCHEME",
+      "value": "http"
+    },
+    {
+      "key": "HUB_PROXY_USER",
+      "value": "username"
+    }
+  ]
+}

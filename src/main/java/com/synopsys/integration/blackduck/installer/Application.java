@@ -1,8 +1,8 @@
 /**
  * blackduck-installer
- * <p>
+ *
  * Copyright (c) 2020 Synopsys, Inc.
- * <p>
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information
@@ -10,9 +10,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License. You may obtain a copy of the License at
- * <p>
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * <p>
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -22,12 +22,14 @@
  */
 package com.synopsys.integration.blackduck.installer;
 
+import com.google.gson.Gson;
 import com.synopsys.integration.blackduck.configuration.BlackDuckServerConfig;
 import com.synopsys.integration.blackduck.configuration.BlackDuckServerConfigBuilder;
 import com.synopsys.integration.blackduck.installer.configure.*;
 import com.synopsys.integration.blackduck.installer.dockerswarm.DockerCommands;
 import com.synopsys.integration.blackduck.installer.dockerswarm.DockerStackDeploy;
 import com.synopsys.integration.blackduck.installer.dockerswarm.deploy.AlertDockerManager;
+import com.synopsys.integration.blackduck.installer.dockerswarm.edit.BlackDuckConfigEnvEditor;
 import com.synopsys.integration.blackduck.installer.dockerswarm.install.*;
 import com.synopsys.integration.blackduck.installer.download.StandardCookieSpecHttpClient;
 import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
@@ -51,6 +53,7 @@ import com.synopsys.integration.rest.proxy.ProxyInfoBuilder;
 import com.synopsys.integration.rest.request.Request;
 import com.synopsys.integration.util.CommonZipExpander;
 import org.apache.commons.compress.archivers.examples.Expander;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.entity.ContentType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -95,8 +98,11 @@ public class Application implements ApplicationRunner {
             // use only unix style endings for now
             String lineSeparator = "\n";
             Expander expander = new Expander();
+            Gson gson = new Gson();
+            FilePropertiesLoader filePropertiesLoader = new FilePropertiesLoader(gson);
             IntLogger intLogger = new Slf4jIntLogger(logger);
             HashUtility hashUtility = new HashUtility();
+            FilePathTransformer filePathTransformer = new FilePathTransformer();
             ExecutableCreator executableCreator = new ExecutableCreator();
             DockerCommands dockerCommands = new DockerCommands(executableCreator);
             CommonZipExpander commonZipExpander = new CommonZipExpander(intLogger, expander);
@@ -128,7 +134,7 @@ public class Application implements ApplicationRunner {
             ExecutablesRunner executablesRunner = new ExecutablesRunner(executableRunner);
             DockerStackDeploy deployStack = new DockerStackDeploy(applicationValues.getStackName());
 
-            DeployProductProperties deployProductProperties = new DeployProductProperties(baseDirectory, lineSeparator, intLogger, hashUtility, dockerCommands, commonZipExpander, customCertificate, intHttpClient, executablesRunner, deployStack);
+            DeployProductProperties deployProductProperties = new DeployProductProperties(baseDirectory, lineSeparator, intLogger, hashUtility, filePathTransformer, dockerCommands, commonZipExpander, customCertificate, intHttpClient, executablesRunner, deployStack);
 
             BlackDuckConfigurationOptions blackDuckConfigurationOptions = new BlackDuckConfigurationOptions(applicationValues.getBlackDuckConfigureRegistrationKey(), applicationValues.isBlackDuckConfigureAcceptEula(), applicationValues.isBlackDuckConfigureApiToken(), applicationValues.isInstallDryRun());
 
@@ -148,8 +154,16 @@ public class Application implements ApplicationRunner {
                 BlackDuckServerConfig blackDuckServerConfig = createBlackDuckServerConfig(intLogger);
                 BlackDuckWait blackDuckWait = new BlackDuckWait(intLogger, applicationValues.getBlackDuckInstallTimeoutInSeconds(), blackDuckServerConfig, blackDuckUpdateKeyStoreService);
                 BlackDuckConfigureService blackDuckConfigureService = new BlackDuckConfigureService(deployProductProperties.getIntLogger(), blackDuckServerConfig, applicationValues.getBlackDuckInstallTimeoutInSeconds(), blackDuckConfigurationOptions);
+                FileLoadedProperties blackDuckConfigEnvLoadedProperties = new FileLoadedProperties();
+
+                String blackDuckConfigEnvPropertiesFilePath = applicationValues.getBlackDuckInstallBlackDuckConfigEnvPropertiesPath();
+                if (StringUtils.isNotEmpty(blackDuckConfigEnvPropertiesFilePath)) {
+                    File file = filePathTransformer.transformFilePath(blackDuckConfigEnvPropertiesFilePath);
+                    blackDuckConfigEnvLoadedProperties = filePropertiesLoader.loadPropertiesFromFile(file);
+                }
+
                 //TODO pass in the req'd properties instead of applicationValues
-                BlackDuckInstallerCreator blackDuckInstallerCreator = new BlackDuckInstallerCreator(applicationValues, deployProductProperties);
+                BlackDuckInstallerCreator blackDuckInstallerCreator = new BlackDuckInstallerCreator(applicationValues, deployProductProperties, blackDuckConfigEnvLoadedProperties);
                 BlackDuckInstaller blackDuckInstaller = blackDuckInstallerCreator.create();
 
                 BlackDuckDeployResult blackDuckDeployResult = deployBlackDuck(blackDuckInstaller, blackDuckConfigurationOptions, blackDuckConfigureService, blackDuckWait);

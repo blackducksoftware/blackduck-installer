@@ -24,10 +24,13 @@ package com.synopsys.integration.blackduck.installer.dockerswarm.edit;
 
 import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
 import com.synopsys.integration.blackduck.installer.hash.HashUtility;
+import com.synopsys.integration.blackduck.installer.model.ConfigProperties;
+import com.synopsys.integration.blackduck.installer.model.ConfigProperty;
 import com.synopsys.integration.log.IntLogger;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.*;
+import java.util.List;
 import java.util.Map;
 
 public abstract class PropertyFileEditor extends ConfigFileEditor {
@@ -35,9 +38,9 @@ public abstract class PropertyFileEditor extends ConfigFileEditor {
         super(logger, hashUtility, lineSeparator);
     }
 
-    protected void writeLine(Writer writer, String key, String value) throws BlackDuckInstallerException {
+    protected void writeLine(Writer writer, ConfigProperty configProperty) throws BlackDuckInstallerException {
         try {
-            writer.append(key + value + lineSeparator);
+            writer.append(configProperty.toConfigString() + lineSeparator);
         } catch (IOException e) {
             throw new BlackDuckInstallerException("Error writing line: " + e.getMessage(), e);
         }
@@ -51,11 +54,11 @@ public abstract class PropertyFileEditor extends ConfigFileEditor {
         }
     }
 
-    protected void writeLinesWithTokenValues(Writer writer, Map<String, String> tokensToValues, File originalCopy) throws BlackDuckInstallerException {
+    protected void writeLinesWithTokenValues(Writer writer, ConfigProperties configProperties, File originalCopy) throws BlackDuckInstallerException {
         try (BufferedReader reader = new BufferedReader(new FileReader(originalCopy))) {
             String line = reader.readLine();
             while (null != line) {
-                writeLineWithTokenValues(writer, tokensToValues, line);
+                writeLineWithTokenValues(writer, configProperties, line);
                 line = reader.readLine();
             }
         } catch (IOException e) {
@@ -63,8 +66,8 @@ public abstract class PropertyFileEditor extends ConfigFileEditor {
         }
     }
 
-    protected void writeLineWithTokenValues(Writer writer, Map<String, String> tokensToValues, String line) throws BlackDuckInstallerException {
-        String fixedLine = fixLine(tokensToValues, line);
+    protected void writeLineWithTokenValues(Writer writer, ConfigProperties configProperties, String line) throws BlackDuckInstallerException {
+        String fixedLine = fixLine(configProperties, line);
         try {
             writer.append(fixedLine + lineSeparator);
         } catch (IOException e) {
@@ -72,22 +75,22 @@ public abstract class PropertyFileEditor extends ConfigFileEditor {
         }
     }
 
-    protected void addTokenIfApplicable(Map<String, String> tokensToValues, String key, String value) {
+    protected void addTokenIfApplicable(ConfigProperties configProperties, String key, String value) {
         if (StringUtils.isNotBlank(value)) {
-            tokensToValues.put(key, value);
+            configProperties.put(key, value);
         }
     }
 
-    protected void addTokenIfApplicable(Map<String, String> tokensToValues, String key, int value) {
+    protected void addTokenIfApplicable(ConfigProperties configProperties, String key, int value) {
         if (value > 0) {
-            tokensToValues.put(key, Integer.toString(value));
+            configProperties.put(key, Integer.toString(value));
         }
     }
 
-    private String fixLine(Map<String, String> tokensToValues, String line) {
-        for (String token : tokensToValues.keySet()) {
+    private String fixLine(ConfigProperties configProperties, String line) {
+        for (String token : configProperties.keySet()) {
             if (line.startsWith(token)) {
-                return token + tokensToValues.get(token);
+                return configProperties.get(token).toConfigString();
             }
         }
 

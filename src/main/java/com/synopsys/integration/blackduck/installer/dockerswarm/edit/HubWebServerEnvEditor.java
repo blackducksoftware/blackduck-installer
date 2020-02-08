@@ -25,6 +25,7 @@ package com.synopsys.integration.blackduck.installer.dockerswarm.edit;
 import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
 import com.synopsys.integration.blackduck.installer.hash.HashUtility;
 import com.synopsys.integration.blackduck.installer.hash.PreComputedHashes;
+import com.synopsys.integration.blackduck.installer.model.ConfigProperties;
 import com.synopsys.integration.log.IntLogger;
 
 import java.io.*;
@@ -33,14 +34,14 @@ import java.util.Map;
 import java.util.Set;
 
 public class HubWebServerEnvEditor extends PropertyFileEditor {
-    public static final String WEBSERVER_HOST_KEY = "PUBLIC_HUB_WEBSERVER_HOST=";
+    public static final String WEBSERVER_HOST_KEY = "PUBLIC_HUB_WEBSERVER_HOST";
 
-    private Map<String, String> tokensToEdit = new HashMap<>();
+    private ConfigProperties toEdit = new ConfigProperties();
 
     public HubWebServerEnvEditor(IntLogger logger, HashUtility hashUtility, String lineSeparator, HubWebServerEnvTokens hubWebServerEnvTokens) {
         super(logger, hashUtility, lineSeparator);
 
-        addTokenIfApplicable(tokensToEdit, WEBSERVER_HOST_KEY, hubWebServerEnvTokens.getWebServerHost());
+        addTokenIfApplicable(toEdit, WEBSERVER_HOST_KEY, hubWebServerEnvTokens.getWebServerHost());
     }
 
     public String getFilename() {
@@ -56,7 +57,7 @@ public class HubWebServerEnvEditor extends PropertyFileEditor {
         ConfigFile configFile = createConfigFile(installDirectory);
 
         try (Writer writer = new BufferedWriter(new FileWriter(configFile.getFileToEdit()))) {
-            writeLinesWithTokenValues(writer, tokensToEdit, configFile.getOriginalCopy());
+            writeLinesWithTokenValues(writer, toEdit, configFile.getOriginalCopy());
         } catch (IOException e) {
             throw new BlackDuckInstallerException(String.format("Error writing file %s", configFile.getFileToEdit().getAbsolutePath()), e);
         }

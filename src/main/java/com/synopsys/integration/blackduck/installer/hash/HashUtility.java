@@ -1,8 +1,8 @@
 /**
  * blackduck-installer
- * <p>
+ *
  * Copyright (c) 2020 Synopsys, Inc.
- * <p>
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information
@@ -10,9 +10,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License. You may obtain a copy of the License at
- * <p>
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * <p>
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -26,8 +26,9 @@ import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstaller
 import org.apache.commons.codec.digest.DigestUtils;
 
 import java.io.*;
-import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -38,11 +39,20 @@ public class HashUtility {
     /*
     If the files to edit *do* change, this utility hopes to make it simpler to update PreComputedHashes.java.
      */
-    private static final Set<String> ZIP_FILE_PATHS = Set.of("/Users/ekerwin/Downloads/hub-2019.8.1.zip", "/Users/ekerwin/Downloads/hub-2019.10.0.zip", "/Users/ekerwin/Downloads/hub-2019.10.1.zip", "/Users/ekerwin/Downloads/hub-2019.12.0.zip", "/Users/ekerwin/Downloads/blackduck-alert-5.0.0-deployment.zip", "/Users/ekerwin/Downloads/blackduck-alert-5.0.1-deployment.zip", "/Users/ekerwin/Downloads/blackduck-alert-5.1.0-deployment.zip");
+    private static final List<String> ZIP_FILE_PATHS = new ArrayList<>();
 
     private static final Pattern VERSION_PATTERN = Pattern.compile("(\\d+(\\.\\d+)*)");
 
     public static void main(String[] args) throws Exception {
+        ZIP_FILE_PATHS.add("/Users/ekerwin/Downloads/hub-2019.8.1.zip");
+        ZIP_FILE_PATHS.add("/Users/ekerwin/Downloads/hub-2019.10.0.zip");
+        ZIP_FILE_PATHS.add("/Users/ekerwin/Downloads/hub-2019.10.1.zip");
+        ZIP_FILE_PATHS.add("/Users/ekerwin/Downloads/hub-2019.12.0.zip");
+        ZIP_FILE_PATHS.add("/Users/ekerwin/Downloads/blackduck-alert-5.0.0-deployment.zip");
+        ZIP_FILE_PATHS.add("/Users/ekerwin/Downloads/blackduck-alert-5.0.1-deployment.zip");
+        ZIP_FILE_PATHS.add("/Users/ekerwin/Downloads/blackduck-alert-5.1.0-deployment.zip");
+        ZIP_FILE_PATHS.add("/Users/ekerwin/Downloads/blackduck-alert-5.2.0-deployment.zip");
+
         Set<String> entriesToLookFor = Set.of("blackduck-config.env", "docker-compose.local-overrides.yml", "hub-webserver.env");
 
         HashUtility hashUtility = new HashUtility();

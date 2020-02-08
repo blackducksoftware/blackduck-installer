@@ -32,35 +32,46 @@ import com.synopsys.integration.blackduck.installer.dockerswarm.edit.LocalOverri
 import com.synopsys.integration.blackduck.installer.download.ArtifactoryDownloadUrl;
 import com.synopsys.integration.blackduck.installer.download.BlackDuckGithubDownloadUrl;
 import com.synopsys.integration.blackduck.installer.download.ZipFileDownloader;
+import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
+import com.synopsys.integration.blackduck.installer.model.FileLoadedProperties;
+import com.synopsys.integration.blackduck.installer.model.FilePropertiesLoader;
 import com.synopsys.integration.blackduck.installer.workflow.DownloadUrlDecider;
+
+import java.io.File;
+import java.util.Collections;
+import java.util.List;
 
 public class BlackDuckInstallerCreator {
     private ApplicationValues applicationValues;
     private DeployProductProperties deployProductProperties;
+    private FileLoadedProperties blackDuckConfigEnvLoadedProperties;
 
-    public BlackDuckInstallerCreator(ApplicationValues applicationValues, DeployProductProperties deployProductProperties) {
+    public BlackDuckInstallerCreator(ApplicationValues applicationValues, DeployProductProperties deployProductProperties, FileLoadedProperties blackDuckConfigEnvLoadedProperties) {
         this.applicationValues = applicationValues;
         this.deployProductProperties = deployProductProperties;
+        this.blackDuckConfigEnvLoadedProperties = blackDuckConfigEnvLoadedProperties;
     }
 
-    public BlackDuckInstaller create() {
+    public BlackDuckInstaller create() throws BlackDuckInstallerException {
         BlackDuckGithubDownloadUrl blackDuckGithubDownloadUrl = new BlackDuckGithubDownloadUrl(applicationValues.getBlackDuckGithubDownloadUrlPrefix(), applicationValues.getBlackDuckVersion());
         ArtifactoryDownloadUrl blackDuckArtifactoryDownloadUrl = new ArtifactoryDownloadUrl(applicationValues.getBlackDuckArtifactoryUrl(), applicationValues.getBlackDuckArtifactoryRepo(), applicationValues.getBlackDuckArtifactPath(), applicationValues.getBlackDuckArtifact(), applicationValues.getBlackDuckVersion());
         DownloadUrlDecider downloadUrlDecider = new DownloadUrlDecider(applicationValues.getBlackDuckDownloadSource(), blackDuckGithubDownloadUrl::getDownloadUrl, blackDuckArtifactoryDownloadUrl::getDownloadUrl);
 
         HubWebServerEnvTokens hubWebServerEnvTokens = new HubWebServerEnvTokens(applicationValues.getWebServerHost());
         HubWebServerEnvEditor hubWebServerEnvEditor = new HubWebServerEnvEditor(deployProductProperties.getIntLogger(), deployProductProperties.getHashUtility(), deployProductProperties.getLineSeparator(), hubWebServerEnvTokens);
-        BlackDuckConfigEnvEditor blackDuckConfigEnvEditor = new BlackDuckConfigEnvEditor(deployProductProperties.getIntLogger(), deployProductProperties.getHashUtility(), deployProductProperties.getLineSeparator(), applicationValues.getBlackDuckInstallProxyHost(), applicationValues.getBlackDuckInstallProxyPort(), applicationValues.getBlackDuckInstallProxyScheme(), applicationValues.getBlackDuckInstallProxyUser(), applicationValues.getBlackDuckInstallCustomKbHost());
+
+        BlackDuckConfigEnvEditor blackDuckConfigEnvEditor = new BlackDuckConfigEnvEditor(deployProductProperties.getIntLogger(), deployProductProperties.getHashUtility(), deployProductProperties.getLineSeparator(), blackDuckConfigEnvLoadedProperties);
 
         boolean useLocalOverrides = applicationValues.isBlackDuckInstallUseLocalOverrides();
         if (!deployProductProperties.getCustomCertificate().isEmpty()) {
             useLocalOverrides = true;
         }
         LocalOverridesEditor localOverridesEditor = new LocalOverridesEditor(deployProductProperties.getIntLogger(), deployProductProperties.getHashUtility(), deployProductProperties.getLineSeparator(), applicationValues.getStackName(), useLocalOverrides);
-
         ZipFileDownloader blackDuckDownloader = new ZipFileDownloader(deployProductProperties.getIntLogger(), deployProductProperties.getIntHttpClient(), deployProductProperties.getCommonZipExpander(), downloadUrlDecider, deployProductProperties.getBaseDirectory(), "blackduck", applicationValues.getBlackDuckVersion(), applicationValues.isBlackDuckDownloadForce());
 
-        BlackDuckDockerManager blackDuckDockerManager = new BlackDuckDockerManager(deployProductProperties.getIntLogger(), deployProductProperties.getDockerCommands(), applicationValues.getStackName(), deployProductProperties.getCustomCertificate());
+        List<String> additionalOrchestrationFilePaths = applicationValues.getBlackDuckInstallAdditionalOrchestrationFiles();
+        List<File> additionalOrchestrationFiles = deployProductProperties.getFilePathTransformer().transformFilePaths(additionalOrchestrationFilePaths);
+        BlackDuckDockerManager blackDuckDockerManager = new BlackDuckDockerManager(deployProductProperties.getIntLogger(), deployProductProperties.getDockerCommands(), applicationValues.getStackName(), additionalOrchestrationFiles, deployProductProperties.getCustomCertificate());
         return new BlackDuckInstaller(blackDuckDownloader, deployProductProperties.getExecutablesRunner(), blackDuckDockerManager, deployProductProperties.getDeployStack(), deployProductProperties.getDockerCommands(), blackDuckConfigEnvEditor, hubWebServerEnvEditor, localOverridesEditor, useLocalOverrides);
     }
 

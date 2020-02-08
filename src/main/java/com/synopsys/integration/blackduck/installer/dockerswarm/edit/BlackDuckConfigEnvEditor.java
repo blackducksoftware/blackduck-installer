@@ -25,36 +25,30 @@ package com.synopsys.integration.blackduck.installer.dockerswarm.edit;
 import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
 import com.synopsys.integration.blackduck.installer.hash.HashUtility;
 import com.synopsys.integration.blackduck.installer.hash.PreComputedHashes;
+import com.synopsys.integration.blackduck.installer.model.ConfigProperties;
+import com.synopsys.integration.blackduck.installer.model.ConfigProperty;
+import com.synopsys.integration.blackduck.installer.model.FileLoadedProperties;
 import com.synopsys.integration.log.IntLogger;
 
 import java.io.*;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
 
 public class BlackDuckConfigEnvEditor extends PropertyFileEditor {
-    public static final String HUB_PROXY_HOST_KEY = "HUB_PROXY_HOST=";
-    public static final String HUB_PROXY_PORT_KEY = "HUB_PROXY_PORT=";
-    public static final String HUB_PROXY_SCHEME_KEY = "HUB_PROXY_SCHEME=";
-    public static final String HUB_PROXY_USER_KEY = "HUB_PROXY_USER=";
-    public static final String HUB_KB_HOST_KEY = "HUB_KB_HOST=";
+    public static final String FILENAME = "blackduck-config.env";
 
-    private Map<String, String> tokensToAdd = new HashMap<>();
-    private Map<String, String> tokensToEdit = new HashMap<>();
+    private ConfigProperties toAdd = new ConfigProperties();
+    private ConfigProperties toEdit = new ConfigProperties();
 
-    public BlackDuckConfigEnvEditor(IntLogger logger, HashUtility hashUtility, String lineSeparator, String proxyHost, int proxyPort, String proxyScheme, String proxyUser, String customKbHost) {
+    public BlackDuckConfigEnvEditor(IntLogger logger, HashUtility hashUtility, String lineSeparator, FileLoadedProperties blackDuckConfigEnvLoadedProperties) {
         super(logger, hashUtility, lineSeparator);
 
-        addTokenIfApplicable(tokensToAdd, HUB_KB_HOST_KEY, customKbHost);
+        blackDuckConfigEnvLoadedProperties.getToAdd().stream().forEach(toAdd::add);
 
-        addTokenIfApplicable(tokensToEdit, HUB_PROXY_HOST_KEY, proxyHost);
-        addTokenIfApplicable(tokensToEdit, HUB_PROXY_PORT_KEY, proxyPort);
-        addTokenIfApplicable(tokensToEdit, HUB_PROXY_SCHEME_KEY, proxyScheme);
-        addTokenIfApplicable(tokensToEdit, HUB_PROXY_USER_KEY, proxyUser);
+        blackDuckConfigEnvLoadedProperties.getToEdit().stream().forEach(toEdit::add);
     }
 
     public String getFilename() {
-        return "blackduck-config.env";
+        return FILENAME;
     }
 
     @Override
@@ -66,12 +60,12 @@ public class BlackDuckConfigEnvEditor extends PropertyFileEditor {
         ConfigFile configFile = createConfigFile(installDirectory);
 
         try (Writer writer = new BufferedWriter(new FileWriter(configFile.getFileToEdit()))) {
-            for (Map.Entry<String, String> entry : tokensToAdd.entrySet()) {
-                writeLine(writer, entry.getKey(), entry.getValue());
+            for (ConfigProperty configProperty : toAdd) {
+                writeLine(writer, configProperty);
             }
             writeBlank(writer);
 
-            writeLinesWithTokenValues(writer, tokensToEdit, configFile.getOriginalCopy());
+            writeLinesWithTokenValues(writer, toEdit, configFile.getOriginalCopy());
         } catch (IOException e) {
             throw new BlackDuckInstallerException(String.format("Error writing file %s", configFile.getFileToEdit().getAbsolutePath()), e);
         }

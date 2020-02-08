@@ -43,8 +43,8 @@ public class AlertDockerManager extends ProductDockerManager {
     private final AlertEncryption alertEncryption;
     private final DockerService alertService;
 
-    public AlertDockerManager(IntLogger logger, DockerCommands dockerCommands, String stackName, CustomCertificate customCertificate, AlertEncryption alertEncryption, DockerService alertService) {
-        super(logger, dockerCommands, stackName);
+    public AlertDockerManager(IntLogger logger, DockerCommands dockerCommands, String stackName, List<File> additionalOrchestrationFiles, CustomCertificate customCertificate, AlertEncryption alertEncryption, DockerService alertService) {
+        super(logger, dockerCommands, stackName, additionalOrchestrationFiles);
         this.customCertificate = customCertificate;
         this.alertEncryption = alertEncryption;
         this.alertService = alertService;

@@ -82,6 +82,12 @@ public abstract class Installer {
 
         InstallerDockerData installerDockerData = new InstallerDockerData(installDirectory, dockerStacks, dockerSecrets, dockerServices);
         populateDockerStackDeploy(installerDockerData);
+        if (!productDockerManager.getAdditionalOrchestrationFiles().isEmpty()) {
+            productDockerManager
+                    .getAdditionalOrchestrationFiles()
+                    .stream()
+                    .forEach(dockerStackDeploy::addOrchestrationFile);
+        }
 
         Executable dockerStackDeployExecutable = dockerStackDeploy.createDeployExecutable();
         overallReturnCode += executablesRunner.runExecutableCode(dockerStackDeployExecutable);

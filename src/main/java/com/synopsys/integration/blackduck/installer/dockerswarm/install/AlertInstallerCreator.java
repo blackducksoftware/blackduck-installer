@@ -32,6 +32,7 @@ import com.synopsys.integration.blackduck.installer.dockerswarm.edit.AlertLocalO
 import com.synopsys.integration.blackduck.installer.download.AlertGithubDownloadUrl;
 import com.synopsys.integration.blackduck.installer.download.ArtifactoryDownloadUrl;
 import com.synopsys.integration.blackduck.installer.download.ZipFileDownloader;
+import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
 import com.synopsys.integration.blackduck.installer.hash.HashUtility;
 import com.synopsys.integration.blackduck.installer.model.AlertBlackDuckInstallOptions;
 import com.synopsys.integration.blackduck.installer.model.AlertEncryption;
@@ -43,6 +44,7 @@ import com.synopsys.integration.rest.client.IntHttpClient;
 import com.synopsys.integration.util.CommonZipExpander;
 
 import java.io.File;
+import java.util.List;
 
 public class AlertInstallerCreator {
     private ApplicationValues applicationValues;
@@ -55,7 +57,7 @@ public class AlertInstallerCreator {
         this.deployAlertProperties = deployAlertProperties;
     }
 
-    public AlertInstaller create() {
+    public AlertInstaller create() throws BlackDuckInstallerException {
         IntLogger intLogger = deployProductProperties.getIntLogger();
         HashUtility hashUtility = deployProductProperties.getHashUtility();
         String lineSeparator = deployProductProperties.getLineSeparator();
@@ -80,7 +82,10 @@ public class AlertInstallerCreator {
         AlertLocalOverridesEditor alertLocalOverridesEditor = new AlertLocalOverridesEditor(intLogger, hashUtility, lineSeparator, applicationValues.getStackName(), applicationValues.getWebServerHost(), applicationValues.getAlertInstallDefaultAdminEmail(), alertEncryption, customCertificate, alertBlackDuckInstallOptions, useLocalOverrides);
         ZipFileDownloader alertDownloader = new ZipFileDownloader(intLogger, intHttpClient, commonZipExpander, downloadUrlDecider, baseDirectory, "blackduck-alert", applicationValues.getAlertVersion(), applicationValues.isAlertDownloadForce());
         DockerStackDeploy dockerStackDeploy = new DockerStackDeploy(applicationValues.getStackName());
-        AlertDockerManager alertDockerManager = new AlertDockerManager(intLogger, dockerCommands, applicationValues.getStackName(), customCertificate, alertEncryption, alertService);
+
+        List<String> additionalOrchestrationFilePaths = applicationValues.getAlertInstallAdditionalOrchestrationFiles();
+        List<File> additionalOrchestrationFiles = deployProductProperties.getFilePathTransformer().transformFilePaths(additionalOrchestrationFilePaths);
+        AlertDockerManager alertDockerManager = new AlertDockerManager(intLogger, dockerCommands, applicationValues.getStackName(), additionalOrchestrationFiles, customCertificate, alertEncryption, alertService);
 
         return new AlertInstaller(alertDownloader, deployProductProperties.getExecutablesRunner(), alertDockerManager, dockerStackDeploy, dockerCommands, applicationValues.getStackName(), alertLocalOverridesEditor, useLocalOverrides);
     }
