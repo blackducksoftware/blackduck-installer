@@ -32,7 +32,7 @@ import java.util.Set;
 
 public class DockerStackDeploy {
     private final String stackName;
-    private final Set<String> additionalOrchestrationFiles = new LinkedHashSet<>();
+    private final Set<String> orchestrationFiles = new LinkedHashSet<>();
 
     public DockerStackDeploy(String stackName) {
         this.stackName = stackName;
@@ -43,7 +43,7 @@ public class DockerStackDeploy {
     }
 
     public void addOrchestrationFile(File orchestrationFile) {
-        additionalOrchestrationFiles.add(orchestrationFile.getAbsolutePath());
+        orchestrationFiles.add(orchestrationFile.getAbsolutePath());
     }
 
     public Executable createDeployExecutable() {
@@ -52,7 +52,7 @@ public class DockerStackDeploy {
         deployCommand.add("stack");
         deployCommand.add("deploy");
 
-        for (String orchestrationFile : additionalOrchestrationFiles) {
+        for (String orchestrationFile : orchestrationFiles) {
             deployCommand.add("-c");
             deployCommand.add(orchestrationFile);
         }

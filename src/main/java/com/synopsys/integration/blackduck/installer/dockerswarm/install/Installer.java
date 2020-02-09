@@ -45,13 +45,15 @@ public abstract class Installer {
     private final ProductDockerManager productDockerManager;
     private final DockerStackDeploy dockerStackDeploy;
     private final DockerCommands dockerCommands;
+    private final List<File> additionalOrchestrationFiles;
 
-    public Installer(ZipFileDownloader zipFileDownloader, ExecutablesRunner executablesRunner, ProductDockerManager productDockerManager, DockerStackDeploy dockerStackDeploy, DockerCommands dockerCommands) {
+    public Installer(ZipFileDownloader zipFileDownloader, ExecutablesRunner executablesRunner, ProductDockerManager productDockerManager, DockerStackDeploy dockerStackDeploy, DockerCommands dockerCommands, List<File> additionalOrchestrationFiles) {
         this.zipFileDownloader = zipFileDownloader;
         this.executablesRunner = executablesRunner;
         this.productDockerManager = productDockerManager;
         this.dockerStackDeploy = dockerStackDeploy;
         this.dockerCommands = dockerCommands;
+        this.additionalOrchestrationFiles = additionalOrchestrationFiles;
     }
 
     public abstract void postDownloadProcessing(File installDirectory) throws BlackDuckInstallerException;
@@ -63,6 +65,14 @@ public abstract class Installer {
 
     public void addOrchestrationFile(File orchestrationDirectory, String orchestrationFile) {
         dockerStackDeploy.addOrchestrationFile(orchestrationDirectory, orchestrationFile);
+    }
+
+    public void addAdditionalOrchestrationFiles() {
+        if (!additionalOrchestrationFiles.isEmpty()) {
+            additionalOrchestrationFiles
+                    .stream()
+                    .forEach(dockerStackDeploy::addOrchestrationFile);
+        }
     }
 
     public InstallResult performInstall() throws BlackDuckInstallerException {
@@ -82,12 +92,6 @@ public abstract class Installer {
 
         InstallerDockerData installerDockerData = new InstallerDockerData(installDirectory, dockerStacks, dockerSecrets, dockerServices);
         populateDockerStackDeploy(installerDockerData);
-        if (!productDockerManager.getAdditionalOrchestrationFiles().isEmpty()) {
-            productDockerManager
-                    .getAdditionalOrchestrationFiles()
-                    .stream()
-                    .forEach(dockerStackDeploy::addOrchestrationFile);
-        }
 
         Executable dockerStackDeployExecutable = dockerStackDeploy.createDeployExecutable();
         overallReturnCode += executablesRunner.runExecutableCode(dockerStackDeployExecutable);

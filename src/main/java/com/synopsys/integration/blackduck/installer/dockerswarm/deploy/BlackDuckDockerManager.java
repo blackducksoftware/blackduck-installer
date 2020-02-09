@@ -37,8 +37,8 @@ import java.util.List;
 public class BlackDuckDockerManager extends ProductDockerManager {
     private final CustomCertificate customCertificate;
 
-    public BlackDuckDockerManager(IntLogger logger, DockerCommands dockerCommands, String stackName, List<File> additionalOrchestrationFiles, CustomCertificate customCertificate) {
-        super(logger, dockerCommands, stackName, additionalOrchestrationFiles);
+    public BlackDuckDockerManager(IntLogger logger, DockerCommands dockerCommands, String stackName, CustomCertificate customCertificate) {
+        super(logger, dockerCommands, stackName);
         this.customCertificate = customCertificate;
     }
 

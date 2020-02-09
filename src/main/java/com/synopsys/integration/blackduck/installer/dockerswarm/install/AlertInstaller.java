@@ -33,14 +33,15 @@ import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstaller
 import com.synopsys.integration.blackduck.installer.model.ExecutablesRunner;
 
 import java.io.File;
+import java.util.List;
 
 public class AlertInstaller extends Installer {
     private final String stackName;
     private final ConfigFileEditor alertLocalOverridesEditor;
     private final boolean useLocalOverrides;
 
-    public AlertInstaller(ZipFileDownloader zipFileDownloader, ExecutablesRunner executablesRunner, AlertDockerManager alertDockerManager, DockerStackDeploy dockerStackDeploy, DockerCommands dockerCommands, String stackName, AlertLocalOverridesEditor alertLocalOverridesEditor, boolean useLocalOverrides) {
-        super(zipFileDownloader, executablesRunner, alertDockerManager, dockerStackDeploy, dockerCommands);
+    public AlertInstaller(ZipFileDownloader zipFileDownloader, ExecutablesRunner executablesRunner, AlertDockerManager alertDockerManager, DockerStackDeploy dockerStackDeploy, DockerCommands dockerCommands, String stackName, AlertLocalOverridesEditor alertLocalOverridesEditor, boolean useLocalOverrides, List<File> additionalOrchestrationFiles) {
+        super(zipFileDownloader, executablesRunner, alertDockerManager, dockerStackDeploy, dockerCommands, additionalOrchestrationFiles);
 
         this.stackName = stackName;
         this.alertLocalOverridesEditor = alertLocalOverridesEditor;
@@ -60,6 +61,8 @@ public class AlertInstaller extends Installer {
             composeYmlDirectory = new File(dockerSwarm, "hub");
         }
         addOrchestrationFile(composeYmlDirectory, OrchestrationFiles.COMPOSE);
+
+        addAdditionalOrchestrationFiles();
 
         if (useLocalOverrides) {
             addOrchestrationFile(dockerSwarm, OrchestrationFiles.LOCAL_OVERRIDES);

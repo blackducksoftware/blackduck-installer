@@ -32,23 +32,27 @@ import com.synopsys.integration.blackduck.installer.dockerswarm.edit.HubWebServe
 import com.synopsys.integration.blackduck.installer.dockerswarm.edit.LocalOverridesEditor;
 import com.synopsys.integration.blackduck.installer.download.ZipFileDownloader;
 import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
+import com.synopsys.integration.blackduck.installer.model.BlackDuckAdditionalOrchestrationFiles;
 import com.synopsys.integration.blackduck.installer.model.ExecutablesRunner;
 
 import java.io.File;
+import java.util.List;
 
 public class BlackDuckInstaller extends Installer {
     private final ConfigFileEditor blackDuckConfigEnvEditor;
     private final ConfigFileEditor hubWebServerEnvEditor;
     private final ConfigFileEditor localOverridesEditor;
     private final boolean useLocalOverrides;
+    private final BlackDuckAdditionalOrchestrationFiles blackDuckAdditionalOrchestrationFiles;
 
-    public BlackDuckInstaller(ZipFileDownloader zipFileDownloader, ExecutablesRunner executablesRunner, BlackDuckDockerManager blackDuckDockerManager, DockerStackDeploy dockerStackDeploy, DockerCommands dockerCommands, BlackDuckConfigEnvEditor blackDuckConfigEnvEditor, HubWebServerEnvEditor hubWebServerEnvEditor, LocalOverridesEditor localOverridesEditor, boolean useLocalOverrides) {
-        super(zipFileDownloader, executablesRunner, blackDuckDockerManager, dockerStackDeploy, dockerCommands);
+    public BlackDuckInstaller(ZipFileDownloader zipFileDownloader, ExecutablesRunner executablesRunner, BlackDuckDockerManager blackDuckDockerManager, DockerStackDeploy dockerStackDeploy, DockerCommands dockerCommands, BlackDuckConfigEnvEditor blackDuckConfigEnvEditor, HubWebServerEnvEditor hubWebServerEnvEditor, LocalOverridesEditor localOverridesEditor, boolean useLocalOverrides, List<File> additionalOrchestrationFiles, BlackDuckAdditionalOrchestrationFiles blackDuckAdditionalOrchestrationFiles) {
+        super(zipFileDownloader, executablesRunner, blackDuckDockerManager, dockerStackDeploy, dockerCommands, additionalOrchestrationFiles);
 
         this.blackDuckConfigEnvEditor = blackDuckConfigEnvEditor;
         this.hubWebServerEnvEditor = hubWebServerEnvEditor;
         this.localOverridesEditor = localOverridesEditor;
         this.useLocalOverrides = useLocalOverrides;
+        this.blackDuckAdditionalOrchestrationFiles = blackDuckAdditionalOrchestrationFiles;
     }
 
     @Override
@@ -62,6 +66,13 @@ public class BlackDuckInstaller extends Installer {
     public void populateDockerStackDeploy(InstallerDockerData installerDockerData) {
         File dockerSwarm = new File(installerDockerData.getInstallDirectory(), "docker-swarm");
         addOrchestrationFile(dockerSwarm, OrchestrationFiles.COMPOSE);
+
+        addAdditionalOrchestrationFiles();
+
+        blackDuckAdditionalOrchestrationFiles.getBlackDuckAdditionalOrchestrationFilePaths()
+                .stream()
+                .map(blackDuckOrchestrationFile -> blackDuckOrchestrationFile.filePath)
+                .forEach(filePath -> addOrchestrationFile(dockerSwarm, filePath));
 
         if (useLocalOverrides) {
             addOrchestrationFile(dockerSwarm, OrchestrationFiles.LOCAL_OVERRIDES);

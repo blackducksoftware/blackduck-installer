@@ -124,6 +124,15 @@ public class ApplicationValues {
     @Value("${blackduck.install.use.local.overrides}")
     private boolean blackDuckInstallUseLocalOverrides;
 
+    @Value("${blackduck.install.use.bdba.orchestration.file}")
+    private boolean blackDuckInstallUseBdbaOrchestrationFile;
+
+    @Value("${blackduck.install.use.externaldb.orchestration.file}")
+    private boolean blackDuckInstallUseExternaldbOrchestrationFile;
+
+    @Value("${blackduck.install.use.dbmigrate.orchestration.file}")
+    private boolean blackDuckInstallUseDbmigrateOrchestrationFile;
+
     @Value("${blackduck.install.timeout.in.seconds}")
     private int blackDuckInstallTimeoutInSeconds;
 
@@ -327,6 +336,18 @@ public class ApplicationValues {
 
     public boolean isBlackDuckInstallUseLocalOverrides() {
         return blackDuckInstallUseLocalOverrides;
+    }
+
+    public boolean isBlackDuckInstallUseBdbaOrchestrationFile() {
+        return blackDuckInstallUseBdbaOrchestrationFile;
+    }
+
+    public boolean isBlackDuckInstallUseExternaldbOrchestrationFile() {
+        return blackDuckInstallUseExternaldbOrchestrationFile;
+    }
+
+    public boolean isBlackDuckInstallUseDbmigrateOrchestrationFile() {
+        return blackDuckInstallUseDbmigrateOrchestrationFile;
     }
 
     public int getBlackDuckInstallTimeoutInSeconds() {

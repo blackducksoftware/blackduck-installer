@@ -24,9 +24,6 @@ package com.synopsys.integration.blackduck.installer.dockerswarm;
 
 public class OrchestrationFiles {
     public static final String COMPOSE = "docker-compose.yml";
-    public static final String BDBA = "docker-compose.bdba.yml";
-    public static final String DBMIGRATE = "docker-compose.dbmigrate.yml";
-    public static final String EXTERNALDB = "docker-compose.externaldb.yml";
     public static final String LOCAL_OVERRIDES = "docker-compose.local-overrides.yml";
 
 }

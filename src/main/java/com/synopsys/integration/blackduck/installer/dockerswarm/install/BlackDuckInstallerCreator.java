@@ -33,6 +33,7 @@ import com.synopsys.integration.blackduck.installer.download.ArtifactoryDownload
 import com.synopsys.integration.blackduck.installer.download.BlackDuckGithubDownloadUrl;
 import com.synopsys.integration.blackduck.installer.download.ZipFileDownloader;
 import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
+import com.synopsys.integration.blackduck.installer.model.BlackDuckAdditionalOrchestrationFiles;
 import com.synopsys.integration.blackduck.installer.model.FileLoadedProperties;
 import com.synopsys.integration.blackduck.installer.model.FilePropertiesLoader;
 import com.synopsys.integration.blackduck.installer.workflow.DownloadUrlDecider;
@@ -71,8 +72,20 @@ public class BlackDuckInstallerCreator {
 
         List<String> additionalOrchestrationFilePaths = applicationValues.getBlackDuckInstallAdditionalOrchestrationFiles();
         List<File> additionalOrchestrationFiles = deployProductProperties.getFilePathTransformer().transformFilePaths(additionalOrchestrationFilePaths);
-        BlackDuckDockerManager blackDuckDockerManager = new BlackDuckDockerManager(deployProductProperties.getIntLogger(), deployProductProperties.getDockerCommands(), applicationValues.getStackName(), additionalOrchestrationFiles, deployProductProperties.getCustomCertificate());
-        return new BlackDuckInstaller(blackDuckDownloader, deployProductProperties.getExecutablesRunner(), blackDuckDockerManager, deployProductProperties.getDeployStack(), deployProductProperties.getDockerCommands(), blackDuckConfigEnvEditor, hubWebServerEnvEditor, localOverridesEditor, useLocalOverrides);
+        BlackDuckDockerManager blackDuckDockerManager = new BlackDuckDockerManager(deployProductProperties.getIntLogger(), deployProductProperties.getDockerCommands(), applicationValues.getStackName(), deployProductProperties.getCustomCertificate());
+
+        BlackDuckAdditionalOrchestrationFiles blackDuckAdditionalOrchestrationFiles = new BlackDuckAdditionalOrchestrationFiles();
+        if (applicationValues.isBlackDuckInstallUseBdbaOrchestrationFile()) {
+            blackDuckAdditionalOrchestrationFiles.addOrchestrationFilePath(BlackDuckAdditionalOrchestrationFiles.BlackDuckOrchestrationFile.BDBA);
+        }
+        if (applicationValues.isBlackDuckInstallUseExternaldbOrchestrationFile()) {
+            blackDuckAdditionalOrchestrationFiles.addOrchestrationFilePath(BlackDuckAdditionalOrchestrationFiles.BlackDuckOrchestrationFile.EXTERNALDB);
+        }
+        if (applicationValues.isBlackDuckInstallUseDbmigrateOrchestrationFile()) {
+            blackDuckAdditionalOrchestrationFiles.addOrchestrationFilePath(BlackDuckAdditionalOrchestrationFiles.BlackDuckOrchestrationFile.DBMIGRATE);
+        }
+
+        return new BlackDuckInstaller(blackDuckDownloader, deployProductProperties.getExecutablesRunner(), blackDuckDockerManager, deployProductProperties.getDeployStack(), deployProductProperties.getDockerCommands(), blackDuckConfigEnvEditor, hubWebServerEnvEditor, localOverridesEditor, useLocalOverrides, additionalOrchestrationFiles, blackDuckAdditionalOrchestrationFiles);
     }
 
 }

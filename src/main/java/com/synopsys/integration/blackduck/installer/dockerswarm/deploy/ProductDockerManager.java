@@ -39,13 +39,10 @@ public abstract class ProductDockerManager {
     protected final DockerCommands dockerCommands;
     protected final String stackName;
 
-    private List<File> additionalOrchestrationFiles = new ArrayList<>();
-
-    public ProductDockerManager(IntLogger logger, DockerCommands dockerCommands, String stackName, List<File> additionalOrchestrationFiles) {
+    public ProductDockerManager(IntLogger logger, DockerCommands dockerCommands, String stackName) {
         this.logger = logger;
         this.dockerCommands = dockerCommands;
         this.stackName = stackName;
-        this.additionalOrchestrationFiles.addAll(additionalOrchestrationFiles);
     }
 
     public abstract List<Executable> createExecutables(File installDirectory, DockerStacks dockerStacks, DockerSecrets dockerSecrets, DockerServices dockerServices);
@@ -56,10 +53,6 @@ public abstract class ProductDockerManager {
         } else {
             logger.info(String.format("The secret \"%s\" already existed - it will not be changed.", dockerSecret.getLabel()));
         }
-    }
-
-    public List<File> getAdditionalOrchestrationFiles() {
-        return additionalOrchestrationFiles;
     }
 
 }
