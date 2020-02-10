@@ -115,6 +115,9 @@ public class ApplicationValues {
     @Value("${blackduck.artifact}")
     private String blackDuckArtifact;
 
+    @Value("${blackduck.install.blackduck.config.env.properties}")
+    private String blackDuckInstallBlackDuckConfigEnvProperties;
+
     @Value("${blackduck.install.blackduck.config.env.properties.path}")
     private String blackDuckInstallBlackDuckConfigEnvPropertiesPath;
 
@@ -324,6 +327,10 @@ public class ApplicationValues {
 
     public String getBlackDuckArtifact() {
         return blackDuckArtifact;
+    }
+
+    public String getBlackDuckInstallBlackDuckConfigEnvProperties() {
+        return blackDuckInstallBlackDuckConfigEnvProperties;
     }
 
     public String getBlackDuckInstallBlackDuckConfigEnvPropertiesPath() {

@@ -27,7 +27,7 @@ import com.synopsys.integration.blackduck.installer.hash.HashUtility;
 import com.synopsys.integration.blackduck.installer.hash.PreComputedHashes;
 import com.synopsys.integration.blackduck.installer.model.ConfigProperties;
 import com.synopsys.integration.blackduck.installer.model.ConfigProperty;
-import com.synopsys.integration.blackduck.installer.model.FileLoadedProperties;
+import com.synopsys.integration.blackduck.installer.model.LoadedConfigProperties;
 import com.synopsys.integration.log.IntLogger;
 
 import java.io.*;
@@ -39,7 +39,7 @@ public class BlackDuckConfigEnvEditor extends PropertyFileEditor {
     private ConfigProperties toAdd = new ConfigProperties();
     private ConfigProperties toEdit = new ConfigProperties();
 
-    public BlackDuckConfigEnvEditor(IntLogger logger, HashUtility hashUtility, String lineSeparator, FileLoadedProperties blackDuckConfigEnvLoadedProperties) {
+    public BlackDuckConfigEnvEditor(IntLogger logger, HashUtility hashUtility, String lineSeparator, LoadedConfigProperties blackDuckConfigEnvLoadedProperties) {
         super(logger, hashUtility, lineSeparator);
 
         blackDuckConfigEnvLoadedProperties.getToAdd().stream().forEach(toAdd::add);

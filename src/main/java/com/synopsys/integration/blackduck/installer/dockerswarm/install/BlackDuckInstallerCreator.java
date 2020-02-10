@@ -34,20 +34,18 @@ import com.synopsys.integration.blackduck.installer.download.BlackDuckGithubDown
 import com.synopsys.integration.blackduck.installer.download.ZipFileDownloader;
 import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
 import com.synopsys.integration.blackduck.installer.model.BlackDuckAdditionalOrchestrationFiles;
-import com.synopsys.integration.blackduck.installer.model.FileLoadedProperties;
-import com.synopsys.integration.blackduck.installer.model.FilePropertiesLoader;
+import com.synopsys.integration.blackduck.installer.model.LoadedConfigProperties;
 import com.synopsys.integration.blackduck.installer.workflow.DownloadUrlDecider;
 
 import java.io.File;
-import java.util.Collections;
 import java.util.List;
 
 public class BlackDuckInstallerCreator {
     private ApplicationValues applicationValues;
     private DeployProductProperties deployProductProperties;
-    private FileLoadedProperties blackDuckConfigEnvLoadedProperties;
+    private LoadedConfigProperties blackDuckConfigEnvLoadedProperties;
 
-    public BlackDuckInstallerCreator(ApplicationValues applicationValues, DeployProductProperties deployProductProperties, FileLoadedProperties blackDuckConfigEnvLoadedProperties) {
+    public BlackDuckInstallerCreator(ApplicationValues applicationValues, DeployProductProperties deployProductProperties, LoadedConfigProperties blackDuckConfigEnvLoadedProperties) {
         this.applicationValues = applicationValues;
         this.deployProductProperties = deployProductProperties;
         this.blackDuckConfigEnvLoadedProperties = blackDuckConfigEnvLoadedProperties;

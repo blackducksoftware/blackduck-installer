@@ -29,7 +29,6 @@ import com.synopsys.integration.blackduck.installer.configure.*;
 import com.synopsys.integration.blackduck.installer.dockerswarm.DockerCommands;
 import com.synopsys.integration.blackduck.installer.dockerswarm.DockerStackDeploy;
 import com.synopsys.integration.blackduck.installer.dockerswarm.deploy.AlertDockerManager;
-import com.synopsys.integration.blackduck.installer.dockerswarm.edit.BlackDuckConfigEnvEditor;
 import com.synopsys.integration.blackduck.installer.dockerswarm.install.*;
 import com.synopsys.integration.blackduck.installer.download.StandardCookieSpecHttpClient;
 import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
@@ -99,7 +98,7 @@ public class Application implements ApplicationRunner {
             String lineSeparator = "\n";
             Expander expander = new Expander();
             Gson gson = new Gson();
-            FilePropertiesLoader filePropertiesLoader = new FilePropertiesLoader(gson);
+            ConfigPropertiesLoader configPropertiesLoader = new ConfigPropertiesLoader(gson);
             IntLogger intLogger = new Slf4jIntLogger(logger);
             HashUtility hashUtility = new HashUtility();
             FilePathTransformer filePathTransformer = new FilePathTransformer();
@@ -154,12 +153,18 @@ public class Application implements ApplicationRunner {
                 BlackDuckServerConfig blackDuckServerConfig = createBlackDuckServerConfig(intLogger);
                 BlackDuckWait blackDuckWait = new BlackDuckWait(intLogger, applicationValues.getBlackDuckInstallTimeoutInSeconds(), blackDuckServerConfig, blackDuckUpdateKeyStoreService);
                 BlackDuckConfigureService blackDuckConfigureService = new BlackDuckConfigureService(deployProductProperties.getIntLogger(), blackDuckServerConfig, applicationValues.getBlackDuckInstallTimeoutInSeconds(), blackDuckConfigurationOptions);
-                FileLoadedProperties blackDuckConfigEnvLoadedProperties = new FileLoadedProperties();
+                LoadedConfigProperties blackDuckConfigEnvLoadedProperties = new LoadedConfigProperties();
 
-                String blackDuckConfigEnvPropertiesFilePath = applicationValues.getBlackDuckInstallBlackDuckConfigEnvPropertiesPath();
-                if (StringUtils.isNotEmpty(blackDuckConfigEnvPropertiesFilePath)) {
-                    File file = filePathTransformer.transformFilePath(blackDuckConfigEnvPropertiesFilePath);
-                    blackDuckConfigEnvLoadedProperties = filePropertiesLoader.loadPropertiesFromFile(file);
+                // the string contents override the json file
+                String blackDuckConfigEnvProperties = applicationValues.getBlackDuckInstallBlackDuckConfigEnvProperties();
+                if (StringUtils.isNotBlank(blackDuckConfigEnvProperties)) {
+                    blackDuckConfigEnvLoadedProperties = configPropertiesLoader.loadPropertiesFromString(blackDuckConfigEnvProperties);
+                } else {
+                    String blackDuckConfigEnvPropertiesFilePath = applicationValues.getBlackDuckInstallBlackDuckConfigEnvPropertiesPath();
+                    if (StringUtils.isNotEmpty(blackDuckConfigEnvPropertiesFilePath)) {
+                        File file = filePathTransformer.transformFilePath(blackDuckConfigEnvPropertiesFilePath);
+                        blackDuckConfigEnvLoadedProperties = configPropertiesLoader.loadPropertiesFromFile(file);
+                    }
                 }
 
                 //TODO pass in the req'd properties instead of applicationValues

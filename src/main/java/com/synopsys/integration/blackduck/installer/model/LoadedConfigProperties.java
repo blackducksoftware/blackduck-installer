@@ -25,15 +25,15 @@ package com.synopsys.integration.blackduck.installer.model;
 import java.util.ArrayList;
 import java.util.List;
 
-public class FileLoadedProperties {
+public class LoadedConfigProperties {
     private List<ConfigProperty> toAdd = new ArrayList<>();
     private List<ConfigProperty> toEdit = new ArrayList<>();
 
-    public FileLoadedProperties() {
+    public LoadedConfigProperties() {
 
     }
 
-    public FileLoadedProperties(List<ConfigProperty> toAdd, List<ConfigProperty> toEdit) {
+    public LoadedConfigProperties(List<ConfigProperty> toAdd, List<ConfigProperty> toEdit) {
         this.toAdd = toAdd;
         this.toEdit = toEdit;
     }
