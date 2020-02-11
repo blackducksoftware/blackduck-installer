@@ -13,7 +13,7 @@ plugins {
 }
 
 group = 'com.synopsys.integration'
-version = '0.0.3-SNAPSHOT'
+version = '0.0.3'
 project.ext.javaSourceCompatibility = JavaVersion.VERSION_11
 project.ext.javaTargetCompatibility = JavaVersion.VERSION_11
 
