@@ -45,8 +45,14 @@ public class DockerCommands {
         return executableCreator.createExecutable(fullCommand);
     }
 
-    public Executable restartDocker() {
-        return executableCreator.createExecutable("systemctl restart docker");
+    public Executable listServiceNamesUsingStack(String stackName) {
+        String fullCommand = String.format("docker service ls --format \"{{.Name}}\" --filter label=com.docker.stack.namespace=%s", stackName);
+        return executableCreator.createExecutable(fullCommand);
+    }
+
+    public Executable listNetworkNamesUsingStack(String stackName) {
+        String fullCommand = String.format("docker network ls --format \"{{.Name}}\" --filter label=com.docker.stack.namespace=%s", stackName);
+        return executableCreator.createExecutable(fullCommand);
     }
 
     public Executable listStackNames() {

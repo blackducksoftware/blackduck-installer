@@ -33,9 +33,11 @@ import com.synopsys.integration.blackduck.installer.download.ArtifactoryDownload
 import com.synopsys.integration.blackduck.installer.download.BlackDuckGithubDownloadUrl;
 import com.synopsys.integration.blackduck.installer.download.ZipFileDownloader;
 import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
+import com.synopsys.integration.blackduck.installer.hash.HashUtility;
 import com.synopsys.integration.blackduck.installer.model.BlackDuckAdditionalOrchestrationFiles;
 import com.synopsys.integration.blackduck.installer.model.LoadedConfigProperties;
 import com.synopsys.integration.blackduck.installer.workflow.DownloadUrlDecider;
+import com.synopsys.integration.log.IntLogger;
 
 import java.io.File;
 import java.util.List;
@@ -52,25 +54,29 @@ public class BlackDuckInstallerCreator {
     }
 
     public BlackDuckInstaller create() throws BlackDuckInstallerException {
+        IntLogger intLogger = deployProductProperties.getIntLogger();
+        HashUtility hashUtility = deployProductProperties.getHashUtility();
+        String stackName = applicationValues.getStackName();
+
         BlackDuckGithubDownloadUrl blackDuckGithubDownloadUrl = new BlackDuckGithubDownloadUrl(applicationValues.getBlackDuckGithubDownloadUrlPrefix(), applicationValues.getBlackDuckVersion());
         ArtifactoryDownloadUrl blackDuckArtifactoryDownloadUrl = new ArtifactoryDownloadUrl(applicationValues.getBlackDuckArtifactoryUrl(), applicationValues.getBlackDuckArtifactoryRepo(), applicationValues.getBlackDuckArtifactPath(), applicationValues.getBlackDuckArtifact(), applicationValues.getBlackDuckVersion());
         DownloadUrlDecider downloadUrlDecider = new DownloadUrlDecider(applicationValues.getBlackDuckDownloadSource(), blackDuckGithubDownloadUrl::getDownloadUrl, blackDuckArtifactoryDownloadUrl::getDownloadUrl);
 
         HubWebServerEnvTokens hubWebServerEnvTokens = new HubWebServerEnvTokens(applicationValues.getWebServerHost());
-        HubWebServerEnvEditor hubWebServerEnvEditor = new HubWebServerEnvEditor(deployProductProperties.getIntLogger(), deployProductProperties.getHashUtility(), deployProductProperties.getLineSeparator(), hubWebServerEnvTokens);
+        HubWebServerEnvEditor hubWebServerEnvEditor = new HubWebServerEnvEditor(intLogger, hashUtility, deployProductProperties.getLineSeparator(), hubWebServerEnvTokens);
 
-        BlackDuckConfigEnvEditor blackDuckConfigEnvEditor = new BlackDuckConfigEnvEditor(deployProductProperties.getIntLogger(), deployProductProperties.getHashUtility(), deployProductProperties.getLineSeparator(), blackDuckConfigEnvLoadedProperties);
+        BlackDuckConfigEnvEditor blackDuckConfigEnvEditor = new BlackDuckConfigEnvEditor(intLogger, hashUtility, deployProductProperties.getLineSeparator(), blackDuckConfigEnvLoadedProperties);
 
         boolean useLocalOverrides = applicationValues.isBlackDuckInstallUseLocalOverrides();
         if (!deployProductProperties.getCustomCertificate().isEmpty()) {
             useLocalOverrides = true;
         }
-        LocalOverridesEditor localOverridesEditor = new LocalOverridesEditor(deployProductProperties.getIntLogger(), deployProductProperties.getHashUtility(), deployProductProperties.getLineSeparator(), applicationValues.getStackName(), useLocalOverrides);
-        ZipFileDownloader blackDuckDownloader = new ZipFileDownloader(deployProductProperties.getIntLogger(), deployProductProperties.getIntHttpClient(), deployProductProperties.getCommonZipExpander(), downloadUrlDecider, deployProductProperties.getBaseDirectory(), "blackduck", applicationValues.getBlackDuckVersion(), applicationValues.isBlackDuckDownloadForce());
+        LocalOverridesEditor localOverridesEditor = new LocalOverridesEditor(intLogger, hashUtility, deployProductProperties.getLineSeparator(), stackName, useLocalOverrides);
+        ZipFileDownloader blackDuckDownloader = new ZipFileDownloader(intLogger, deployProductProperties.getIntHttpClient(), deployProductProperties.getCommonZipExpander(), downloadUrlDecider, deployProductProperties.getBaseDirectory(), "blackduck", applicationValues.getBlackDuckVersion(), applicationValues.isBlackDuckDownloadForce());
 
         List<String> additionalOrchestrationFilePaths = applicationValues.getBlackDuckInstallAdditionalOrchestrationFiles();
         List<File> additionalOrchestrationFiles = deployProductProperties.getFilePathTransformer().transformFilePaths(additionalOrchestrationFilePaths);
-        BlackDuckDockerManager blackDuckDockerManager = new BlackDuckDockerManager(deployProductProperties.getIntLogger(), deployProductProperties.getDockerCommands(), applicationValues.getStackName(), deployProductProperties.getCustomCertificate());
+        BlackDuckDockerManager blackDuckDockerManager = new BlackDuckDockerManager(intLogger, deployProductProperties.getDockerCommands(), stackName, deployProductProperties.getCustomCertificate());
 
         BlackDuckAdditionalOrchestrationFiles blackDuckAdditionalOrchestrationFiles = new BlackDuckAdditionalOrchestrationFiles();
         if (applicationValues.isBlackDuckInstallUseBdbaOrchestrationFile()) {
@@ -83,7 +89,7 @@ public class BlackDuckInstallerCreator {
             blackDuckAdditionalOrchestrationFiles.addOrchestrationFilePath(BlackDuckAdditionalOrchestrationFiles.BlackDuckOrchestrationFile.DBMIGRATE);
         }
 
-        return new BlackDuckInstaller(blackDuckDownloader, deployProductProperties.getExecutablesRunner(), blackDuckDockerManager, deployProductProperties.getDeployStack(), deployProductProperties.getDockerCommands(), blackDuckConfigEnvEditor, hubWebServerEnvEditor, localOverridesEditor, useLocalOverrides, additionalOrchestrationFiles, blackDuckAdditionalOrchestrationFiles);
+        return new BlackDuckInstaller(intLogger, blackDuckDownloader, deployProductProperties.getExecutablesRunner(), blackDuckDockerManager, deployProductProperties.getDeployStack(), deployProductProperties.getDockerCommands(), stackName, additionalOrchestrationFiles, blackDuckConfigEnvEditor, hubWebServerEnvEditor, localOverridesEditor, useLocalOverrides, blackDuckAdditionalOrchestrationFiles);
     }
 
 }

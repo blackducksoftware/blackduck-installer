@@ -23,6 +23,7 @@
 package com.synopsys.integration.blackduck.installer.dockerswarm.deploy;
 
 import com.synopsys.integration.blackduck.installer.dockerswarm.DockerCommands;
+import com.synopsys.integration.blackduck.installer.dockerswarm.install.InstallerDockerData;
 import com.synopsys.integration.blackduck.installer.dockerswarm.output.DockerSecrets;
 import com.synopsys.integration.blackduck.installer.dockerswarm.output.DockerServices;
 import com.synopsys.integration.blackduck.installer.dockerswarm.output.DockerStacks;
@@ -35,7 +36,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public abstract class ProductDockerManager {
-    protected IntLogger logger;
+    protected final IntLogger logger;
     protected final DockerCommands dockerCommands;
     protected final String stackName;
 
@@ -45,7 +46,7 @@ public abstract class ProductDockerManager {
         this.stackName = stackName;
     }
 
-    public abstract List<Executable> createExecutables(File installDirectory, DockerStacks dockerStacks, DockerSecrets dockerSecrets, DockerServices dockerServices);
+    public abstract List<Executable> createExecutables(InstallerDockerData installerDockerData);
 
     protected void addSecret(List<Executable> executables, DockerSecrets dockerSecrets, DockerSecret dockerSecret) {
         if (!dockerSecrets.doesSecretExist(dockerSecret)) {

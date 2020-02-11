@@ -65,6 +65,7 @@ public class AlertInstallerCreator {
         IntHttpClient intHttpClient = deployProductProperties.getIntHttpClient();
         CommonZipExpander commonZipExpander = deployProductProperties.getCommonZipExpander();
         File baseDirectory = deployProductProperties.getBaseDirectory();
+        String stackName = applicationValues.getStackName();
         CustomCertificate customCertificate = deployProductProperties.getCustomCertificate();
 
         DockerService alertService = deployAlertProperties.getAlertService();
@@ -79,15 +80,15 @@ public class AlertInstallerCreator {
         if (!deployProductProperties.getCustomCertificate().isEmpty() || !alertEncryption.isEmpty() || !alertBlackDuckInstallOptions.isEmpty()) {
             useLocalOverrides = true;
         }
-        AlertLocalOverridesEditor alertLocalOverridesEditor = new AlertLocalOverridesEditor(intLogger, hashUtility, lineSeparator, applicationValues.getStackName(), applicationValues.getWebServerHost(), applicationValues.getAlertInstallDefaultAdminEmail(), alertEncryption, customCertificate, alertBlackDuckInstallOptions, useLocalOverrides);
+        AlertLocalOverridesEditor alertLocalOverridesEditor = new AlertLocalOverridesEditor(intLogger, hashUtility, lineSeparator, stackName, applicationValues.getWebServerHost(), applicationValues.getAlertInstallDefaultAdminEmail(), alertEncryption, customCertificate, alertBlackDuckInstallOptions, useLocalOverrides);
         ZipFileDownloader alertDownloader = new ZipFileDownloader(intLogger, intHttpClient, commonZipExpander, downloadUrlDecider, baseDirectory, "blackduck-alert", applicationValues.getAlertVersion(), applicationValues.isAlertDownloadForce());
-        DockerStackDeploy dockerStackDeploy = new DockerStackDeploy(applicationValues.getStackName());
+        DockerStackDeploy dockerStackDeploy = new DockerStackDeploy(stackName);
 
         List<String> additionalOrchestrationFilePaths = applicationValues.getAlertInstallAdditionalOrchestrationFiles();
         List<File> additionalOrchestrationFiles = deployProductProperties.getFilePathTransformer().transformFilePaths(additionalOrchestrationFilePaths);
-        AlertDockerManager alertDockerManager = new AlertDockerManager(intLogger, dockerCommands, applicationValues.getStackName(), customCertificate, alertEncryption, alertService);
+        AlertDockerManager alertDockerManager = new AlertDockerManager(intLogger, dockerCommands, stackName, customCertificate, alertEncryption);
 
-        return new AlertInstaller(alertDownloader, deployProductProperties.getExecutablesRunner(), alertDockerManager, dockerStackDeploy, dockerCommands, applicationValues.getStackName(), alertLocalOverridesEditor, useLocalOverrides, additionalOrchestrationFiles);
+        return new AlertInstaller(intLogger, alertDownloader, deployProductProperties.getExecutablesRunner(), alertDockerManager, dockerStackDeploy, dockerCommands, stackName, additionalOrchestrationFiles, alertService, alertLocalOverridesEditor, useLocalOverrides);
     }
 
 }

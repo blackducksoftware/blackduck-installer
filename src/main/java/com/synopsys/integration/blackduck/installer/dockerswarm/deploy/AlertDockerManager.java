@@ -23,6 +23,7 @@
 package com.synopsys.integration.blackduck.installer.dockerswarm.deploy;
 
 import com.synopsys.integration.blackduck.installer.dockerswarm.DockerCommands;
+import com.synopsys.integration.blackduck.installer.dockerswarm.install.InstallerDockerData;
 import com.synopsys.integration.blackduck.installer.dockerswarm.output.DockerSecrets;
 import com.synopsys.integration.blackduck.installer.dockerswarm.output.DockerServices;
 import com.synopsys.integration.blackduck.installer.dockerswarm.output.DockerStacks;
@@ -41,22 +42,17 @@ public class AlertDockerManager extends ProductDockerManager {
 
     private final CustomCertificate customCertificate;
     private final AlertEncryption alertEncryption;
-    private final DockerService alertService;
 
-    public AlertDockerManager(IntLogger logger, DockerCommands dockerCommands, String stackName, CustomCertificate customCertificate, AlertEncryption alertEncryption, DockerService alertService) {
+    public AlertDockerManager(IntLogger logger, DockerCommands dockerCommands, String stackName, CustomCertificate customCertificate, AlertEncryption alertEncryption) {
         super(logger, dockerCommands, stackName);
         this.customCertificate = customCertificate;
         this.alertEncryption = alertEncryption;
-        this.alertService = alertService;
     }
 
-    public List<Executable> createExecutables(File installDirectory, DockerStacks dockerStacks, DockerSecrets dockerSecrets, DockerServices dockerServices) {
-        List<Executable> executables = new ArrayList<>();
+    public List<Executable> createExecutables(InstallerDockerData installerDockerData) {
+        DockerSecrets dockerSecrets = installerDockerData.getDockerSecrets();
 
-        if (dockerServices.doesServiceExist(alertService)) {
-            logger.info(String.format("Removing the service \"%s\".", alertService.getDockerName()));
-            executables.add(dockerCommands.removeService(alertService));
-        }
+        List<Executable> executables = new ArrayList<>();
 
         if (!alertEncryption.isEmpty()) {
             addSecret(executables, dockerSecrets, alertEncryption.getPassword());

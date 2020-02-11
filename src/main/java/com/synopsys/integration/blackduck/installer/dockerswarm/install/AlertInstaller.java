@@ -28,22 +28,28 @@ import com.synopsys.integration.blackduck.installer.dockerswarm.OrchestrationFil
 import com.synopsys.integration.blackduck.installer.dockerswarm.deploy.AlertDockerManager;
 import com.synopsys.integration.blackduck.installer.dockerswarm.edit.AlertLocalOverridesEditor;
 import com.synopsys.integration.blackduck.installer.dockerswarm.edit.ConfigFileEditor;
+import com.synopsys.integration.blackduck.installer.dockerswarm.output.DockerServices;
 import com.synopsys.integration.blackduck.installer.download.ZipFileDownloader;
 import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
+import com.synopsys.integration.blackduck.installer.model.DockerService;
 import com.synopsys.integration.blackduck.installer.model.ExecutablesRunner;
+import com.synopsys.integration.exception.IntegrationException;
+import com.synopsys.integration.log.IntLogger;
+import com.synopsys.integration.wait.WaitJob;
+import com.synopsys.integration.wait.WaitJobTask;
 
 import java.io.File;
 import java.util.List;
 
 public class AlertInstaller extends Installer {
-    private final String stackName;
+    private final DockerService alertService;
     private final ConfigFileEditor alertLocalOverridesEditor;
     private final boolean useLocalOverrides;
 
-    public AlertInstaller(ZipFileDownloader zipFileDownloader, ExecutablesRunner executablesRunner, AlertDockerManager alertDockerManager, DockerStackDeploy dockerStackDeploy, DockerCommands dockerCommands, String stackName, AlertLocalOverridesEditor alertLocalOverridesEditor, boolean useLocalOverrides, List<File> additionalOrchestrationFiles) {
-        super(zipFileDownloader, executablesRunner, alertDockerManager, dockerStackDeploy, dockerCommands, additionalOrchestrationFiles);
+    public AlertInstaller(IntLogger logger, ZipFileDownloader zipFileDownloader, ExecutablesRunner executablesRunner, AlertDockerManager alertDockerManager, DockerStackDeploy dockerStackDeploy, DockerCommands dockerCommands, String stackName, List<File> additionalOrchestrationFiles, DockerService alertService, AlertLocalOverridesEditor alertLocalOverridesEditor, boolean useLocalOverrides) {
+        super(logger, zipFileDownloader, executablesRunner, alertDockerManager, dockerStackDeploy, dockerCommands, stackName, additionalOrchestrationFiles);
 
-        this.stackName = stackName;
+        this.alertService = alertService;
         this.alertLocalOverridesEditor = alertLocalOverridesEditor;
         this.useLocalOverrides = useLocalOverrides;
     }
@@ -67,6 +73,29 @@ public class AlertInstaller extends Installer {
         if (useLocalOverrides) {
             addOrchestrationFile(dockerSwarm, OrchestrationFiles.LOCAL_OVERRIDES);
         }
+    }
+
+    @Override
+    public void preDockerStackDeployCleanup(InstallerDockerData installerDockerData) throws IntegrationException, InterruptedException {
+        if (installerDockerData.getDockerServices().doesServiceExist(alertService)) {
+            logger.info(String.format("Removing the service \"%s\".", alertService.getDockerName()));
+            executablesRunner.runExecutable(dockerCommands.removeService(alertService));
+
+            WaitJob waitForRemoval = WaitJob.createUsingSystemTimeWhenInvoked(logger, 60, 5, createWaitForNoService());
+            waitForRemoval.waitFor();
+        }
+
+    }
+
+    private WaitJobTask createWaitForNoService() {
+        return new WaitJobTask() {
+            @Override
+            public boolean isComplete() throws IntegrationException {
+                logger.info(String.format("Checking if the service \"%s\" is removed...", alertService.getDockerName()));
+                DockerServices currentDockerServices = createDockerOutput(dockerCommands::listServiceNames, DockerServices::create);
+                return !currentDockerServices.doesServiceExist(alertService);
+            }
+        };
     }
 
 }

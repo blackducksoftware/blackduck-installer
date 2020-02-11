@@ -30,10 +30,17 @@ import com.synopsys.integration.blackduck.installer.dockerswarm.edit.BlackDuckCo
 import com.synopsys.integration.blackduck.installer.dockerswarm.edit.ConfigFileEditor;
 import com.synopsys.integration.blackduck.installer.dockerswarm.edit.HubWebServerEnvEditor;
 import com.synopsys.integration.blackduck.installer.dockerswarm.edit.LocalOverridesEditor;
+import com.synopsys.integration.blackduck.installer.dockerswarm.output.DockerServices;
+import com.synopsys.integration.blackduck.installer.dockerswarm.output.DockerStacks;
 import com.synopsys.integration.blackduck.installer.download.ZipFileDownloader;
 import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
 import com.synopsys.integration.blackduck.installer.model.BlackDuckAdditionalOrchestrationFiles;
 import com.synopsys.integration.blackduck.installer.model.ExecutablesRunner;
+import com.synopsys.integration.exception.IntegrationException;
+import com.synopsys.integration.log.IntLogger;
+import com.synopsys.integration.wait.WaitJob;
+import com.synopsys.integration.wait.WaitJobTask;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
 import java.util.List;
@@ -45,8 +52,8 @@ public class BlackDuckInstaller extends Installer {
     private final boolean useLocalOverrides;
     private final BlackDuckAdditionalOrchestrationFiles blackDuckAdditionalOrchestrationFiles;
 
-    public BlackDuckInstaller(ZipFileDownloader zipFileDownloader, ExecutablesRunner executablesRunner, BlackDuckDockerManager blackDuckDockerManager, DockerStackDeploy dockerStackDeploy, DockerCommands dockerCommands, BlackDuckConfigEnvEditor blackDuckConfigEnvEditor, HubWebServerEnvEditor hubWebServerEnvEditor, LocalOverridesEditor localOverridesEditor, boolean useLocalOverrides, List<File> additionalOrchestrationFiles, BlackDuckAdditionalOrchestrationFiles blackDuckAdditionalOrchestrationFiles) {
-        super(zipFileDownloader, executablesRunner, blackDuckDockerManager, dockerStackDeploy, dockerCommands, additionalOrchestrationFiles);
+    public BlackDuckInstaller(IntLogger logger, ZipFileDownloader zipFileDownloader, ExecutablesRunner executablesRunner, BlackDuckDockerManager blackDuckDockerManager, DockerStackDeploy dockerStackDeploy, DockerCommands dockerCommands, String stackName, List<File> additionalOrchestrationFiles, BlackDuckConfigEnvEditor blackDuckConfigEnvEditor, HubWebServerEnvEditor hubWebServerEnvEditor, LocalOverridesEditor localOverridesEditor, boolean useLocalOverrides, BlackDuckAdditionalOrchestrationFiles blackDuckAdditionalOrchestrationFiles) {
+        super(logger, zipFileDownloader, executablesRunner, blackDuckDockerManager, dockerStackDeploy, dockerCommands, stackName, additionalOrchestrationFiles);
 
         this.blackDuckConfigEnvEditor = blackDuckConfigEnvEditor;
         this.hubWebServerEnvEditor = hubWebServerEnvEditor;
@@ -79,5 +86,28 @@ public class BlackDuckInstaller extends Installer {
         }
     }
 
+    @Override
+    public void preDockerStackDeployCleanup(InstallerDockerData installerDockerData) throws IntegrationException, InterruptedException {
+        if (installerDockerData.getDockerStacks().doesStackExist(stackName)) {
+            logger.info(String.format("The stack \"%s\" already existed - removing it.", stackName));
+            executablesRunner.runExecutable(dockerCommands.stopStack(stackName));
+
+            WaitJob waitForRemoval = WaitJob.createUsingSystemTimeWhenInvoked(logger, 60, 5, createWaitForNoStack());
+            waitForRemoval.waitFor();
+        }
+    }
+
+    private WaitJobTask createWaitForNoStack() {
+        return new WaitJobTask() {
+            @Override
+            public boolean isComplete() throws IntegrationException {
+                logger.info(String.format("Checking if any services or networks remain for stack \"%s\"...", stackName));
+                String simpleServiceOutput = createSimpleDockerOutput(() -> dockerCommands.listServiceNamesUsingStack(stackName));
+                String simpleNetworkOutput = createSimpleDockerOutput(() -> dockerCommands.listNetworkNamesUsingStack(stackName));
+
+                return StringUtils.isAllBlank(simpleServiceOutput, simpleNetworkOutput);
+            }
+        };
+    }
 
 }

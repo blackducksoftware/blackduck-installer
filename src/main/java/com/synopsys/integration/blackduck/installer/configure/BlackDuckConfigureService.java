@@ -83,7 +83,7 @@ public class BlackDuckConfigureService {
                 ApiTokenService apiTokenService = new ApiTokenService(blackDuckHttpClient, gson, blackDuckJsonTransformer, blackDuckResponseTransformer, blackDuckResponsesTransformer);
                 Optional<ApiTokenView> apiTokenView = apiTokenService.getExistingApiToken(TOKEN_NAME);
                 if (apiTokenView.isPresent()) {
-                    intLogger.warn(String.format("A token named %s already exists - no new token will be created."));
+                    intLogger.warn(String.format("A token named %s already exists - no new token will be created.", TOKEN_NAME));
                 } else {
                     ApiTokenView createdApiTokenView = apiTokenService.createApiToken(TOKEN_NAME);
                     configureResult = new ConfigureResult(true, createdApiTokenView.getToken());

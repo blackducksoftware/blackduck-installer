@@ -23,6 +23,7 @@
 package com.synopsys.integration.blackduck.installer.dockerswarm.deploy;
 
 import com.synopsys.integration.blackduck.installer.dockerswarm.DockerCommands;
+import com.synopsys.integration.blackduck.installer.dockerswarm.install.InstallerDockerData;
 import com.synopsys.integration.blackduck.installer.dockerswarm.output.DockerSecrets;
 import com.synopsys.integration.blackduck.installer.dockerswarm.output.DockerServices;
 import com.synopsys.integration.blackduck.installer.dockerswarm.output.DockerStacks;
@@ -42,15 +43,10 @@ public class BlackDuckDockerManager extends ProductDockerManager {
         this.customCertificate = customCertificate;
     }
 
-    public List<Executable> createExecutables(File installDirectory, DockerStacks dockerStacks, DockerSecrets dockerSecrets, DockerServices dockerServices) {
-        List<Executable> executables = new ArrayList<>();
+    public List<Executable> createExecutables(InstallerDockerData installerDockerData) {
+        DockerSecrets dockerSecrets = installerDockerData.getDockerSecrets();
 
-        if (dockerStacks.doesStackExist(stackName)) {
-            logger.info(String.format("The stack \"%s\" already existed - removing it and restarting docker.", stackName));
-            executables.add(dockerCommands.stopStack(stackName));
-            //TODO it would be better to list services and wait for nothing stackName_, as the permissions for restarting Docker could be more restrictive
-            executables.add(dockerCommands.restartDocker());
-        }
+        List<Executable> executables = new ArrayList<>();
 
         if (!customCertificate.isEmpty()) {
             addSecret(executables, dockerSecrets, customCertificate.getCertificate());

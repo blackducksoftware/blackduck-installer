@@ -31,8 +31,10 @@ import com.synopsys.integration.blackduck.installer.download.ZipFileDownloader;
 import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
 import com.synopsys.integration.blackduck.installer.model.ExecutablesRunner;
 import com.synopsys.integration.blackduck.installer.model.InstallResult;
+import com.synopsys.integration.exception.IntegrationException;
 import com.synopsys.integration.executable.Executable;
 import com.synopsys.integration.executable.ExecutableOutput;
+import com.synopsys.integration.log.IntLogger;
 
 import java.io.File;
 import java.util.List;
@@ -40,23 +42,32 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 public abstract class Installer {
+    protected final IntLogger logger;
+
     private final ZipFileDownloader zipFileDownloader;
-    private final ExecutablesRunner executablesRunner;
     private final ProductDockerManager productDockerManager;
     private final DockerStackDeploy dockerStackDeploy;
-    private final DockerCommands dockerCommands;
     private final List<File> additionalOrchestrationFiles;
 
-    public Installer(ZipFileDownloader zipFileDownloader, ExecutablesRunner executablesRunner, ProductDockerManager productDockerManager, DockerStackDeploy dockerStackDeploy, DockerCommands dockerCommands, List<File> additionalOrchestrationFiles) {
+    protected final ExecutablesRunner executablesRunner;
+    protected final DockerCommands dockerCommands;
+
+    protected final String stackName;
+
+    public Installer(IntLogger logger, ZipFileDownloader zipFileDownloader, ExecutablesRunner executablesRunner, ProductDockerManager productDockerManager, DockerStackDeploy dockerStackDeploy, DockerCommands dockerCommands, String stackName, List<File> additionalOrchestrationFiles) {
+        this.logger = logger;
         this.zipFileDownloader = zipFileDownloader;
         this.executablesRunner = executablesRunner;
         this.productDockerManager = productDockerManager;
         this.dockerStackDeploy = dockerStackDeploy;
         this.dockerCommands = dockerCommands;
+        this.stackName = stackName;
         this.additionalOrchestrationFiles = additionalOrchestrationFiles;
     }
 
     public abstract void postDownloadProcessing(File installDirectory) throws BlackDuckInstallerException;
+
+    public abstract void preDockerStackDeployCleanup(InstallerDockerData installerDockerData) throws IntegrationException, InterruptedException;
 
     public abstract void populateDockerStackDeploy(InstallerDockerData installerDockerData);
 
@@ -75,7 +86,7 @@ public abstract class Installer {
         }
     }
 
-    public InstallResult performInstall() throws BlackDuckInstallerException {
+    public InstallResult performInstall() throws IntegrationException, InterruptedException {
         File installDirectory = zipFileDownloader.download();
 
         postDownloadProcessing(installDirectory);
@@ -83,15 +94,17 @@ public abstract class Installer {
         DockerStacks dockerStacks = createDockerOutput(dockerCommands::listStackNames, DockerStacks::create);
         DockerSecrets dockerSecrets = createDockerOutput(dockerCommands::listSecretNames, DockerSecrets::create);
         DockerServices dockerServices = createDockerOutput(dockerCommands::listServiceNames, DockerServices::create);
+        InstallerDockerData installerDockerData = new InstallerDockerData(installDirectory, dockerStacks, dockerSecrets, dockerServices);
 
-        List<Executable> executables = productDockerManager.createExecutables(installDirectory, dockerStacks, dockerSecrets, dockerServices);
+        List<Executable> executables = productDockerManager.createExecutables(installerDockerData);
         addAdditionalExecutables(executables);
 
         int overallReturnCode = 0;
         overallReturnCode += executablesRunner.runExecutables(executables);
 
-        InstallerDockerData installerDockerData = new InstallerDockerData(installDirectory, dockerStacks, dockerSecrets, dockerServices);
         populateDockerStackDeploy(installerDockerData);
+
+        preDockerStackDeployCleanup(installerDockerData);
 
         Executable dockerStackDeployExecutable = dockerStackDeploy.createDeployExecutable();
         overallReturnCode += executablesRunner.runExecutableCode(dockerStackDeployExecutable);
@@ -99,10 +112,16 @@ public abstract class Installer {
         return new InstallResult(overallReturnCode, installDirectory, dockerStackDeploy);
     }
 
-    private <T extends Object> T createDockerOutput(Supplier<Executable> executableSupplier, Function<String, T> creator) throws BlackDuckInstallerException {
+    protected <T extends Object> T createDockerOutput(Supplier<Executable> executableSupplier, Function<String, T> creator) throws BlackDuckInstallerException {
         Executable executable = executableSupplier.get();
         ExecutableOutput executableOutput = executablesRunner.runExecutable(executable);
         return creator.apply(executableOutput.getStandardOutput());
+    }
+
+    protected String createSimpleDockerOutput(Supplier<Executable> executableSupplier) throws BlackDuckInstallerException {
+        Executable executable = executableSupplier.get();
+        ExecutableOutput executableOutput = executablesRunner.runExecutable(executable);
+        return executableOutput.getStandardOutput();
     }
 
 }
