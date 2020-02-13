@@ -87,9 +87,7 @@ public abstract class Installer {
     }
 
     public InstallResult performInstall() throws IntegrationException, InterruptedException {
-        File installDirectory = zipFileDownloader.download();
-
-        postDownloadProcessing(installDirectory);
+        File installDirectory = zipFileDownloader.download(this::postDownloadProcessing);
 
         DockerStacks dockerStacks = createDockerOutput(dockerCommands::listStackNames, DockerStacks::create);
         DockerSecrets dockerSecrets = createDockerOutput(dockerCommands::listSecretNames, DockerSecrets::create);

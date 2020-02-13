@@ -23,8 +23,10 @@
 package com.synopsys.integration.blackduck.installer.download;
 
 import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
+import com.synopsys.integration.blackduck.installer.model.ThrowingConsumer;
 import com.synopsys.integration.blackduck.installer.workflow.DownloadUrlDecider;
 import com.synopsys.integration.exception.IntegrationException;
+import com.synopsys.integration.function.ThrowingSupplier;
 import com.synopsys.integration.log.IntLogger;
 import com.synopsys.integration.rest.client.IntHttpClient;
 import com.synopsys.integration.rest.request.Request;
@@ -35,6 +37,7 @@ import org.apache.commons.compress.archivers.ArchiveException;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.function.Consumer;
 
 public class ZipFileDownloader {
     private final IntLogger logger;
@@ -57,7 +60,7 @@ public class ZipFileDownloader {
         this.forceDownload = forceDownload;
     }
 
-    public File download() throws BlackDuckInstallerException {
+    public File download(ThrowingConsumer<File, BlackDuckInstallerException> postDownloadProcessing) throws BlackDuckInstallerException {
         File downloadDirectory = new File(baseDirectory, name + "-" + version);
         downloadDirectory.mkdirs();
         if (downloadDirectory.listFiles().length != 0) {
@@ -85,7 +88,10 @@ public class ZipFileDownloader {
             throw new BlackDuckInstallerException("Could not download: " + downloadUrl + ". Make sure that the url finder is configured correctly.", e);
         }
 
-        return downloadDirectory.listFiles()[0];
+        File installDirectory = downloadDirectory.listFiles()[0];
+        postDownloadProcessing.accept(installDirectory);
+
+        return installDirectory;
     }
 
 }
