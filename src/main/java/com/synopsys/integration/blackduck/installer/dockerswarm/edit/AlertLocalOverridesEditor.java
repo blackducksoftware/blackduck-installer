@@ -90,9 +90,9 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
         addEnvironmentVariable(ymlBuilder, "ALERT_PROVIDER_BLACKDUCK_BLACKDUCK_API_KEY", alertBlackDuckInstallOptions.getBlackDuckApiToken());
         addEnvironmentVariable(ymlBuilder, "ALERT_PROVIDER_BLACKDUCK_BLACKDUCK_TIMEOUT", alertBlackDuckInstallOptions.getBlackDuckTimeoutInSeconds());
 
-        if (!alertEncryption.isEmpty() || !customCertificate.isEmpty()) {
-            appendAlertSecrets(ymlBuilder, alertEncryption, customCertificate);
-            appendSecrets(ymlBuilder, alertEncryption, customCertificate);
+        if (!alertEncryption.isEmpty() || !customCertificate.isEmpty() || !alertDatabase.isEmpty()) {
+            appendAlertSecrets(ymlBuilder, alertEncryption, customCertificate, alertDatabase);
+            appendSecrets(ymlBuilder, alertEncryption, customCertificate, alertDatabase);
         }
 
         try (Writer writer = new FileWriter(configFile.getFileToEdit(), true)) {
@@ -124,7 +124,7 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
         ymlBuilder.append(String.format("      - %s=%s\n", key, value));
     }
 
-    private void appendAlertSecrets(StringBuilder ymlBuilder, AlertEncryption alertEncryption, CustomCertificate customCertificate) {
+    private void appendAlertSecrets(StringBuilder ymlBuilder, AlertEncryption alertEncryption, CustomCertificate customCertificate, AlertDatabase alertDatabase) {
         ymlBuilder.append("    secrets:\n");
         if (!alertEncryption.isEmpty()) {
             ymlBuilder.append("      - " + alertEncryption.getPassword().getLabel() + "\n");
@@ -134,9 +134,14 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
             ymlBuilder.append("      - " + customCertificate.getCertificate().getLabel() + "\n");
             ymlBuilder.append("      - " + customCertificate.getPrivateKey().getLabel() + "\n");
         }
+
+        if (!alertDatabase.isEmpty()) {
+            ymlBuilder.append("      - " + alertDatabase.getUserName().getLabel() + "\n");
+            ymlBuilder.append("      - " + alertDatabase.getPassword().getLabel() + "\n");
+        }
     }
 
-    private void appendSecrets(StringBuilder ymlBuilder, AlertEncryption alertEncryption, CustomCertificate customCertificate) {
+    private void appendSecrets(StringBuilder ymlBuilder, AlertEncryption alertEncryption, CustomCertificate customCertificate, AlertDatabase alertDatabase) {
         ymlBuilder.append("secrets:\n");
         if (!alertEncryption.isEmpty()) {
             appendSecret(ymlBuilder, alertEncryption.getPassword().getLabel());
@@ -145,6 +150,11 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
         if (!customCertificate.isEmpty()) {
             appendSecret(ymlBuilder, customCertificate.getCertificate().getLabel());
             appendSecret(ymlBuilder, customCertificate.getPrivateKey().getLabel());
+        }
+
+        if (!alertDatabase.isEmpty()) {
+            appendSecret(ymlBuilder, alertDatabase.getUserName().getLabel());
+            appendSecret(ymlBuilder, alertDatabase.getPassword().getLabel());
         }
     }
 
