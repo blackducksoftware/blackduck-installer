@@ -27,32 +27,69 @@ import org.apache.commons.lang3.StringUtils;
 import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
 
 public class AlertDatabase {
-    private final DockerSecret userName;
-    private final DockerSecret password;
+    private final String databaseName;
+    private final boolean external;
+    private final String defaultUserName;
+    private final String defaultPassword;
+    private final DockerSecret userNameSecret;
+    private final DockerSecret passwordSecret;
 
-    public AlertDatabase(final String userPath, final String passwordPath) throws BlackDuckInstallerException {
+    public AlertDatabase(final String databaseName, boolean external, final String defaultUserName, final String defaultPassword, final String userPath, final String passwordPath) throws BlackDuckInstallerException {
+        this.databaseName = databaseName;
+        this.external = external;
+        this.defaultUserName = defaultUserName;
+        this.defaultPassword = defaultPassword;
         String[] values = new String[] { userPath, passwordPath };
         if (StringUtils.isAllBlank(values)) {
-            password = null;
-            userName = null;
+            passwordSecret = null;
+            userNameSecret = null;
         } else if (StringUtils.isAnyBlank(values)) {
-            throw new BlackDuckInstallerException("Either both password and salt should be set, or neither should be set.");
+            throw new BlackDuckInstallerException("Either both database userName and password should be set, or neither should be set.");
         } else {
-            userName = DockerSecret.createAlertDBUser(userPath);
-            password = DockerSecret.createAlertDBPassword(passwordPath);
+            userNameSecret = DockerSecret.createAlertDBUser(userPath);
+            passwordSecret = DockerSecret.createAlertDBPassword(passwordPath);
         }
     }
 
     public boolean isEmpty() {
-        return null == password;
+        return StringUtils.isBlank(databaseName) && (!hasSecrets() && (StringUtils.isBlank(defaultUserName) && StringUtils.isBlank(defaultPassword)));
     }
 
-    public DockerSecret getUserName() {
-        return userName;
+    public boolean hasSecrets() {
+        return null == passwordSecret;
     }
 
-    public DockerSecret getPassword() {
-        return password;
+    public String getDatabaseName() {
+        return databaseName;
+    }
+
+    public boolean isExternal() {
+        return external;
+    }
+
+    public String getDefaultUserName() {
+        return defaultUserName;
+    }
+
+    public String getDefaultPassword() {
+        return defaultPassword;
+    }
+
+    public DockerSecret getUserNameSecret() {
+        return userNameSecret;
+    }
+
+    public DockerSecret getPasswordSecret() {
+        return passwordSecret;
+    }
+
+    public String getPostgresUserNameSecretEnvironmentValue() {
+        return "/run/secrets/" + getUserNameSecret().getLabel();
+    }
+
+    public String getPostgresPasswordSecretEnvironmentValue() {
+
+        return "/run/secrets/" + getPasswordSecret().getLabel();
     }
 
 }

@@ -80,7 +80,7 @@ public class AlertInstallerCreator {
         DownloadUrlDecider downloadUrlDecider = new DownloadUrlDecider(applicationValues.getAlertDownloadSource(), alertGithubDownloadUrl::getDownloadUrl, alertArtifactoryDownloadUrl::getDownloadUrl);
 
         boolean useLocalOverrides = applicationValues.isAlertInstallUseLocalOverrides();
-        if (!deployProductProperties.getCustomCertificate().isEmpty() || !alertEncryption.isEmpty() || !alertBlackDuckInstallOptions.isEmpty() || !alertDatabase.isEmpty()) {
+        if (!deployProductProperties.getCustomCertificate().isEmpty() || !alertEncryption.isEmpty() || !alertBlackDuckInstallOptions.isEmpty() || !alertDatabase.hasSecrets()) {
             useLocalOverrides = true;
         }
         AlertLocalOverridesEditor alertLocalOverridesEditor = new AlertLocalOverridesEditor(intLogger, hashUtility, lineSeparator, stackName, applicationValues.getWebServerHost(), applicationValues.getAlertInstallDefaultAdminEmail(),

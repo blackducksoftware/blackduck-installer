@@ -26,6 +26,9 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
@@ -37,6 +40,7 @@ import com.synopsys.integration.blackduck.installer.model.AlertBlackDuckInstallO
 import com.synopsys.integration.blackduck.installer.model.AlertDatabase;
 import com.synopsys.integration.blackduck.installer.model.AlertEncryption;
 import com.synopsys.integration.blackduck.installer.model.CustomCertificate;
+import com.synopsys.integration.blackduck.installer.model.DockerSecret;
 import com.synopsys.integration.log.IntLogger;
 
 public class AlertLocalOverridesEditor extends ConfigFileEditor {
@@ -78,6 +82,23 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
             return;
 
         StringBuilder ymlBuilder = new StringBuilder();
+
+        if (!alertDatabase.isExternal()) {
+            ymlBuilder.append("  alertdb:\n");
+            ymlBuilder.append("    environment:\n");
+            addEnvironmentVariable(ymlBuilder, "POSTGRES_DB", alertDatabase.getDatabaseName());
+            if (!alertDatabase.hasSecrets()) {
+                addEnvironmentVariable(ymlBuilder, "POSTGRES_USER_FILE", alertDatabase.getPostgresUserNameSecretEnvironmentValue());
+                addEnvironmentVariable(ymlBuilder, "POSTGRES_PASSWORD_FILE", alertDatabase.getPostgresPasswordSecretEnvironmentValue());
+
+                List<DockerSecret> secrets = Arrays.asList(alertDatabase.getUserNameSecret(), alertDatabase.getPasswordSecret());
+                appendContainerSecrets(ymlBuilder, secrets);
+            } else {
+                addEnvironmentVariable(ymlBuilder, "POSTGRES_USER", alertDatabase.getDefaultUserName());
+                addEnvironmentVariable(ymlBuilder, "POSTGRES_PASSWORD", alertDatabase.getDefaultPassword());
+            }
+        }
+
         ymlBuilder.append("  alert:\n");
         ymlBuilder.append("    environment:\n");
 
@@ -90,7 +111,7 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
         addEnvironmentVariable(ymlBuilder, "ALERT_PROVIDER_BLACKDUCK_BLACKDUCK_API_KEY", alertBlackDuckInstallOptions.getBlackDuckApiToken());
         addEnvironmentVariable(ymlBuilder, "ALERT_PROVIDER_BLACKDUCK_BLACKDUCK_TIMEOUT", alertBlackDuckInstallOptions.getBlackDuckTimeoutInSeconds());
 
-        if (!alertEncryption.isEmpty() || !customCertificate.isEmpty() || !alertDatabase.isEmpty()) {
+        if (!alertEncryption.isEmpty() || !customCertificate.isEmpty() || !alertDatabase.hasSecrets()) {
             appendAlertSecrets(ymlBuilder, alertEncryption, customCertificate, alertDatabase);
             appendSecrets(ymlBuilder, alertEncryption, customCertificate, alertDatabase);
         }
@@ -125,19 +146,32 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
     }
 
     private void appendAlertSecrets(StringBuilder ymlBuilder, AlertEncryption alertEncryption, CustomCertificate customCertificate, AlertDatabase alertDatabase) {
+        List<DockerSecret> secrets = new ArrayList<>();
+
         ymlBuilder.append("    secrets:\n");
         if (!alertEncryption.isEmpty()) {
-            ymlBuilder.append("      - " + alertEncryption.getPassword().getLabel() + "\n");
-            ymlBuilder.append("      - " + alertEncryption.getSalt().getLabel() + "\n");
+            secrets.add(alertEncryption.getPassword());
+            secrets.add(alertEncryption.getSalt());
         }
         if (!customCertificate.isEmpty()) {
-            ymlBuilder.append("      - " + customCertificate.getCertificate().getLabel() + "\n");
-            ymlBuilder.append("      - " + customCertificate.getPrivateKey().getLabel() + "\n");
+            secrets.add(customCertificate.getCertificate());
+            secrets.add(customCertificate.getPrivateKey());
         }
 
-        if (!alertDatabase.isEmpty()) {
-            ymlBuilder.append("      - " + alertDatabase.getUserName().getLabel() + "\n");
-            ymlBuilder.append("      - " + alertDatabase.getPassword().getLabel() + "\n");
+        if (!alertDatabase.hasSecrets()) {
+            secrets.add(alertDatabase.getUserNameSecret());
+            secrets.add(alertDatabase.getPasswordSecret());
+        }
+
+        appendContainerSecrets(ymlBuilder, secrets);
+    }
+
+    private void appendContainerSecrets(StringBuilder ymlBuilder, List<DockerSecret> secrets) {
+        if (!secrets.isEmpty()) {
+            ymlBuilder.append("    secrets:\n");
+            for (DockerSecret secret : secrets) {
+                ymlBuilder.append("      - " + secret.getLabel() + "\n");
+            }
         }
     }
 
@@ -151,10 +185,9 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
             appendSecret(ymlBuilder, customCertificate.getCertificate().getLabel());
             appendSecret(ymlBuilder, customCertificate.getPrivateKey().getLabel());
         }
-
-        if (!alertDatabase.isEmpty()) {
-            appendSecret(ymlBuilder, alertDatabase.getUserName().getLabel());
-            appendSecret(ymlBuilder, alertDatabase.getPassword().getLabel());
+        if (!alertDatabase.hasSecrets()) {
+            appendSecret(ymlBuilder, alertDatabase.getUserNameSecret().getLabel());
+            appendSecret(ymlBuilder, alertDatabase.getPasswordSecret().getLabel());
         }
     }
 

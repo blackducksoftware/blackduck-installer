@@ -218,11 +218,23 @@ public class ApplicationValues {
     @Value("${alert.install.use.local.overrides}")
     private boolean alertInstallUseLocalOverrides;
 
+    @Value("${alert.install.database.name:alertdb}")
+    private String alertInstallDatabaseName;
+
+    @Value("${alert.install.database.use.external:false}")
+    private boolean alertInstallDatabaseUseExternal;
+
+    @Value("${alert.install.database.username.default:sa}")
+    private String alertInstallDatabaseDefaultUserName;
+
+    @Value("${alert.install.database.password.default:blackduck}")
+    private String alertInstallDatabaseDefaultPassword;
+
     @Value("${alert.install.database.username.path}")
-    private String alertInstallDBUserNamePath;
+    private String alertInstallDatabaseUserNamePath;
 
     @Value("${alert.install.database.password.path}")
-    private String alertInstallDBPasswordPath;
+    private String alertInstallDatabasePasswordPath;
 
     public String getBaseDirectory() {
         return baseDirectory;
@@ -472,11 +484,28 @@ public class ApplicationValues {
         return alertInstallUseLocalOverrides;
     }
 
-    public String getAlertInstallDBUserNamePath() {
-        return alertInstallDBUserNamePath;
+    public String getAlertInstallDatabaseName() {
+        return alertInstallDatabaseName;
     }
 
-    public String getAlertInstallDBPasswordPath() {
-        return alertInstallDBPasswordPath;
+    public boolean isAlertInstallDatabaseUseExternal() {
+        return alertInstallDatabaseUseExternal;
     }
+
+    public String getAlertInstallDatabaseDefaultUserName() {
+        return alertInstallDatabaseDefaultUserName;
+    }
+
+    public String getAlertInstallDatabaseDefaultPassword() {
+        return alertInstallDatabaseDefaultPassword;
+    }
+
+    public String getAlertInstallDatabaseUserNamePath() {
+        return alertInstallDatabaseUserNamePath;
+    }
+
+    public String getAlertInstallDatabasePasswordPath() {
+        return alertInstallDatabasePasswordPath;
+    }
+
 }
