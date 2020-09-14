@@ -22,12 +22,13 @@
  */
 package com.synopsys.integration.blackduck.installer;
 
-import com.synopsys.integration.blackduck.installer.download.DownloadSource;
-import com.synopsys.integration.blackduck.installer.model.DeployMethod;
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
+import com.synopsys.integration.blackduck.installer.download.DownloadSource;
+import com.synopsys.integration.blackduck.installer.model.DeployMethod;
 
 @Component
 public class ApplicationValues {
@@ -216,6 +217,12 @@ public class ApplicationValues {
 
     @Value("${alert.install.use.local.overrides}")
     private boolean alertInstallUseLocalOverrides;
+
+    @Value("${alert.install.database.username.path}")
+    private String alertInstallDBUserNamePath;
+
+    @Value("${alert.install.database.password.path}")
+    private String alertInstallDBPasswordPath;
 
     public String getBaseDirectory() {
         return baseDirectory;
@@ -465,4 +472,11 @@ public class ApplicationValues {
         return alertInstallUseLocalOverrides;
     }
 
+    public String getAlertInstallDBUserNamePath() {
+        return alertInstallDBUserNamePath;
+    }
+
+    public String getAlertInstallDBPasswordPath() {
+        return alertInstallDBPasswordPath;
+    }
 }

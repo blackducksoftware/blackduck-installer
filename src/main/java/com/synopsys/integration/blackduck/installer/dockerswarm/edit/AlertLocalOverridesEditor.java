@@ -22,20 +22,22 @@
  */
 package com.synopsys.integration.blackduck.installer.dockerswarm.edit;
 
-import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
-import com.synopsys.integration.blackduck.installer.hash.HashUtility;
-import com.synopsys.integration.blackduck.installer.hash.PreComputedHashes;
-import com.synopsys.integration.blackduck.installer.model.AlertBlackDuckInstallOptions;
-import com.synopsys.integration.blackduck.installer.model.AlertEncryption;
-import com.synopsys.integration.blackduck.installer.model.CustomCertificate;
-import com.synopsys.integration.log.IntLogger;
-import org.apache.commons.lang3.StringUtils;
-
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.Set;
+
+import org.apache.commons.lang3.StringUtils;
+
+import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
+import com.synopsys.integration.blackduck.installer.hash.HashUtility;
+import com.synopsys.integration.blackduck.installer.hash.PreComputedHashes;
+import com.synopsys.integration.blackduck.installer.model.AlertBlackDuckInstallOptions;
+import com.synopsys.integration.blackduck.installer.model.AlertDatabase;
+import com.synopsys.integration.blackduck.installer.model.AlertEncryption;
+import com.synopsys.integration.blackduck.installer.model.CustomCertificate;
+import com.synopsys.integration.log.IntLogger;
 
 public class AlertLocalOverridesEditor extends ConfigFileEditor {
     private final String stackName;
@@ -45,8 +47,10 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
     private final CustomCertificate customCertificate;
     private final AlertBlackDuckInstallOptions alertBlackDuckInstallOptions;
     private final boolean shouldEditFile;
+    private final AlertDatabase alertDatabase;
 
-    public AlertLocalOverridesEditor(IntLogger logger, HashUtility hashUtility, String lineSeparator, String stackName, String webServerHost, String alertAdminEmail, AlertEncryption alertEncryption, CustomCertificate customCertificate, AlertBlackDuckInstallOptions alertBlackDuckInstallOptions, boolean useLocalOverrides) {
+    public AlertLocalOverridesEditor(IntLogger logger, HashUtility hashUtility, String lineSeparator, String stackName, String webServerHost, String alertAdminEmail, AlertEncryption alertEncryption, CustomCertificate customCertificate,
+        AlertBlackDuckInstallOptions alertBlackDuckInstallOptions, boolean useLocalOverrides, AlertDatabase alertDatabase) {
         super(logger, hashUtility, lineSeparator);
 
         this.stackName = stackName;
@@ -56,6 +60,7 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
         this.customCertificate = customCertificate;
         this.alertBlackDuckInstallOptions = alertBlackDuckInstallOptions;
         shouldEditFile = useLocalOverrides;
+        this.alertDatabase = alertDatabase;
     }
 
     public String getFilename() {
