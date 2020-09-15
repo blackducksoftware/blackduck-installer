@@ -111,7 +111,7 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
         addEnvironmentVariable(ymlBuilder, "ALERT_PROVIDER_BLACKDUCK_BLACKDUCK_API_KEY", alertBlackDuckInstallOptions.getBlackDuckApiToken());
         addEnvironmentVariable(ymlBuilder, "ALERT_PROVIDER_BLACKDUCK_BLACKDUCK_TIMEOUT", alertBlackDuckInstallOptions.getBlackDuckTimeoutInSeconds());
 
-        if (!alertEncryption.isEmpty() || !customCertificate.isEmpty() || !alertDatabase.hasSecrets()) {
+        if (!alertEncryption.isEmpty() || !customCertificate.isEmpty() || alertDatabase.hasSecrets()) {
             appendAlertSecrets(ymlBuilder, alertEncryption, customCertificate, alertDatabase);
             appendSecrets(ymlBuilder, alertEncryption, customCertificate, alertDatabase);
         }
