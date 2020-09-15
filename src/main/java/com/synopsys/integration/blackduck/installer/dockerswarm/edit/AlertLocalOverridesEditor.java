@@ -116,6 +116,9 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
             appendSecrets(ymlBuilder, alertEncryption, customCertificate, alertDatabase);
         }
 
+        // write the file clean because the original has an alertdb service which may not be there if it's an external deployment.
+        // Also the original file has environment variables set for postgres but if secrets are used those environment variables cannot be present.
+        // To cover all the deployment options the safest thing to do is write the file clean.
         try (Writer writer = new FileWriter(configFile.getFileToEdit(), false)) {
             writer.append(ymlBuilder.toString());
         } catch (IOException e) {
