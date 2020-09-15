@@ -82,12 +82,12 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
             return;
 
         StringBuilder ymlBuilder = new StringBuilder();
-
+        createServicesSection(ymlBuilder);
         if (!alertDatabase.isExternal()) {
             ymlBuilder.append("  alertdb:\n");
             ymlBuilder.append("    environment:\n");
             addEnvironmentVariable(ymlBuilder, "POSTGRES_DB", alertDatabase.getDatabaseName());
-            if (!alertDatabase.hasSecrets()) {
+            if (alertDatabase.hasSecrets()) {
                 addEnvironmentVariable(ymlBuilder, "POSTGRES_USER_FILE", alertDatabase.getPostgresUserNameSecretEnvironmentValue());
                 addEnvironmentVariable(ymlBuilder, "POSTGRES_PASSWORD_FILE", alertDatabase.getPostgresPasswordSecretEnvironmentValue());
 
@@ -116,11 +116,16 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
             appendSecrets(ymlBuilder, alertEncryption, customCertificate, alertDatabase);
         }
 
-        try (Writer writer = new FileWriter(configFile.getFileToEdit(), true)) {
+        try (Writer writer = new FileWriter(configFile.getFileToEdit(), false)) {
             writer.append(ymlBuilder.toString());
         } catch (IOException e) {
             throw new BlackDuckInstallerException("Error editing alert local overrides: " + e.getMessage());
         }
+    }
+
+    private void createServicesSection(StringBuilder ymlBuilder) {
+        ymlBuilder.append("version: '3.6'\n");
+        ymlBuilder.append("services:\n");
     }
 
     private void addEnvironmentVariable(StringBuilder ymlBuilder, String key, String value) {
@@ -158,7 +163,7 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
             secrets.add(customCertificate.getPrivateKey());
         }
 
-        if (!alertDatabase.hasSecrets()) {
+        if (alertDatabase.hasSecrets()) {
             secrets.add(alertDatabase.getUserNameSecret());
             secrets.add(alertDatabase.getPasswordSecret());
         }
@@ -185,7 +190,7 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
             appendSecret(ymlBuilder, customCertificate.getCertificate().getLabel());
             appendSecret(ymlBuilder, customCertificate.getPrivateKey().getLabel());
         }
-        if (!alertDatabase.hasSecrets()) {
+        if (alertDatabase.hasSecrets()) {
             appendSecret(ymlBuilder, alertDatabase.getUserNameSecret().getLabel());
             appendSecret(ymlBuilder, alertDatabase.getPasswordSecret().getLabel());
         }

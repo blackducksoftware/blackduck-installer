@@ -91,7 +91,7 @@ public class AlertInstallerCreator {
 
         List<String> additionalOrchestrationFilePaths = applicationValues.getAlertInstallAdditionalOrchestrationFiles();
         List<File> additionalOrchestrationFiles = deployProductProperties.getFilePathTransformer().transformFilePaths(additionalOrchestrationFilePaths);
-        AlertDockerManager alertDockerManager = new AlertDockerManager(intLogger, dockerCommands, stackName, customCertificate, alertEncryption);
+        AlertDockerManager alertDockerManager = new AlertDockerManager(intLogger, dockerCommands, stackName, customCertificate, alertEncryption, alertDatabase);
 
         return new AlertInstaller(intLogger, alertDownloader, deployProductProperties.getExecutablesRunner(), alertDockerManager, dockerStackDeploy, dockerCommands, stackName, additionalOrchestrationFiles, alertService,
             alertLocalOverridesEditor, useLocalOverrides);

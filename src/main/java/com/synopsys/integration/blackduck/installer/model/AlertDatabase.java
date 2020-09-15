@@ -56,7 +56,7 @@ public class AlertDatabase {
     }
 
     public boolean hasSecrets() {
-        return null == passwordSecret;
+        return null != passwordSecret;
     }
 
     public String getDatabaseName() {
@@ -88,7 +88,6 @@ public class AlertDatabase {
     }
 
     public String getPostgresPasswordSecretEnvironmentValue() {
-
         return "/run/secrets/" + getPasswordSecret().getLabel();
     }
 

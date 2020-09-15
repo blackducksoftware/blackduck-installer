@@ -22,31 +22,30 @@
  */
 package com.synopsys.integration.blackduck.installer.dockerswarm.deploy;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.synopsys.integration.blackduck.installer.dockerswarm.DockerCommands;
 import com.synopsys.integration.blackduck.installer.dockerswarm.install.InstallerDockerData;
 import com.synopsys.integration.blackduck.installer.dockerswarm.output.DockerSecrets;
-import com.synopsys.integration.blackduck.installer.dockerswarm.output.DockerServices;
-import com.synopsys.integration.blackduck.installer.dockerswarm.output.DockerStacks;
+import com.synopsys.integration.blackduck.installer.model.AlertDatabase;
 import com.synopsys.integration.blackduck.installer.model.AlertEncryption;
 import com.synopsys.integration.blackduck.installer.model.CustomCertificate;
-import com.synopsys.integration.blackduck.installer.model.DockerService;
 import com.synopsys.integration.executable.Executable;
 import com.synopsys.integration.log.IntLogger;
-
-import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
 
 public class AlertDockerManager extends ProductDockerManager {
     public static final String ALERT_SERVICE_NAME = "alert";
 
     private final CustomCertificate customCertificate;
     private final AlertEncryption alertEncryption;
+    private final AlertDatabase alertDatabase;
 
-    public AlertDockerManager(IntLogger logger, DockerCommands dockerCommands, String stackName, CustomCertificate customCertificate, AlertEncryption alertEncryption) {
+    public AlertDockerManager(IntLogger logger, DockerCommands dockerCommands, String stackName, CustomCertificate customCertificate, AlertEncryption alertEncryption, AlertDatabase alertDatabase) {
         super(logger, dockerCommands, stackName);
         this.customCertificate = customCertificate;
         this.alertEncryption = alertEncryption;
+        this.alertDatabase = alertDatabase;
     }
 
     public List<Executable> createExecutables(InstallerDockerData installerDockerData) {
@@ -62,6 +61,11 @@ public class AlertDockerManager extends ProductDockerManager {
         if (!customCertificate.isEmpty()) {
             addSecret(executables, dockerSecrets, customCertificate.getCertificate());
             addSecret(executables, dockerSecrets, customCertificate.getPrivateKey());
+        }
+
+        if (alertDatabase.hasSecrets()) {
+            addSecret(executables, dockerSecrets, alertDatabase.getUserNameSecret());
+            addSecret(executables, dockerSecrets, alertDatabase.getPasswordSecret());
         }
 
         return executables;

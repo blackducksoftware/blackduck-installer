@@ -149,7 +149,7 @@ public class Application implements ApplicationRunner {
 
             ExecutableRunner executableRunner;
             if (applicationValues.isInstallDryRun()) {
-                //TODO add logging for clarity
+                logger.info("Executing a dry run of installer");
                 executableRunner = new DryRunExecutableRunner(intLogger::info);
             } else {
                 executableRunner = new ProcessBuilderRunner();
@@ -233,6 +233,11 @@ public class Application implements ApplicationRunner {
         throws IntegrationException, InterruptedException, IOException {
         InstallResult blackDuckInstallResult = blackDuckInstaller.performInstall();
 
+        if (applicationValues.isInstallDryRun()) {
+            logger.info("BlackDuck dry run install.  Do not wait for Black Duck installation.");
+            return new BlackDuckDeployResult(blackDuckInstallResult);
+        }
+
         if (blackDuckInstallResult.getReturnCode() == 0) {
             blackDuckWait.waitForBlackDuck(blackDuckInstallResult.getInstallDirectory());
             logger.info("The Black Duck install was successful!");
@@ -252,6 +257,11 @@ public class Application implements ApplicationRunner {
 
     private void deployAlert(AlertInstaller alertInstaller, AlertWait alertWait) throws IntegrationException, BlackDuckInstallerException, InterruptedException {
         InstallResult alertInstallResult = alertInstaller.performInstall();
+
+        if (applicationValues.isInstallDryRun()) {
+            logger.info("Alert dry run install.  Do not wait for Alert installation.");
+            return;
+        }
 
         if (alertInstallResult.getReturnCode() == 0) {
             alertWait.waitForAlert(alertInstallResult.getInstallDirectory());
