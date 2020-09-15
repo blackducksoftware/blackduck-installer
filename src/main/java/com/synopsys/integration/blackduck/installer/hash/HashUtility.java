@@ -22,10 +22,11 @@
  */
 package com.synopsys.integration.blackduck.installer.hash;
 
-import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
-import org.apache.commons.codec.digest.DigestUtils;
-
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
@@ -34,6 +35,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+
+import org.apache.commons.codec.digest.DigestUtils;
+
+import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
 
 public class HashUtility {
     /*
@@ -44,30 +49,37 @@ public class HashUtility {
     private static final Pattern VERSION_PATTERN = Pattern.compile("(\\d+(\\.\\d+)*)");
 
     public static void main(String[] args) throws Exception {
-        ZIP_FILE_PATHS.add("/Users/ekerwin/Downloads/hub-2019.8.1.zip");
-        ZIP_FILE_PATHS.add("/Users/ekerwin/Downloads/hub-2019.10.0.zip");
-        ZIP_FILE_PATHS.add("/Users/ekerwin/Downloads/hub-2019.10.1.zip");
-        ZIP_FILE_PATHS.add("/Users/ekerwin/Downloads/hub-2019.12.0.zip");
-        ZIP_FILE_PATHS.add("/Users/ekerwin/Downloads/blackduck-alert-5.0.0-deployment.zip");
-        ZIP_FILE_PATHS.add("/Users/ekerwin/Downloads/blackduck-alert-5.0.1-deployment.zip");
-        ZIP_FILE_PATHS.add("/Users/ekerwin/Downloads/blackduck-alert-5.1.0-deployment.zip");
-        ZIP_FILE_PATHS.add("/Users/ekerwin/Downloads/blackduck-alert-5.2.0-deployment.zip");
+        String userHome = System.getProperty("user.home");
+        ZIP_FILE_PATHS.add(userHome + "/Downloads/hub-2019.8.1.zip");
+        ZIP_FILE_PATHS.add(userHome + "/Downloads/hub-2019.10.0.zip");
+        ZIP_FILE_PATHS.add(userHome + "/Downloads/hub-2019.10.1.zip");
+        ZIP_FILE_PATHS.add(userHome + "/Downloads/hub-2019.12.0.zip");
+        ZIP_FILE_PATHS.add(userHome + "/Downloads/blackduck-alert-5.0.0-deployment.zip");
+        ZIP_FILE_PATHS.add(userHome + "/Downloads/blackduck-alert-5.0.1-deployment.zip");
+        ZIP_FILE_PATHS.add(userHome + "/Downloads/blackduck-alert-5.1.0-deployment.zip");
+        ZIP_FILE_PATHS.add(userHome + "/Downloads/blackduck-alert-5.2.0-deployment.zip");
+        ZIP_FILE_PATHS.add(userHome + "/Downloads/blackduck-alert-6.0.0-deployment.zip");
+        ZIP_FILE_PATHS.add(userHome + "/Downloads/blackduck-alert-6.0.1-deployment.zip");
+        ZIP_FILE_PATHS.add(userHome + "/Downloads/blackduck-alert-6.1.0-deployment.zip");
 
         Set<String> entriesToLookFor = Set.of("blackduck-config.env", "docker-compose.local-overrides.yml", "hub-webserver.env");
 
         HashUtility hashUtility = new HashUtility();
 
         for (String zipFilePath : ZIP_FILE_PATHS) {
-            ZipFile zipFile = new ZipFile(zipFilePath);
-            Enumeration<? extends ZipEntry> zipEntries = zipFile.entries();
-            String version = hashUtility.getVersion(zipFilePath);
-            while (zipEntries.hasMoreElements()) {
-                ZipEntry entry = zipEntries.nextElement();
-                String entryName = entry.getName();
-                String filename = entry.getName().substring(entryName.lastIndexOf('/') + 1);
+            File file = new File(zipFilePath);
+            if (file.exists()) {
+                ZipFile zipFile = new ZipFile(zipFilePath);
+                Enumeration<? extends ZipEntry> zipEntries = zipFile.entries();
+                String version = hashUtility.getVersion(zipFilePath);
+                while (zipEntries.hasMoreElements()) {
+                    ZipEntry entry = zipEntries.nextElement();
+                    String entryName = entry.getName();
+                    String filename = entry.getName().substring(entryName.lastIndexOf('/') + 1);
 
-                if (entryName.contains("docker-swarm") && entriesToLookFor.contains(filename)) {
-                    hashUtility.hashFileForComputedHashesDotJava(zipFile.getInputStream(entry), String.format("%s_%s", filename, version));
+                    if (entryName.contains("docker-swarm") && !entryName.contains("external-db") && entriesToLookFor.contains(filename)) {
+                        hashUtility.hashFileForComputedHashesDotJava(zipFile.getInputStream(entry), String.format("%s_%s", filename, version));
+                    }
                 }
             }
         }
