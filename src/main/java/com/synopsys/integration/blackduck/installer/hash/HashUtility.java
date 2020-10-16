@@ -61,6 +61,7 @@ public class HashUtility {
         ZIP_FILE_PATHS.add(userHome + "/Downloads/blackduck-alert-6.0.0-deployment.zip");
         ZIP_FILE_PATHS.add(userHome + "/Downloads/blackduck-alert-6.0.1-deployment.zip");
         ZIP_FILE_PATHS.add(userHome + "/Downloads/blackduck-alert-6.1.0-deployment.zip");
+        ZIP_FILE_PATHS.add(userHome + "/Downloads/blackduck-alert-6.2.0-deployment.zip");
 
         Set<String> entriesToLookFor = Set.of("blackduck-config.env", "docker-compose.local-overrides.yml", "hub-webserver.env");
 
