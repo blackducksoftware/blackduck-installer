@@ -89,8 +89,8 @@ import com.synopsys.integration.util.CommonZipExpander;
 
 @SpringBootApplication
 public class Application implements ApplicationRunner {
+    public static final String DEFAULT_LINE_SEPARATOR = "\n";
     private Logger logger = LoggerFactory.getLogger(Application.class);
-
     @Autowired
     private ApplicationValues applicationValues;
 
@@ -117,7 +117,7 @@ public class Application implements ApplicationRunner {
             }
 
             // use only unix style endings for now
-            String lineSeparator = "\n";
+            String lineSeparator = DEFAULT_LINE_SEPARATOR;
             Expander expander = new Expander();
             Gson gson = new Gson();
             ConfigPropertiesLoader configPropertiesLoader = new ConfigPropertiesLoader(gson);

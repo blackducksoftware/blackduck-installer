@@ -22,22 +22,28 @@
  */
 package com.synopsys.integration.blackduck.installer.dockerswarm.edit;
 
-import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
-import com.synopsys.integration.blackduck.installer.hash.PreComputedHashes;
-import com.synopsys.integration.blackduck.installer.hash.HashUtility;
-import com.synopsys.integration.log.IntLogger;
-import org.apache.commons.io.IOUtils;
-
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Set;
 
-public class LocalOverridesEditor extends ConfigFileEditor {
+import org.apache.commons.io.IOUtils;
+
+import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
+import com.synopsys.integration.blackduck.installer.hash.HashUtility;
+import com.synopsys.integration.blackduck.installer.hash.PreComputedHashes;
+import com.synopsys.integration.log.IntLogger;
+
+public class BlackDuckLocalOverridesEditor extends ConfigFileEditor {
     private final String stackName;
     private final boolean shouldEditFile;
 
-    public LocalOverridesEditor(IntLogger logger, HashUtility hashUtility, String lineSeparator, String stackName, boolean useLocalOverrides) {
+    public BlackDuckLocalOverridesEditor(IntLogger logger, HashUtility hashUtility, String lineSeparator, String stackName, boolean useLocalOverrides) {
         super(logger, hashUtility, lineSeparator);
 
         this.stackName = stackName;

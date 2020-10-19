@@ -23,14 +23,20 @@
 package com.synopsys.integration.blackduck.installer.dockerswarm.edit;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
@@ -126,6 +132,181 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
         }
     }
 
+    public void edit2(File installDirectory) throws BlackDuckInstallerException {
+        ConfigFile configFile = createConfigFile(installDirectory);
+        if (!shouldEditFile)
+            return;
+
+        try (InputStream inputStream = new FileInputStream(configFile.getOriginalCopy())) {
+            List<String> lines = IOUtils.readLines(inputStream, StandardCharsets.UTF_8);
+
+            try (Writer writer = new FileWriter(configFile.getFileToEdit())) {
+                AlertProcessingState processingState = new AlertProcessingState();
+
+                for (String line : lines) {
+                    if (line.startsWith("services:")) {
+                        processingState.setInServices(true);
+                        writeLine(writer, line);
+                    } else if (processingState.isInServices() && line.trim().equals("alertdb:")) {
+                        processingState.setInAlertDb(true);
+                        processingState.addLineToAlertDBService(line);
+                    } else if (processingState.isInAlertDb() && line.trim().equals("#    secrets:")) {
+                        processingState.setInAlertDbSecrets(true);
+                        processingState.addLineToAlertDBService(line);
+                    } else if (processingState.isInServices() && line.trim().equals("#  alert:")) {
+                        processingState.setInAlert(true);
+                        processingState.clearAlertDbServiceState();
+                        processingState.addLineToAlertService(line);
+                    } else if (processingState.isInAlert() && line.trim().equals("#    secrets:")) {
+                        processingState.setInAlertSecrets(true);
+                        processingState.addLineToAlertService(line);
+                    } else if (processingState.isInAlertSecrets() && line.equals("#secrets:")) {
+                        processingState.setInSecrets(true);
+                        processingState.clearAlertDbServiceState();
+                        processingState.clearAlertServiceState();
+                        processingState.setInServices(false);
+                        processingState.addLineToSecrets(line);
+                    } else if (processingState.isInAlertDb()) {
+                        processingState.addLineToAlertDBService(line);
+                    } else if (processingState.isInAlert()) {
+                        processingState.addLineToAlertService(line);
+                    } else if (processingState.isInSecrets()) {
+                        processingState.addLineToSecrets(line);
+                    } else {
+                        writeLine(writer, line);
+                    }
+                }
+                processAlertDBService(processingState, writer);
+                processAlertService(processingState, writer);
+                processSecrets(processingState, writer);
+            }
+        } catch (IOException e) {
+            throw new BlackDuckInstallerException("Error editing local overrides: " + e.getMessage());
+        }
+
+    }
+
+    private void processAlertDBService(AlertProcessingState processingState, Writer writer) throws IOException {
+        //TODO: A future version of Alert may not have the alertdb service uncommented by default. This if can be removed when tthe service is commented out by default.
+        if (alertDatabase.isExternal()) {
+            for (String line : processingState.getAlertDbLines()) {
+                commentLine(writer, line);
+            }
+        } else {
+            boolean hasSecrets = alertDatabase.hasSecrets();
+            boolean inEnvironment = false;
+            boolean inSecrets = false;
+            for (String line : processingState.getAlertDbLines()) {
+                if (line.trim().equals("environment:")) {
+                    inEnvironment = true;
+                    uncommentLine(writer, line);
+                } else if (inEnvironment && line.trim().equals("#    secrets:")) {
+                    inEnvironment = false;
+                    inSecrets = true;
+                    uncommentLine(writer, line);
+                } else if (hasSecrets && inEnvironment && (line.contains("POSTGRES_USER_FILE") || line.contains("POSTGRES_PASSWORD_FILE"))) {
+                    uncommentLine(writer, line);
+                } else if (hasSecrets && inEnvironment && (line.contains("POSTGRES_USER") || line.contains("POSTGRES_PASSWORD"))) {
+                    commentLine(writer, line);
+                } else if (hasSecrets && inSecrets && (line.contains("ALERT_DB_USERNAME") || line.contains("ALERT_DB_PASSWORD"))) {
+                    uncommentLine(writer, line);
+                } else {
+                    writeLine(writer, line);
+                }
+            }
+        }
+    }
+
+    private void processAlertService(AlertProcessingState processingState, Writer writer) throws IOException {
+        boolean hasSecrets = alertDatabase.hasSecrets() || !alertEncryption.isEmpty() || !customCertificate.isEmpty();
+        boolean inEnvironment = false;
+        boolean inSecrets = false;
+        for (String line : processingState.getAlertLines()) {
+
+            if (line.trim().equals("#  alert:")) {
+                uncommentLine(writer, line);
+            } else if (line.trim().equals("#    environment:")) {
+                inEnvironment = true;
+                uncommentLine(writer, line);
+            } else if (inEnvironment && line.trim().equals("#    secrets:")) {
+                inEnvironment = false;
+                inSecrets = true;
+                if (hasSecrets) {
+                    uncommentLine(writer, line);
+                } else {
+                    writeLine(writer, line);
+                }
+            } else {
+                writeLine(writer, line);
+            }
+        }
+    }
+
+    private void processSecrets(AlertProcessingState processingState, Writer writer) throws IOException {
+        Optional<String> secretValue = Optional.empty();
+        boolean isEncryptionSecret = false;
+        boolean isCertificateSecret = false;
+        boolean isCertificateKeySecret = false;
+        boolean isDatabaseSecret = false;
+        for (String line : processingState.getSecretsLines()) {
+            //            if (!alertEncryption.isEmpty()) {
+            //                secretValue = getSecretValue(alertEncryption.getPassword()).orElse(alertEncryption.)
+            //                if (line.contains(alertEncryption.getPassword().getLabel())) {
+            //                    secretValue = alertEncryption.getPassword().getPath();
+            //                } else if (line.contains(alertEncryption.getSalt().getLabel())) {
+            //                    secretValue = alertEncryption.getSalt().getPath();
+            //                } else {
+            //                    writeLine(writer, line);
+            //                }
+            //            }
+            //            if (!customCertificate.isEmpty()) {
+            //                if (line.contains(customCertificate.getCertificate().getLabel())) {
+            //                    isCertificateSecret = true;
+            //                    uncommentLine(writer, line);
+            //                } else if (line.contains(customCertificate.getPrivateKey().getLabel())) {
+            //                    isCertificateKeySecret = true;
+            //                    uncommentLine(writer, line);
+            //                } else if (isCertificateSecret && line.contains("name: ")) {
+            //                    isCertificateSecret = false;
+            //                    uncommentSecretValue(writer, line);
+            //                } else if (isCertificateSecret || isCertificateKeySecret) {
+            //                    uncommentLine(writer, line);
+            //                } else {
+            //                    writeLine(writer, line);
+            //                }
+            //            }
+            //            if (alertDatabase.hasSecrets()) {
+            //                writeLine(writer, line);
+            //            }
+            writeLine(writer, line);
+        }
+    }
+
+    private void uncommentSecretValue(Writer writer, String line) throws IOException {
+        String fixedLine = line.replace("<STACK_NAME>_", stackName + "_");
+        uncommentLine(writer, fixedLine);
+    }
+
+    private Optional<String> getSecretValue(String line, DockerSecret secret) {
+        if (line.contains(secret.getLabel())) {
+            return Optional.ofNullable(secret.getPath());
+        }
+        return Optional.empty();
+    }
+
+    //TODO create a common utility for this.
+    private void writeLine(Writer writer, String line) throws IOException {
+        writer.append(line + lineSeparator);
+    }
+
+    private void uncommentLine(Writer writer, String line) throws IOException {
+        writer.append(line.replace("#", "") + lineSeparator);
+    }
+
+    private void commentLine(Writer writer, String line) throws IOException {
+        writer.append("#" + line + lineSeparator);
+    }
+
     private void createServicesSection(StringBuilder ymlBuilder) {
         ymlBuilder.append("version: '3.6'\n");
         ymlBuilder.append("services:\n");
@@ -209,6 +390,128 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
         ymlBuilder.append("_");
         ymlBuilder.append(secretName);
         ymlBuilder.append("\"\n");
+    }
+
+    private class AlertProcessingState {
+        private final List<String> alertDbLines = new LinkedList<>();
+        private final List<String> alertLines = new LinkedList<>();
+        private final List<String> secretsLines = new LinkedList<>();
+
+        private boolean inServices = false;
+        private boolean inAlert = false;
+        private boolean inAlertDb = false;
+        private boolean inAlertDbEnvironment = false;
+        private boolean inAlertDbSecrets = false;
+        private boolean inAlertEnvironment = false;
+        private boolean inAlertSecrets = false;
+        private boolean inSecrets = false;
+
+        public AlertProcessingState() {
+        }
+
+        public void clearAlertDbServiceState() {
+            setInAlertDb(false);
+            setInAlertDbSecrets(false);
+            setInAlertDbEnvironment(false);
+        }
+
+        public void clearAlertServiceState() {
+            setInAlert(false);
+            setInAlertSecrets(false);
+            setInAlertEnvironment(false);
+        }
+
+        public void clearSecretsState() {
+            setInSecrets(false);
+        }
+
+        public List<String> getAlertDbLines() {
+            return alertDbLines;
+        }
+
+        public void addLineToAlertDBService(String line) {
+            alertDbLines.add(line);
+        }
+
+        public List<String> getAlertLines() {
+            return alertLines;
+        }
+
+        public void addLineToAlertService(String line) {
+            alertLines.add(line);
+        }
+
+        public List<String> getSecretsLines() {
+            return secretsLines;
+        }
+
+        public void addLineToSecrets(String line) {
+            secretsLines.add(line);
+        }
+
+        public boolean isInServices() {
+            return inServices;
+        }
+
+        public void setInServices(final boolean inServices) {
+            this.inServices = inServices;
+        }
+
+        public boolean isInAlert() {
+            return inAlert;
+        }
+
+        public void setInAlert(final boolean inAlert) {
+            this.inAlert = inAlert;
+        }
+
+        public boolean isInAlertDb() {
+            return inAlertDb;
+        }
+
+        public void setInAlertDb(final boolean inAlertDb) {
+            this.inAlertDb = inAlertDb;
+        }
+
+        public boolean isInAlertDbEnvironment() {
+            return inAlertDbEnvironment;
+        }
+
+        public void setInAlertDbEnvironment(final boolean inAlertDbEnvironment) {
+            this.inAlertDbEnvironment = inAlertDbEnvironment;
+        }
+
+        public boolean isInAlertDbSecrets() {
+            return inAlertDbSecrets;
+        }
+
+        public void setInAlertDbSecrets(final boolean inAlertDbSecrets) {
+            this.inAlertDbSecrets = inAlertDbSecrets;
+        }
+
+        public boolean isInAlertEnvironment() {
+            return inAlertEnvironment;
+        }
+
+        public void setInAlertEnvironment(final boolean inAlertEnvironment) {
+            this.inAlertEnvironment = inAlertEnvironment;
+        }
+
+        public boolean isInAlertSecrets() {
+            return inAlertSecrets;
+        }
+
+        public void setInAlertSecrets(final boolean inAlertSecrets) {
+            this.inAlertSecrets = inAlertSecrets;
+        }
+
+        public boolean isInSecrets() {
+            return inSecrets;
+        }
+
+        public void setInSecrets(final boolean inSecrets) {
+            this.inSecrets = inSecrets;
+        }
     }
 
 }
