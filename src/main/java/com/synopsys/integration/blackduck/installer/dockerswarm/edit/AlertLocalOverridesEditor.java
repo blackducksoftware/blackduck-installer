@@ -31,11 +31,20 @@ import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 
+import com.synopsys.integration.blackduck.installer.dockerswarm.parser.DockerSecret;
+import com.synopsys.integration.blackduck.installer.dockerswarm.parser.DockerService;
+import com.synopsys.integration.blackduck.installer.dockerswarm.parser.DockerServiceEnvironment;
+import com.synopsys.integration.blackduck.installer.dockerswarm.parser.DockerServiceSecrets;
+import com.synopsys.integration.blackduck.installer.dockerswarm.parser.OverridesFile;
+import com.synopsys.integration.blackduck.installer.dockerswarm.parser.ServiceEnvironmentLine;
+import com.synopsys.integration.blackduck.installer.dockerswarm.parser.YamlBlock;
+import com.synopsys.integration.blackduck.installer.dockerswarm.parser.YamlLine;
 import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
 import com.synopsys.integration.blackduck.installer.hash.HashUtility;
 import com.synopsys.integration.blackduck.installer.hash.PreComputedHashes;
@@ -86,7 +95,8 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
 
         try (InputStream inputStream = new FileInputStream(configFile.getOriginalCopy())) {
             List<String> lines = IOUtils.readLines(inputStream, StandardCharsets.UTF_8);
-
+            OverridesFile parsedFile = createOverridesFile(lines);
+            updateValues(parsedFile);
             try (Writer writer = new FileWriter(configFile.getFileToEdit())) {
                 AlertProcessingState processingState = createProcessingState(writer, lines);
                 processAlertDBService(processingState, writer);
@@ -96,6 +106,127 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
         } catch (IOException e) {
             throw new BlackDuckInstallerException("Error editing local overrides: " + e.getMessage());
         }
+
+    }
+
+    private OverridesFile createOverridesFile(List<String> lines) {
+        OverridesFile overridesFile = new OverridesFile();
+
+        boolean inServices = false;
+        boolean inServiceEnvironment = false;
+        boolean inServiceSecrets = false;
+        boolean inGlobalSecrets = false;
+        DockerService currentService = null;
+        DockerSecret currentGlobalSecret = null;
+
+        for (String line : lines) {
+            boolean processingService = null != currentService;
+            if (!inServices && line.startsWith("version:")) {
+                overridesFile.setVersion(line.replace("#", "")
+                                             .replace("version:", "")
+                                             .trim());
+            } else if (line.startsWith("services:")) {
+                inServices = true;
+            } else if (inServices && line.trim().equals("alertdb:")) {
+                if (processingService) {
+                    overridesFile.addService(currentService);
+                }
+                inServiceEnvironment = false;
+                inServiceSecrets = false;
+                currentService = new DockerService("alertdb");
+            } else if (processingService && line.trim().contains("environment:")) {
+                inServiceEnvironment = true;
+                inServiceSecrets = false;
+            } else if (processingService && line.trim().equals("#    secrets:")) {
+                inServiceEnvironment = false;
+                inServiceSecrets = true;
+            } else if (inServices && line.trim().equals("#  alert:")) {
+                if (processingService) {
+                    overridesFile.addService(currentService);
+                }
+                inServiceEnvironment = false;
+                inServiceSecrets = false;
+                currentService = new DockerService("alert");
+            } else if (inServices && line.equals("#secrets:")) {
+                inGlobalSecrets = true;
+                inServices = false;
+                inServiceEnvironment = false;
+                inServiceSecrets = false;
+                overridesFile.addService(currentService);
+            } else if (processingService && inServiceEnvironment) {
+                currentService.addEnvironmentVariable(line);
+            } else if (processingService && inServiceSecrets) {
+                currentService.addSecret(line);
+            } else if (inGlobalSecrets) {
+                if (line.trim().contains("external:")) {
+                    currentGlobalSecret.applyExternal(line);
+                } else if (line.trim().contains("name:")) {
+                    currentGlobalSecret.applyName(line, "<STACK_NAME>_");
+                } else {
+                    currentGlobalSecret = DockerSecret.of(stackName, line);
+                    overridesFile.addDockerSecret(currentGlobalSecret);
+                }
+            }
+        }
+        return overridesFile;
+    }
+
+    private void updateValues(OverridesFile parsedFile) throws BlackDuckInstallerException {
+        Optional<DockerService> alertService = parsedFile.getService("alert");
+
+        updateAlertDbServiceValues(parsedFile);
+
+        if (alertService.isPresent()) {
+
+        }
+    }
+
+    private void updateAlertDbServiceValues(OverridesFile parsedFile) throws BlackDuckInstallerException {
+        Optional<DockerService> alertDbService = parsedFile.getService("alertdb");
+        if (alertDbService.isEmpty()) {
+            throw new BlackDuckInstallerException("alertDb service missing from overrides file.");
+        }
+        DockerService alertDb = alertDbService.get();
+        DockerServiceEnvironment alertDbEnvironment = alertDb.getDockerServiceEnvironment();
+        DockerServiceSecrets alertDbSecrets = alertDb.getDockerServiceSecrets();
+        if (alertDatabase.isExternal()) {
+            alertDb.commentBlock();
+        } else {
+            Optional<ServiceEnvironmentLine> alertDBLine = alertDbEnvironment.getEnvironmentVariable("POSTGRES_DB");
+            Optional<ServiceEnvironmentLine> alertDBUser = alertDbEnvironment.getEnvironmentVariable("POSTGRES_USER");
+            Optional<ServiceEnvironmentLine> alertDBPassword = alertDbEnvironment.getEnvironmentVariable("POSTGRES_PASSWORD");
+
+            if (alertDBLine.isPresent()) {
+                alertDBLine.get().setValue(alertDatabase.getDatabaseName());
+            }
+
+            if (alertDatabase.hasSecrets()) {
+                alertDbEnvironment.getEnvironmentVariable("POSTGRES_USER").ifPresent(YamlLine::comment);
+                alertDbEnvironment.getEnvironmentVariable("POSTGRES_PASSWORD").ifPresent(YamlLine::comment);
+                alertDbEnvironment.getEnvironmentVariable("POSTGRES_USER_FILE").ifPresent(YamlLine::uncomment);
+                alertDbEnvironment.getEnvironmentVariable("POSTGRES_PASSWORD_FILE").ifPresent(YamlLine::uncomment);
+                alertDbSecrets.getSecret("ALERT_DB_USERNAME").ifPresent(YamlLine::uncomment);
+                alertDbSecrets.getSecret("ALERT_DB_PASSWORD").ifPresent(YamlLine::uncomment);
+                parsedFile.getGlobalSecrets().uncomment();
+                parsedFile.getGlobalSecrets().getSecret("ALERT_DB_USERNAME").ifPresent(YamlBlock::uncommentBlock);
+                parsedFile.getGlobalSecrets().getSecret("ALERT_DB_PASSWORD").ifPresent(YamlBlock::uncommentBlock);
+
+            } else {
+                if (alertDBUser.isPresent()) {
+                    ServiceEnvironmentLine dbUser = alertDBUser.get();
+                    dbUser.uncomment();
+                    dbUser.setValue(alertDatabase.getDefaultUserName());
+                }
+                if (alertDBPassword.isPresent()) {
+                    ServiceEnvironmentLine dbPassword = alertDBPassword.get();
+                    dbPassword.uncomment();
+                    dbPassword.setValue(alertDatabase.getDefaultPassword());
+                }
+            }
+        }
+    }
+
+    private void updateAlertServiceValues() {
 
     }
 
