@@ -8,8 +8,8 @@ import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,8 +31,7 @@ public class AlertLocalOverridesEditorTest {
     private Logger logger = LoggerFactory.getLogger(AlertLocalOverridesEditorTest.class);
 
     @Test
-    @Disabled
-    public void testAlertLocalOverrides() throws IOException, BlackDuckInstallerException, URISyntaxException {
+    public void testOverrides() throws IOException, BlackDuckInstallerException, URISyntaxException {
         String input = IOUtils.toString(getClass().getResourceAsStream("/alert-docker-compose.yaml"), StandardCharsets.UTF_8);
         String expectedOutput = IOUtils.toString(getClass().getResourceAsStream("/desired-alert-docker-compose.yaml"), StandardCharsets.UTF_8);
         File tempInstallDirectory = new File("build/temp/");
@@ -50,11 +49,37 @@ public class AlertLocalOverridesEditorTest {
         AlertBlackDuckInstallOptions alertBlackDuckInstallOptions = createAlertBlackDuckInstallOptions();
         AlertLocalOverridesEditor editor = new AlertLocalOverridesEditor(intLogger, hashUtility, Application.DEFAULT_LINE_SEPARATOR, STACK_NAME, ALERT_HOST, ALERT_ADMIN_EMAIL, alertEncryption, customCertificate,
             alertBlackDuckInstallOptions, true, alertDatabase);
-        editor.edit2(tempInstallDirectory);
+        editor.edit(tempInstallDirectory);
         String actualFileContent = Files.readString(testComposeFile.toPath());
 
         assertEquals(expectedOutput, actualFileContent);
-        Files.deleteIfExists(tempInstallDirectory.toPath());
+        FileUtils.deleteQuietly(tempInstallDirectory);
+    }
+
+    @Test
+    public void testExternalDBOverrides() throws IOException, BlackDuckInstallerException, URISyntaxException {
+        String input = IOUtils.toString(getClass().getResourceAsStream("/alert-docker-compose.yaml"), StandardCharsets.UTF_8);
+        String expectedOutput = IOUtils.toString(getClass().getResourceAsStream("/desired-alert-external-db-docker-compose.yaml"), StandardCharsets.UTF_8);
+        File tempInstallDirectory = new File("build/temp/");
+        tempInstallDirectory.mkdirs();
+        File dockerDir = new File(tempInstallDirectory, "docker-swarm");
+        dockerDir.mkdirs();
+        File testComposeFile = new File(dockerDir, "docker-compose.local-overrides.yml");
+        Files.write(testComposeFile.toPath(), input.getBytes());
+
+        IntLogger intLogger = new Slf4jIntLogger(logger);
+        HashUtility hashUtility = new HashUtility();
+        AlertDatabase alertDatabase = createAlertExternalDatabase();
+        AlertEncryption alertEncryption = createAlertEncryption();
+        CustomCertificate customCertificate = createCustomCertificate();
+        AlertBlackDuckInstallOptions alertBlackDuckInstallOptions = createAlertBlackDuckInstallOptions();
+        AlertLocalOverridesEditor editor = new AlertLocalOverridesEditor(intLogger, hashUtility, Application.DEFAULT_LINE_SEPARATOR, STACK_NAME, ALERT_HOST, ALERT_ADMIN_EMAIL, alertEncryption, customCertificate,
+            alertBlackDuckInstallOptions, true, alertDatabase);
+        editor.edit(tempInstallDirectory);
+        String actualFileContent = Files.readString(testComposeFile.toPath());
+
+        assertEquals(expectedOutput, actualFileContent);
+        FileUtils.deleteQuietly(tempInstallDirectory);
     }
 
     private AlertDatabase createAlertDatabase() throws BlackDuckInstallerException {
@@ -63,7 +88,18 @@ public class AlertLocalOverridesEditorTest {
         String alertPassword = "alert_default_password";
         String userSecretPath = "alert-db-user-secret-path";
         String passwordSecretPath = "alert-db-password-secret-path";
-        return new AlertDatabase(databaseName, false, alertUserName, alertPassword, userSecretPath, passwordSecretPath);
+        return new AlertDatabase(databaseName, null, 0, alertUserName, alertPassword, userSecretPath, passwordSecretPath);
+    }
+
+    private AlertDatabase createAlertExternalDatabase() throws BlackDuckInstallerException {
+        String databaseName = "alert_database";
+        String alertUserName = "alert_default_user_name";
+        String alertPassword = "alert_default_password";
+        String userSecretPath = "alert-db-user-secret-path";
+        String passwordSecretPath = "alert-db-password-secret-path";
+        String externalHost = "alert_database_host";
+        int externalPort = 9999;
+        return new AlertDatabase(databaseName, externalHost, externalPort, alertUserName, alertPassword, userSecretPath, passwordSecretPath);
     }
 
     private AlertEncryption createAlertEncryption() throws BlackDuckInstallerException {
