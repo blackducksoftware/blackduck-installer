@@ -28,15 +28,18 @@ import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstaller
 
 public class AlertDatabase {
     private final String databaseName;
-    private final boolean external;
+    private final String externalHost;
+    private final int externalPort;
     private final String defaultUserName;
     private final String defaultPassword;
     private final DockerSecret userNameSecret;
     private final DockerSecret passwordSecret;
 
-    public AlertDatabase(final String databaseName, boolean external, final String defaultUserName, final String defaultPassword, final String userPath, final String passwordPath) throws BlackDuckInstallerException {
+    public AlertDatabase(final String databaseName, String externalHost, int externalPort, final String defaultUserName, final String defaultPassword, final String userPath, final String passwordPath)
+        throws BlackDuckInstallerException {
         this.databaseName = databaseName;
-        this.external = external;
+        this.externalHost = externalHost;
+        this.externalPort = externalPort;
         this.defaultUserName = defaultUserName;
         this.defaultPassword = defaultPassword;
         String[] values = new String[] { userPath, passwordPath };
@@ -64,7 +67,15 @@ public class AlertDatabase {
     }
 
     public boolean isExternal() {
-        return external;
+        return StringUtils.isNotBlank(externalHost);
+    }
+
+    public String getExternalHost() {
+        return externalHost;
+    }
+
+    public int getExternalPort() {
+        return externalPort;
     }
 
     public String getDefaultUserName() {

@@ -129,7 +129,8 @@ public class Application implements ApplicationRunner {
             CommonZipExpander commonZipExpander = new CommonZipExpander(intLogger, expander);
             CustomCertificate customCertificate = new CustomCertificate(applicationValues.getCustomCertificatePath(), applicationValues.getCustomCertificateKeyPath());
             AlertEncryption alertEncryption = new AlertEncryption(applicationValues.getAlertInstallEncryptionPasswordPath(), applicationValues.getAlertInstallEncryptionGlobalSaltPath());
-            AlertDatabase alertDatabase = new AlertDatabase(applicationValues.getAlertInstallDatabaseName(), applicationValues.isAlertInstallDatabaseUseExternal(), applicationValues.getAlertInstallDatabaseDefaultUserName(),
+            AlertDatabase alertDatabase = new AlertDatabase(applicationValues.getAlertInstallDatabaseName(), applicationValues.getAlertInstallDatabaseExternalHost(), applicationValues.getAlertInstallDatabaseExternalPort(),
+                applicationValues.getAlertInstallDatabaseDefaultUserName(),
                 applicationValues.getAlertInstallDatabaseDefaultPassword(), applicationValues.getAlertInstallDatabaseUserNamePath(), applicationValues.getAlertInstallDatabasePasswordPath());
 
             CredentialsBuilder credentialsBuilder = Credentials.newBuilder();

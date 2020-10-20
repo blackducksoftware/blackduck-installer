@@ -29,11 +29,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 import org.apache.commons.io.IOUtils;
@@ -46,7 +43,6 @@ import com.synopsys.integration.blackduck.installer.model.AlertBlackDuckInstallO
 import com.synopsys.integration.blackduck.installer.model.AlertDatabase;
 import com.synopsys.integration.blackduck.installer.model.AlertEncryption;
 import com.synopsys.integration.blackduck.installer.model.CustomCertificate;
-import com.synopsys.integration.blackduck.installer.model.DockerSecret;
 import com.synopsys.integration.log.IntLogger;
 
 public class AlertLocalOverridesEditor extends ConfigFileEditor {
@@ -82,57 +78,8 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
         return PreComputedHashes.ALERT_DOCKER_COMPOSE_LOCAL_OVERRIDES_YML;
     }
 
+    @Override
     public void edit(File installDirectory) throws BlackDuckInstallerException {
-        ConfigFile configFile = createConfigFile(installDirectory);
-        if (!shouldEditFile)
-            return;
-
-        StringBuilder ymlBuilder = new StringBuilder();
-        createServicesSection(ymlBuilder);
-        if (!alertDatabase.isExternal()) {
-            ymlBuilder.append("  alertdb:\n");
-            ymlBuilder.append("    environment:\n");
-            addEnvironmentVariable(ymlBuilder, "POSTGRES_DB", alertDatabase.getDatabaseName());
-            if (alertDatabase.hasSecrets()) {
-                addEnvironmentVariable(ymlBuilder, "POSTGRES_USER_FILE", alertDatabase.getPostgresUserNameSecretEnvironmentValue());
-                addEnvironmentVariable(ymlBuilder, "POSTGRES_PASSWORD_FILE", alertDatabase.getPostgresPasswordSecretEnvironmentValue());
-
-                List<DockerSecret> secrets = Arrays.asList(alertDatabase.getUserNameSecret(), alertDatabase.getPasswordSecret());
-                appendContainerSecrets(ymlBuilder, secrets);
-            } else {
-                addEnvironmentVariable(ymlBuilder, "POSTGRES_USER", alertDatabase.getDefaultUserName());
-                addEnvironmentVariable(ymlBuilder, "POSTGRES_PASSWORD", alertDatabase.getDefaultPassword());
-            }
-        }
-
-        ymlBuilder.append("  alert:\n");
-        ymlBuilder.append("    environment:\n");
-
-        addEnvironmentVariable(ymlBuilder, "ALERT_HOSTNAME", webServerHost);
-        addEnvironmentVariable(ymlBuilder, "ALERT_COMPONENT_SETTINGS_SETTINGS_USER_DEFAULT_ADMIN_EMAIL", alertAdminEmail);
-        addEnvironmentVariable(ymlBuilder, "ALERT_IMPORT_CERT", StringUtils.isNotBlank(alertBlackDuckInstallOptions.getBlackDuckHostForAutoSslImport()));
-        addEnvironmentVariable(ymlBuilder, "PUBLIC_HUB_WEBSERVER_HOST", alertBlackDuckInstallOptions.getBlackDuckHostForAutoSslImport());
-        addEnvironmentVariable(ymlBuilder, "PUBLIC_HUB_WEBSERVER_PORT", alertBlackDuckInstallOptions.getBlackDuckPortForAutoSslImport());
-        addEnvironmentVariable(ymlBuilder, "ALERT_PROVIDER_BLACKDUCK_BLACKDUCK_URL", alertBlackDuckInstallOptions.getBlackDuckUrl());
-        addEnvironmentVariable(ymlBuilder, "ALERT_PROVIDER_BLACKDUCK_BLACKDUCK_API_KEY", alertBlackDuckInstallOptions.getBlackDuckApiToken());
-        addEnvironmentVariable(ymlBuilder, "ALERT_PROVIDER_BLACKDUCK_BLACKDUCK_TIMEOUT", alertBlackDuckInstallOptions.getBlackDuckTimeoutInSeconds());
-
-        if (!alertEncryption.isEmpty() || !customCertificate.isEmpty() || alertDatabase.hasSecrets()) {
-            appendAlertSecrets(ymlBuilder, alertEncryption, customCertificate, alertDatabase);
-            appendSecrets(ymlBuilder, alertEncryption, customCertificate, alertDatabase);
-        }
-
-        // write the file clean because the original has an alertdb service which may not be there if it's an external deployment.
-        // Also the original file has environment variables set for postgres but if secrets are used those environment variables cannot be present.
-        // To cover all the deployment options the safest thing to do is write the file clean.
-        try (Writer writer = new FileWriter(configFile.getFileToEdit(), false)) {
-            writer.append(ymlBuilder.toString());
-        } catch (IOException e) {
-            throw new BlackDuckInstallerException("Error editing alert local overrides: " + e.getMessage());
-        }
-    }
-
-    public void edit2(File installDirectory) throws BlackDuckInstallerException {
         ConfigFile configFile = createConfigFile(installDirectory);
         if (!shouldEditFile)
             return;
@@ -141,41 +88,7 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
             List<String> lines = IOUtils.readLines(inputStream, StandardCharsets.UTF_8);
 
             try (Writer writer = new FileWriter(configFile.getFileToEdit())) {
-                AlertProcessingState processingState = new AlertProcessingState();
-
-                for (String line : lines) {
-                    if (line.startsWith("services:")) {
-                        processingState.setInServices(true);
-                        writeLine(writer, line);
-                    } else if (processingState.isInServices() && line.trim().equals("alertdb:")) {
-                        processingState.setInAlertDb(true);
-                        processingState.addLineToAlertDBService(line);
-                    } else if (processingState.isInAlertDb() && line.trim().equals("#    secrets:")) {
-                        processingState.setInAlertDbSecrets(true);
-                        processingState.addLineToAlertDBService(line);
-                    } else if (processingState.isInServices() && line.trim().equals("#  alert:")) {
-                        processingState.setInAlert(true);
-                        processingState.clearAlertDbServiceState();
-                        processingState.addLineToAlertService(line);
-                    } else if (processingState.isInAlert() && line.trim().equals("#    secrets:")) {
-                        processingState.setInAlertSecrets(true);
-                        processingState.addLineToAlertService(line);
-                    } else if (processingState.isInAlertSecrets() && line.equals("#secrets:")) {
-                        processingState.setInSecrets(true);
-                        processingState.clearAlertDbServiceState();
-                        processingState.clearAlertServiceState();
-                        processingState.setInServices(false);
-                        processingState.addLineToSecrets(line);
-                    } else if (processingState.isInAlertDb()) {
-                        processingState.addLineToAlertDBService(line);
-                    } else if (processingState.isInAlert()) {
-                        processingState.addLineToAlertService(line);
-                    } else if (processingState.isInSecrets()) {
-                        processingState.addLineToSecrets(line);
-                    } else {
-                        writeLine(writer, line);
-                    }
-                }
+                AlertProcessingState processingState = createProcessingState(writer, lines);
                 processAlertDBService(processingState, writer);
                 processAlertService(processingState, writer);
                 processSecrets(processingState, writer);
@@ -186,11 +99,55 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
 
     }
 
+    private AlertProcessingState createProcessingState(Writer writer, List<String> lines) throws IOException {
+        AlertProcessingState processingState = new AlertProcessingState();
+
+        for (String line : lines) {
+            if (line.startsWith("services:")) {
+                processingState.setInServices(true);
+                writeLine(writer, line);
+            } else if (processingState.isInServices() && line.trim().equals("alertdb:")) {
+                processingState.setInAlertDb(true);
+                processingState.addLineToAlertDBService(line);
+            } else if (processingState.isInAlertDb() && line.trim().equals("#    secrets:")) {
+                processingState.setInAlertDbSecrets(true);
+                processingState.addLineToAlertDBService(line);
+            } else if (processingState.isInServices() && line.trim().equals("#  alert:")) {
+                processingState.setInAlert(true);
+                processingState.clearAlertDbServiceState();
+                processingState.addLineToAlertService(line);
+            } else if (processingState.isInAlert() && line.trim().equals("#    secrets:")) {
+                processingState.setInAlertSecrets(true);
+                processingState.addLineToAlertService(line);
+            } else if (processingState.isInAlertSecrets() && line.equals("#secrets:")) {
+                processingState.setInSecrets(true);
+                processingState.clearAlertDbServiceState();
+                processingState.clearAlertServiceState();
+                processingState.setInServices(false);
+                processingState.addLineToSecrets(line);
+            } else if (processingState.isInAlertDb()) {
+                processingState.addLineToAlertDBService(line);
+            } else if (processingState.isInAlert()) {
+                processingState.addLineToAlertService(line);
+            } else if (processingState.isInSecrets()) {
+                processingState.addLineToSecrets(line);
+            } else {
+                writeLine(writer, line);
+            }
+        }
+
+        return processingState;
+    }
+
     private void processAlertDBService(AlertProcessingState processingState, Writer writer) throws IOException {
         //TODO: A future version of Alert may not have the alertdb service uncommented by default. This if can be removed when tthe service is commented out by default.
         if (alertDatabase.isExternal()) {
             for (String line : processingState.getAlertDbLines()) {
-                commentLine(writer, line);
+                if (!line.trim().startsWith("#")) {
+                    commentLine(writer, line);
+                } else {
+                    writeLine(writer, line);
+                }
             }
         } else {
             boolean hasSecrets = alertDatabase.hasSecrets();
@@ -200,6 +157,8 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
                 if (line.trim().equals("environment:")) {
                     inEnvironment = true;
                     uncommentLine(writer, line);
+                } else if (inEnvironment && line.trim().contains("POSTGRES_DB")) {
+                    uncommentEnvironmentLine(writer, line, alertDatabase.getDatabaseName());
                 } else if (inEnvironment && line.trim().equals("#    secrets:")) {
                     inEnvironment = false;
                     inSecrets = true;
@@ -222,12 +181,28 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
         boolean inEnvironment = false;
         boolean inSecrets = false;
         for (String line : processingState.getAlertLines()) {
-
             if (line.trim().equals("#  alert:")) {
                 uncommentLine(writer, line);
             } else if (line.trim().equals("#    environment:")) {
                 inEnvironment = true;
                 uncommentLine(writer, line);
+            } else if (inEnvironment && line.trim().contains("ALERT_HOSTNAME")) {
+                uncommentEnvironmentLine(writer, line, webServerHost);
+            } else if (inEnvironment && alertDatabase.isExternal() && line.trim().contains("ALERT_DB_HOST")) {
+                uncommentEnvironmentLine(writer, line, alertDatabase.getExternalHost());
+            } else if (inEnvironment && alertDatabase.isExternal() && line.trim().contains("ALERT_DB_PORT")) {
+                uncommentEnvironmentLine(writer, line, String.valueOf(alertDatabase.getExternalPort()));
+            } else if (inEnvironment && line.trim().contains("ALERT_DB_NAME")) {
+                uncommentEnvironmentLine(writer, line, alertDatabase.getDatabaseName());
+            } else if (inEnvironment && StringUtils.isNotBlank(alertBlackDuckInstallOptions.getBlackDuckUrl()) && line.trim().contains("ALERT_PROVIDER_BLACKDUCK_BLACKDUCK_URL")) {
+                uncommentEnvironmentLine(writer, line, alertBlackDuckInstallOptions.getBlackDuckUrl());
+            } else if (inEnvironment && StringUtils.isNotBlank(alertBlackDuckInstallOptions.getBlackDuckApiToken()) && line.trim().contains("ALERT_PROVIDER_BLACKDUCK_BLACKDUCK_API_KEY")) {
+                uncommentEnvironmentLine(writer, line, alertBlackDuckInstallOptions.getBlackDuckApiToken());
+            } else if (inEnvironment && alertBlackDuckInstallOptions.getBlackDuckTimeoutInSeconds() > 0 && line.trim().contains("ALERT_PROVIDER_BLACKDUCK_BLACKDUCK_TIMEOUT")) {
+                uncommentEnvironmentLine(writer, line, String.valueOf(alertBlackDuckInstallOptions.getBlackDuckTimeoutInSeconds()));
+            } else if (inEnvironment && line.trim().contains("# Component Settings")) {
+                writeLine(writer, line);
+                addAlertAdminEmailEnvironmentVariables(writer);
             } else if (inEnvironment && line.trim().equals("#    secrets:")) {
                 inEnvironment = false;
                 inSecrets = true;
@@ -236,62 +211,68 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
                 } else {
                     writeLine(writer, line);
                 }
+            } else if (inSecrets && !alertEncryption.isEmpty() && (line.contains("ALERT_ENCRYPTION_PASSWORD") || line.contains("ALERT_ENCRYPTION_GLOBAL_SALT"))) {
+                uncommentLine(writer, line);
+            } else if (inSecrets && !customCertificate.isEmpty() && (line.contains("WEBSERVER_CUSTOM_CERT_FILE") || line.contains("WEBSERVER_CUSTOM_KEY_FILE"))) {
+                uncommentLine(writer, line);
+            } else if (inSecrets && alertDatabase.hasSecrets() && (line.contains("ALERT_DB_USERNAME") || line.contains("ALERT_DB_PASSWORD"))) {
+                uncommentLine(writer, line);
             } else {
                 writeLine(writer, line);
             }
         }
     }
 
+    private void addAlertAdminEmailEnvironmentVariables(Writer writer) throws IOException {
+        StringBuilder yamlBuilder = new StringBuilder(100);
+        if (StringUtils.isNotBlank(alertAdminEmail)) {
+            addEnvironmentVariable(yamlBuilder, "ALERT_COMPONENT_SETTINGS_SETTINGS_USER_DEFAULT_ADMIN_EMAIL", alertAdminEmail);
+        }
+        writeLine(writer, yamlBuilder.toString());
+    }
+
     private void processSecrets(AlertProcessingState processingState, Writer writer) throws IOException {
-        Optional<String> secretValue = Optional.empty();
+        boolean hasEncryptionSecrets = !alertEncryption.isEmpty();
+        boolean hasCertificateSecrets = !customCertificate.isEmpty();
         boolean isEncryptionSecret = false;
         boolean isCertificateSecret = false;
-        boolean isCertificateKeySecret = false;
         boolean isDatabaseSecret = false;
         for (String line : processingState.getSecretsLines()) {
-            //            if (!alertEncryption.isEmpty()) {
-            //                secretValue = getSecretValue(alertEncryption.getPassword()).orElse(alertEncryption.)
-            //                if (line.contains(alertEncryption.getPassword().getLabel())) {
-            //                    secretValue = alertEncryption.getPassword().getPath();
-            //                } else if (line.contains(alertEncryption.getSalt().getLabel())) {
-            //                    secretValue = alertEncryption.getSalt().getPath();
-            //                } else {
-            //                    writeLine(writer, line);
-            //                }
-            //            }
-            //            if (!customCertificate.isEmpty()) {
-            //                if (line.contains(customCertificate.getCertificate().getLabel())) {
-            //                    isCertificateSecret = true;
-            //                    uncommentLine(writer, line);
-            //                } else if (line.contains(customCertificate.getPrivateKey().getLabel())) {
-            //                    isCertificateKeySecret = true;
-            //                    uncommentLine(writer, line);
-            //                } else if (isCertificateSecret && line.contains("name: ")) {
-            //                    isCertificateSecret = false;
-            //                    uncommentSecretValue(writer, line);
-            //                } else if (isCertificateSecret || isCertificateKeySecret) {
-            //                    uncommentLine(writer, line);
-            //                } else {
-            //                    writeLine(writer, line);
-            //                }
-            //            }
-            //            if (alertDatabase.hasSecrets()) {
-            //                writeLine(writer, line);
-            //            }
-            writeLine(writer, line);
+            if (line.trim().equals("#secrets:")) {
+                uncommentLine(writer, line);
+            } else if (hasEncryptionSecrets && (line.trim().contains("ALERT_ENCRYPTION_PASSWORD:") || line.trim().contains("ALERT_ENCRYPTION_GLOBAL_SALT:"))) {
+                isEncryptionSecret = true;
+                uncommentLine(writer, line);
+            } else if (hasCertificateSecrets && (line.trim().contains("WEBSERVER_CUSTOM_CERT_FILE:") || line.trim().contains("WEBSERVER_CUSTOM_KEY_FILE:"))) {
+                isCertificateSecret = true;
+                uncommentLine(writer, line);
+            } else if (alertDatabase.hasSecrets() && (line.trim().contains("ALERT_DB_USERNAME:") || line.trim().contains("ALERT_DB_PASSWORD:"))) {
+                isDatabaseSecret = true;
+                uncommentLine(writer, line);
+            } else if (isEncryptionSecret && line.trim().contains("name:")) {
+                isEncryptionSecret = false;
+                uncommentSecretValue(writer, line);
+            } else if (isCertificateSecret && line.trim().contains("name:")) {
+                isCertificateSecret = false;
+                uncommentSecretValue(writer, line);
+            } else if (isDatabaseSecret && line.trim().contains("name:")) {
+                isCertificateSecret = false;
+                uncommentSecretValue(writer, line);
+            } else if (isEncryptionSecret && hasEncryptionSecrets) {
+                uncommentLine(writer, line);
+            } else if (isCertificateSecret && hasCertificateSecrets) {
+                uncommentLine(writer, line);
+            } else if (isDatabaseSecret && alertDatabase.hasSecrets()) {
+                uncommentLine(writer, line);
+            } else {
+                writeLine(writer, line);
+            }
         }
     }
 
     private void uncommentSecretValue(Writer writer, String line) throws IOException {
         String fixedLine = line.replace("<STACK_NAME>_", stackName + "_");
         uncommentLine(writer, fixedLine);
-    }
-
-    private Optional<String> getSecretValue(String line, DockerSecret secret) {
-        if (line.contains(secret.getLabel())) {
-            return Optional.ofNullable(secret.getPath());
-        }
-        return Optional.empty();
     }
 
     //TODO create a common utility for this.
@@ -303,13 +284,13 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
         writer.append(line.replace("#", "") + lineSeparator);
     }
 
-    private void commentLine(Writer writer, String line) throws IOException {
-        writer.append("#" + line + lineSeparator);
+    private void uncommentEnvironmentLine(Writer writer, String line, String value) throws IOException {
+        int equalsIndex = line.indexOf("=");
+        writer.append(line.substring(0, equalsIndex + 1).replace("#", "") + value + lineSeparator);
     }
 
-    private void createServicesSection(StringBuilder ymlBuilder) {
-        ymlBuilder.append("version: '3.6'\n");
-        ymlBuilder.append("services:\n");
+    private void commentLine(Writer writer, String line) throws IOException {
+        writer.append("#" + line + lineSeparator);
     }
 
     private void addEnvironmentVariable(StringBuilder ymlBuilder, String key, String value) {
@@ -318,78 +299,8 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
         }
     }
 
-    private void addEnvironmentVariable(StringBuilder ymlBuilder, String key, int value) {
-        if (value > 0) {
-            append(ymlBuilder, key, Integer.toString(value));
-        }
-    }
-
-    private void addEnvironmentVariable(StringBuilder ymlBuilder, String key, boolean value) {
-        if (value) {
-            append(ymlBuilder, key, "true");
-        }
-    }
-
     private void append(StringBuilder ymlBuilder, String key, String value) {
         ymlBuilder.append(String.format("      - %s=%s\n", key, value));
-    }
-
-    private void appendAlertSecrets(StringBuilder ymlBuilder, AlertEncryption alertEncryption, CustomCertificate customCertificate, AlertDatabase alertDatabase) {
-        List<DockerSecret> secrets = new ArrayList<>();
-
-        ymlBuilder.append("    secrets:\n");
-        if (!alertEncryption.isEmpty()) {
-            secrets.add(alertEncryption.getPassword());
-            secrets.add(alertEncryption.getSalt());
-        }
-        if (!customCertificate.isEmpty()) {
-            secrets.add(customCertificate.getCertificate());
-            secrets.add(customCertificate.getPrivateKey());
-        }
-
-        if (alertDatabase.hasSecrets()) {
-            secrets.add(alertDatabase.getUserNameSecret());
-            secrets.add(alertDatabase.getPasswordSecret());
-        }
-
-        appendContainerSecrets(ymlBuilder, secrets);
-    }
-
-    private void appendContainerSecrets(StringBuilder ymlBuilder, List<DockerSecret> secrets) {
-        if (!secrets.isEmpty()) {
-            ymlBuilder.append("    secrets:\n");
-            for (DockerSecret secret : secrets) {
-                ymlBuilder.append("      - " + secret.getLabel() + "\n");
-            }
-        }
-    }
-
-    private void appendSecrets(StringBuilder ymlBuilder, AlertEncryption alertEncryption, CustomCertificate customCertificate, AlertDatabase alertDatabase) {
-        ymlBuilder.append("secrets:\n");
-        if (!alertEncryption.isEmpty()) {
-            appendSecret(ymlBuilder, alertEncryption.getPassword().getLabel());
-            appendSecret(ymlBuilder, alertEncryption.getSalt().getLabel());
-        }
-        if (!customCertificate.isEmpty()) {
-            appendSecret(ymlBuilder, customCertificate.getCertificate().getLabel());
-            appendSecret(ymlBuilder, customCertificate.getPrivateKey().getLabel());
-        }
-        if (alertDatabase.hasSecrets()) {
-            appendSecret(ymlBuilder, alertDatabase.getUserNameSecret().getLabel());
-            appendSecret(ymlBuilder, alertDatabase.getPasswordSecret().getLabel());
-        }
-    }
-
-    private void appendSecret(StringBuilder ymlBuilder, String secretName) {
-        ymlBuilder.append("  ");
-        ymlBuilder.append(secretName);
-        ymlBuilder.append(":\n");
-        ymlBuilder.append("    external: true\n");
-        ymlBuilder.append("    name: \"");
-        ymlBuilder.append(stackName);
-        ymlBuilder.append("_");
-        ymlBuilder.append(secretName);
-        ymlBuilder.append("\"\n");
     }
 
     private class AlertProcessingState {

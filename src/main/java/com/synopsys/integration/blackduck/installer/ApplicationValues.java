@@ -221,8 +221,11 @@ public class ApplicationValues {
     @Value("${alert.install.database.name:alertdb}")
     private String alertInstallDatabaseName;
 
-    @Value("${alert.install.database.use.external:false}")
-    private boolean alertInstallDatabaseUseExternal;
+    @Value("${alert.install.database.external.host:}")
+    private String alertInstallDatabaseExternalHost;
+
+    @Value("${alert.install.database.external.port:0}")
+    private int alertInstallDatabaseExternalPort;
 
     @Value("${alert.install.database.username.default:sa}")
     private String alertInstallDatabaseDefaultUserName;
@@ -488,8 +491,12 @@ public class ApplicationValues {
         return alertInstallDatabaseName;
     }
 
-    public boolean isAlertInstallDatabaseUseExternal() {
-        return alertInstallDatabaseUseExternal;
+    public String getAlertInstallDatabaseExternalHost() {
+        return alertInstallDatabaseExternalHost;
+    }
+
+    public int getAlertInstallDatabaseExternalPort() {
+        return alertInstallDatabaseExternalPort;
     }
 
     public String getAlertInstallDatabaseDefaultUserName() {
