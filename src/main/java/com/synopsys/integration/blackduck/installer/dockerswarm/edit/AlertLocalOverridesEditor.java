@@ -188,9 +188,9 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
             alertDb.commentBlock();
         } else {
             alertDb.uncomment();
-            Optional<ServiceEnvironmentLine> alertDBLine = alertDbEnvironment.getEnvironmentVariable("POSTGRES_DB");
-            Optional<ServiceEnvironmentLine> alertDBUser = alertDbEnvironment.getEnvironmentVariable("POSTGRES_USER");
-            Optional<ServiceEnvironmentLine> alertDBPassword = alertDbEnvironment.getEnvironmentVariable("POSTGRES_PASSWORD");
+            Optional<ServiceEnvironmentLine> alertDBLine = alertDbEnvironment.getVariableLine("POSTGRES_DB");
+            Optional<ServiceEnvironmentLine> alertDBUser = alertDbEnvironment.getVariableLine("POSTGRES_USER");
+            Optional<ServiceEnvironmentLine> alertDBPassword = alertDbEnvironment.getVariableLine("POSTGRES_PASSWORD");
 
             if (alertDBLine.isPresent() && StringUtils.isNotBlank(alertDatabase.getDatabaseName())) {
                 alertDBLine.get().uncomment();
@@ -198,10 +198,10 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
             }
 
             if (alertDatabase.hasSecrets()) {
-                alertDbEnvironment.getEnvironmentVariable("POSTGRES_USER").ifPresent(YamlLine::comment);
-                alertDbEnvironment.getEnvironmentVariable("POSTGRES_PASSWORD").ifPresent(YamlLine::comment);
-                alertDbEnvironment.getEnvironmentVariable("POSTGRES_USER_FILE").ifPresent(YamlLine::uncomment);
-                alertDbEnvironment.getEnvironmentVariable("POSTGRES_PASSWORD_FILE").ifPresent(YamlLine::uncomment);
+                alertDbEnvironment.getVariableLine("POSTGRES_USER").ifPresent(YamlLine::comment);
+                alertDbEnvironment.getVariableLine("POSTGRES_PASSWORD").ifPresent(YamlLine::comment);
+                alertDbEnvironment.getVariableLine("POSTGRES_USER_FILE").ifPresent(YamlLine::uncomment);
+                alertDbEnvironment.getVariableLine("POSTGRES_PASSWORD_FILE").ifPresent(YamlLine::uncomment);
                 enableDatabaseSecrets(alertDbSecrets, parsedFile.getGlobalSecrets());
 
             } else {
@@ -228,7 +228,7 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
         DockerServiceEnvironment alertEnvironment = alert.getDockerServiceEnvironment();
         DockerServiceSecrets alertSecrets = alert.getDockerServiceSecrets();
         GlobalSecrets globalSecrets = parsedFile.getGlobalSecrets();
-        setEnvironmentValue(alertEnvironment, "ALERT_DB_NAME", alertDatabase.getDatabaseName());
+        alertEnvironment.setEnvironmentVariableValue("ALERT_DB_NAME", alertDatabase.getDatabaseName());
 
         // check if the alert service should be uncommented because there are settings.
         if (StringUtils.isNotBlank(alertAdminEmail) || StringUtils.isNotBlank(webServerHost) || !alertDatabase.isEmpty() || !alertEncryption.isEmpty() || !customCertificate.isEmpty() || !alertBlackDuckInstallOptions.isEmpty()) {
@@ -240,16 +240,16 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
         }
 
         if (alertDatabase.isExternal()) {
-            alertEnvironment.getEnvironmentVariable("ALERT_DB_HOST").ifPresent(YamlLine::uncomment);
-            alertEnvironment.getEnvironmentVariable("ALERT_DB_PORT").ifPresent(YamlLine::uncomment);
-            setEnvironmentValue(alertEnvironment, "ALERT_DB_HOST", alertDatabase.getExternalHost());
-            setEnvironmentValue(alertEnvironment, "ALERT_DB_PORT", alertDatabase.getExternalPort());
+            alertEnvironment.getVariableLine("ALERT_DB_HOST").ifPresent(YamlLine::uncomment);
+            alertEnvironment.getVariableLine("ALERT_DB_PORT").ifPresent(YamlLine::uncomment);
+            alertEnvironment.setEnvironmentVariableValue("ALERT_DB_HOST", alertDatabase.getExternalHost());
+            alertEnvironment.setEnvironmentVariableValue("ALERT_DB_PORT", alertDatabase.getExternalPort());
         }
 
-        setEnvironmentValue(alertEnvironment, "ALERT_HOSTNAME", webServerHost);
-        setEnvironmentValue(alertEnvironment, "ALERT_PROVIDER_BLACKDUCK_BLACKDUCK_URL", alertBlackDuckInstallOptions.getBlackDuckUrl());
-        setEnvironmentValue(alertEnvironment, "ALERT_PROVIDER_BLACKDUCK_BLACKDUCK_API_KEY", alertBlackDuckInstallOptions.getBlackDuckApiToken());
-        setEnvironmentValue(alertEnvironment, "ALERT_PROVIDER_BLACKDUCK_BLACKDUCK_TIMEOUT", alertBlackDuckInstallOptions.getBlackDuckTimeoutInSeconds());
+        alertEnvironment.setEnvironmentVariableValue("ALERT_HOSTNAME", webServerHost);
+        alertEnvironment.setEnvironmentVariableValue("ALERT_PROVIDER_BLACKDUCK_BLACKDUCK_URL", alertBlackDuckInstallOptions.getBlackDuckUrl());
+        alertEnvironment.setEnvironmentVariableValue("ALERT_PROVIDER_BLACKDUCK_BLACKDUCK_API_KEY", alertBlackDuckInstallOptions.getBlackDuckApiToken());
+        alertEnvironment.setEnvironmentVariableValue("ALERT_PROVIDER_BLACKDUCK_BLACKDUCK_TIMEOUT", alertBlackDuckInstallOptions.getBlackDuckTimeoutInSeconds());
 
         // add these environment variables to the beginning of the environment block:
         ServiceEnvironmentLine publicWebserverHost = ServiceEnvironmentLine.newEnvironmentLine("PUBLIC_HUB_WEBSERVER_HOST");
@@ -257,15 +257,15 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
         ServiceEnvironmentLine alertImportCert = ServiceEnvironmentLine.newEnvironmentLine("ALERT_IMPORT_CERT");
         ServiceEnvironmentLine defaultAdminEmail = ServiceEnvironmentLine.newEnvironmentLine("ALERT_COMPONENT_SETTINGS_SETTINGS_USER_DEFAULT_ADMIN_EMAIL");
 
-        alertEnvironment.addEnvironmentVariableAtBeginning(publicWebserverHost);
-        alertEnvironment.addEnvironmentVariableAtBeginning(publicWebserverPort);
-        alertEnvironment.addEnvironmentVariableAtBeginning(alertImportCert);
-        alertEnvironment.addEnvironmentVariableAtBeginning(defaultAdminEmail);
+        alertEnvironment.addVariableLineAtBeginning(publicWebserverHost);
+        alertEnvironment.addVariableLineAtBeginning(publicWebserverPort);
+        alertEnvironment.addVariableLineAtBeginning(alertImportCert);
+        alertEnvironment.addVariableLineAtBeginning(defaultAdminEmail);
 
-        setEnvironmentValue(alertEnvironment, "PUBLIC_HUB_WEBSERVER_HOST", alertBlackDuckInstallOptions.getBlackDuckHostForAutoSslImport());
-        setEnvironmentValue(alertEnvironment, "PUBLIC_HUB_WEBSERVER_PORT", alertBlackDuckInstallOptions.getBlackDuckPortForAutoSslImport());
-        setEnvironmentValue(alertEnvironment, "ALERT_IMPORT_CERT", StringUtils.isNotBlank(alertBlackDuckInstallOptions.getBlackDuckHostForAutoSslImport()));
-        setEnvironmentValue(alertEnvironment, "ALERT_COMPONENT_SETTINGS_SETTINGS_USER_DEFAULT_ADMIN_EMAIL", alertAdminEmail);
+        alertEnvironment.setEnvironmentVariableValue("PUBLIC_HUB_WEBSERVER_HOST", alertBlackDuckInstallOptions.getBlackDuckHostForAutoSslImport());
+        alertEnvironment.setEnvironmentVariableValue("PUBLIC_HUB_WEBSERVER_PORT", alertBlackDuckInstallOptions.getBlackDuckPortForAutoSslImport());
+        alertEnvironment.setEnvironmentVariableValue("ALERT_IMPORT_CERT", StringUtils.isNotBlank(alertBlackDuckInstallOptions.getBlackDuckHostForAutoSslImport()));
+        alertEnvironment.setEnvironmentVariableValue("ALERT_COMPONENT_SETTINGS_SETTINGS_USER_DEFAULT_ADMIN_EMAIL", alertAdminEmail);
 
         //secrets
         if (!alertEncryption.isEmpty()) {
@@ -291,22 +291,5 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
         globalSecrets.uncomment();
         globalSecrets.getSecret("ALERT_DB_USERNAME").ifPresent(YamlBlock::uncommentBlock);
         globalSecrets.getSecret("ALERT_DB_PASSWORD").ifPresent(YamlBlock::uncommentBlock);
-    }
-
-    private void setEnvironmentValue(DockerServiceEnvironment environmentBlock, String key, int value) {
-        setEnvironmentValue(environmentBlock, key, String.valueOf(value));
-    }
-
-    private void setEnvironmentValue(DockerServiceEnvironment environmentBlock, String key, boolean value) {
-        setEnvironmentValue(environmentBlock, key, String.valueOf(value));
-    }
-
-    private void setEnvironmentValue(DockerServiceEnvironment environmentBlock, String key, String value) {
-        Optional<ServiceEnvironmentLine> environmentLine = environmentBlock.getEnvironmentVariable(key);
-        if (environmentLine.isPresent() && StringUtils.isNotBlank(value)) {
-            ServiceEnvironmentLine environmentVariable = environmentLine.get();
-            environmentVariable.uncomment();
-            environmentVariable.setValue(value);
-        }
     }
 }

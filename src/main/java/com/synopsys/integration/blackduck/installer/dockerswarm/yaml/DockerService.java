@@ -24,7 +24,7 @@ public class DockerService extends YamlLine implements YamlBlock {
 
     public void addEnvironmentVariable(String line) {
         ServiceEnvironmentLine environmentVariable = ServiceEnvironmentLine.of(line);
-        dockerServiceEnvironment.addEnvironmentVariable(environmentVariable);
+        dockerServiceEnvironment.addVariableLine(environmentVariable);
     }
 
     public void addSecret(String line) {
