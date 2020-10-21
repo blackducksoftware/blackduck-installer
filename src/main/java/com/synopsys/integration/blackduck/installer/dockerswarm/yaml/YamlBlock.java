@@ -4,4 +4,6 @@ public interface YamlBlock {
     void commentBlock();
 
     void uncommentBlock();
+
+    boolean isBlockCommented();
 }

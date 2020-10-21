@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Predicate;
 
 import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.output.YamlWritable;
 import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.output.YamlWriter;
@@ -13,10 +12,11 @@ public class OverridesFile implements YamlWritable {
     private String version;
     private Map<String, DockerService> services = new LinkedHashMap<>();
     private GlobalSecrets globalSecrets = new GlobalSecrets();
+    private YamlLine versionLine;
+    private YamlLine servicesLine;
 
-    public boolean hasServices() {
-        Predicate<DockerService> serviceUncommented = Predicate.not(DockerService::isCommented);
-        return !services.isEmpty() && services.values().stream().anyMatch(serviceUncommented);
+    public boolean allServicesCommented() {
+        return !services.isEmpty() && services.values().stream().allMatch(DockerService::isCommented);
     }
 
     public String getVersion() {
@@ -25,10 +25,13 @@ public class OverridesFile implements YamlWritable {
 
     public void setVersion(final String version) {
         this.version = version;
+        String versionString = String.format("version: %s", getVersion());
+        this.versionLine = YamlLine.create(versionString);
     }
 
     public void addService(DockerService service) {
         services.put(service.getName(), service);
+        servicesLine = YamlLine.create("services:");
     }
 
     public Optional<DockerService> getService(String serviceName) {
@@ -45,14 +48,29 @@ public class OverridesFile implements YamlWritable {
 
     @Override
     public void write(YamlWriter writer) throws IOException {
-        if (hasServices()) {
-            String version = String.format("version: %s", getVersion());
-            writer.writeLine(version);
-            writer.writeLine("services:");
-            for (DockerService service : services.values()) {
-                service.write(writer);
-            }
-            globalSecrets.write(writer);
+        boolean allServicesCommented = allServicesCommented();
+        boolean allSecretsCommented = globalSecrets.allSecretsCommented();
+        versionLine.uncomment();
+        servicesLine.uncomment();
+        globalSecrets.uncomment();
+
+        if (allServicesCommented) {
+            servicesLine.comment();
         }
+        if (allSecretsCommented) {
+            globalSecrets.comment();
+        }
+
+        if (allSecretsCommented && allServicesCommented) {
+            versionLine.comment();
+        }
+
+        versionLine.write(writer);
+        servicesLine.write(writer);
+        for (DockerService service : services.values()) {
+            service.write(writer);
+        }
+        globalSecrets.write(writer);
     }
+
 }

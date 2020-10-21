@@ -12,15 +12,18 @@ public class ServiceSecretLine extends YamlLine {
 
     public static ServiceSecretLine of(String line) {
         boolean commented = YamlLine.isCommented(line);
-        int hyphenIndex = line.indexOf("-");
+        int hyphenIndex = line.indexOf("- ");
         String key = null;
-        if (hyphenIndex >= 0) {
-            key = line.substring(hyphenIndex + 1).trim();
+        if (hyphenIndex > 0) {
+            // prevent the strings "-- " from being considered a valid secret.
+            if ('-' != line.charAt(hyphenIndex - 1)) {
+                key = line.substring(hyphenIndex + 1).trim();
+            }
         }
         return new ServiceSecretLine(commented, line, key);
     }
 
-    public boolean isCommentOnly() {
+    public boolean hasKey() {
         return StringUtils.isNotBlank(key);
     }
 
@@ -30,7 +33,7 @@ public class ServiceSecretLine extends YamlLine {
 
     @Override
     public String createTextLine() {
-        if (isCommentOnly()) {
+        if (!hasKey()) {
             return getLine();
         }
         return String.format("      - %s", getKey());

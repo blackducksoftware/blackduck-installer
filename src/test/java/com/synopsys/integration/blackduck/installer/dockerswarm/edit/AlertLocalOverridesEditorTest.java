@@ -77,7 +77,6 @@ public class AlertLocalOverridesEditorTest {
             alertBlackDuckInstallOptions, true, alertDatabase);
         editor.edit(tempInstallDirectory);
         String actualFileContent = Files.readString(testComposeFile.toPath());
-
         assertEquals(expectedOutput, actualFileContent);
         FileUtils.deleteQuietly(tempInstallDirectory);
     }
@@ -116,6 +115,6 @@ public class AlertLocalOverridesEditorTest {
         String blackDuckUrl = "black_duck_url";
         String blackduckApi = "black_duck_api_token";
         Integer blackduckTimeout = 500;
-        return new AlertBlackDuckInstallOptions(blackDuckUrl, blackduckApi, blackduckTimeout, null, -1);
+        return new AlertBlackDuckInstallOptions(blackDuckUrl, blackduckApi, blackduckTimeout, null, 0);
     }
 }

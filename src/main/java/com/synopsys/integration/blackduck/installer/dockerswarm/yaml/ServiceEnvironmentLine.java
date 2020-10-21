@@ -6,7 +6,7 @@ public class ServiceEnvironmentLine extends YamlLine {
     private final String key;
     private String value;
 
-    public ServiceEnvironmentLine(boolean commented, String line, String key, String value) {
+    private ServiceEnvironmentLine(boolean commented, String line, String key, String value) {
         super(commented, line);
         this.key = key;
         this.value = value;
@@ -14,7 +14,7 @@ public class ServiceEnvironmentLine extends YamlLine {
 
     public static ServiceEnvironmentLine newEnvironmentLine(String key) {
         // create a commented variable.
-        return of(String.format("#%s", key));
+        return of(String.format("#      - %s=", key));
     }
 
     public static ServiceEnvironmentLine of(String line) {
@@ -32,7 +32,7 @@ public class ServiceEnvironmentLine extends YamlLine {
         return new ServiceEnvironmentLine(commented, line, key, value);
     }
 
-    public boolean isCommentOnly() {
+    public boolean hasKey() {
         return StringUtils.isNotBlank(key);
     }
 
@@ -50,7 +50,7 @@ public class ServiceEnvironmentLine extends YamlLine {
 
     @Override
     public String createTextLine() {
-        if (isCommentOnly()) {
+        if (!hasKey()) {
             return getLine();
         }
         return String.format("      - %s=%s", getKey(), getValue());

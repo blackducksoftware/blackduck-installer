@@ -9,12 +9,12 @@ public class YamlLine implements YamlWritable {
     private final String line;
     private boolean commented;
 
-    public YamlLine(String line) {
+    protected YamlLine(String line) {
         this.commented = true;
         this.line = line;
     }
 
-    public YamlLine(boolean commented, String line) {
+    protected YamlLine(boolean commented, String line) {
         this.commented = commented;
         this.line = line;
     }
@@ -59,6 +59,10 @@ public class YamlLine implements YamlWritable {
 
     @Override
     public String toString() {
-        return (isCommented() ? "#" : "") + createTextLine();
+        String textLine = createTextLine();
+        if (isCommented() && !textLine.trim().startsWith("#")) {
+            textLine = "#" + textLine;
+        }
+        return textLine;
     }
 }

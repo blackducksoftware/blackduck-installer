@@ -14,6 +14,10 @@ public class GlobalSecrets extends YamlLine {
         super("");
     }
 
+    public boolean allSecretsCommented() {
+        return !secrets.isEmpty() && secrets.values().stream().allMatch(DockerSecret::isCommented);
+    }
+
     public void addSecret(DockerSecret secret) {
         secrets.put(secret.getKey(), secret);
     }

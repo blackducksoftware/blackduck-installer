@@ -20,20 +20,30 @@ public class DockerServiceEnvironment extends YamlLine implements YamlBlock {
 
     public void addEnvironmentVariableAtBeginning(ServiceEnvironmentLine environmentVariable) {
         lines.add(0, environmentVariable);
-        if (environmentVariable.isCommentOnly()) {
+        if (environmentVariable.hasKey()) {
             environmentVariables.put(environmentVariable.getKey(), environmentVariable);
         }
     }
 
     public void addEnvironmentVariable(ServiceEnvironmentLine environmentVariable) {
         lines.add(environmentVariable);
-        if (environmentVariable.isCommentOnly()) {
+        if (environmentVariable.hasKey()) {
             environmentVariables.put(environmentVariable.getKey(), environmentVariable);
         }
     }
 
     public Optional<ServiceEnvironmentLine> getEnvironmentVariable(String key) {
         return Optional.ofNullable(environmentVariables.get(key));
+    }
+
+    @Override
+    public boolean isCommented() {
+        return super.isCommented() && isBlockCommented();
+    }
+
+    @Override
+    public boolean isBlockCommented() {
+        return lines.stream().allMatch(ServiceEnvironmentLine::isCommented);
     }
 
     @Override

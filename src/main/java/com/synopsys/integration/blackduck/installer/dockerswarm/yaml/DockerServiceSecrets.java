@@ -19,13 +19,23 @@ public class DockerServiceSecrets extends YamlLine implements YamlBlock {
 
     public void addSecret(ServiceSecretLine secret) {
         lines.add(secret);
-        if (!secret.isCommentOnly()) {
+        if (secret.hasKey()) {
             secrets.put(secret.getKey(), secret);
         }
     }
 
     public Optional<ServiceSecretLine> getSecret(String key) {
         return Optional.ofNullable(secrets.get(key));
+    }
+
+    @Override
+    public boolean isCommented() {
+        return super.isCommented() && isBlockCommented();
+    }
+
+    @Override
+    public boolean isBlockCommented() {
+        return lines.stream().allMatch(ServiceSecretLine::isCommented);
     }
 
     @Override

@@ -2,6 +2,8 @@ package com.synopsys.integration.blackduck.installer.dockerswarm.yaml;
 
 import java.io.IOException;
 
+import org.apache.commons.lang3.StringUtils;
+
 import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.output.YamlWritable;
 import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.output.YamlWriter;
 
@@ -12,9 +14,9 @@ public class DockerSecret implements YamlBlock, YamlWritable {
     private YamlLine name;
     private YamlLine yamlKey;
 
-    public DockerSecret(String key, String stackName) {
+    private DockerSecret(String key, String stackName, YamlLine yamlKey) {
         this.key = key;
-        this.yamlKey = YamlLine.create(key);
+        this.yamlKey = yamlKey;
         this.stackName = stackName;
     }
 
@@ -27,8 +29,12 @@ public class DockerSecret implements YamlBlock, YamlWritable {
             startIndex = 1;
         }
         key = line.trim().substring(startIndex, colonIndex).trim();
+        YamlLine yamlKey = YamlLine.create(line);
+        if (StringUtils.isNotBlank(key)) {
+            yamlKey = YamlLine.create(String.format("  %s:", key));
+        }
 
-        return new DockerSecret(key, stackName);
+        return new DockerSecret(key, stackName, yamlKey);
     }
 
     public void applyName(String nameLine, String stackPrefix) {
@@ -51,6 +57,11 @@ public class DockerSecret implements YamlBlock, YamlWritable {
     }
 
     @Override
+    public boolean isBlockCommented() {
+        return this.isCommented();
+    }
+
+    @Override
     public void commentBlock() {
         yamlKey.comment();
         if (null != external) {
@@ -70,6 +81,10 @@ public class DockerSecret implements YamlBlock, YamlWritable {
         if (null != name) {
             name.uncomment();
         }
+    }
+
+    public boolean isCommented() {
+        return yamlKey.isCommented();
     }
 
     public String getKey() {
