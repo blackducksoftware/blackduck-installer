@@ -27,6 +27,7 @@ import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.StringWriter;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
@@ -37,14 +38,16 @@ import java.util.Set;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 
-import com.synopsys.integration.blackduck.installer.dockerswarm.parser.DockerSecret;
-import com.synopsys.integration.blackduck.installer.dockerswarm.parser.DockerService;
-import com.synopsys.integration.blackduck.installer.dockerswarm.parser.DockerServiceEnvironment;
-import com.synopsys.integration.blackduck.installer.dockerswarm.parser.DockerServiceSecrets;
-import com.synopsys.integration.blackduck.installer.dockerswarm.parser.OverridesFile;
-import com.synopsys.integration.blackduck.installer.dockerswarm.parser.ServiceEnvironmentLine;
-import com.synopsys.integration.blackduck.installer.dockerswarm.parser.YamlBlock;
-import com.synopsys.integration.blackduck.installer.dockerswarm.parser.YamlLine;
+import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.DockerSecret;
+import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.DockerService;
+import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.DockerServiceEnvironment;
+import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.DockerServiceSecrets;
+import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.GlobalSecrets;
+import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.OverridesFile;
+import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.ServiceEnvironmentLine;
+import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.YamlBlock;
+import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.YamlLine;
+import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.output.YamlWriter;
 import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
 import com.synopsys.integration.blackduck.installer.hash.HashUtility;
 import com.synopsys.integration.blackduck.installer.hash.PreComputedHashes;
@@ -95,7 +98,7 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
 
         try (InputStream inputStream = new FileInputStream(configFile.getOriginalCopy())) {
             List<String> lines = IOUtils.readLines(inputStream, StandardCharsets.UTF_8);
-            OverridesFile parsedFile = createOverridesFile(lines);
+            OverridesFile parsedFile = createYamlFileModel(lines);
             updateValues(parsedFile);
             try (Writer writer = new FileWriter(configFile.getFileToEdit())) {
                 AlertProcessingState processingState = createProcessingState(writer, lines);
@@ -109,7 +112,28 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
 
     }
 
-    private OverridesFile createOverridesFile(List<String> lines) {
+    public String edit2(File installDirectory) throws BlackDuckInstallerException {
+        ConfigFile configFile = createConfigFile(installDirectory);
+        String output;
+        if (!shouldEditFile)
+            return null;
+
+        try (InputStream inputStream = new FileInputStream(configFile.getOriginalCopy())) {
+            List<String> lines = IOUtils.readLines(inputStream, StandardCharsets.UTF_8);
+            OverridesFile yamlFileModel = createYamlFileModel(lines);
+            updateValues(yamlFileModel);
+            try (Writer writer = new StringWriter(1000)) {
+                YamlWriter yamlWriter = new YamlWriter(writer, lineSeparator);
+                yamlFileModel.write(yamlWriter);
+                output = writer.toString();
+            }
+        } catch (IOException e) {
+            throw new BlackDuckInstallerException("Error editing local overrides: " + e.getMessage());
+        }
+        return output;
+    }
+
+    private OverridesFile createYamlFileModel(List<String> lines) {
         OverridesFile overridesFile = new OverridesFile();
 
         boolean inServices = false;
@@ -172,13 +196,8 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
     }
 
     private void updateValues(OverridesFile parsedFile) throws BlackDuckInstallerException {
-        Optional<DockerService> alertService = parsedFile.getService("alert");
-
         updateAlertDbServiceValues(parsedFile);
-
-        if (alertService.isPresent()) {
-
-        }
+        updateAlertServiceValues(parsedFile);
     }
 
     private void updateAlertDbServiceValues(OverridesFile parsedFile) throws BlackDuckInstallerException {
@@ -196,7 +215,8 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
             Optional<ServiceEnvironmentLine> alertDBUser = alertDbEnvironment.getEnvironmentVariable("POSTGRES_USER");
             Optional<ServiceEnvironmentLine> alertDBPassword = alertDbEnvironment.getEnvironmentVariable("POSTGRES_PASSWORD");
 
-            if (alertDBLine.isPresent()) {
+            if (alertDBLine.isPresent() && StringUtils.isNotBlank(alertDatabase.getDatabaseName())) {
+                alertDBLine.get().uncomment();
                 alertDBLine.get().setValue(alertDatabase.getDatabaseName());
             }
 
@@ -205,11 +225,7 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
                 alertDbEnvironment.getEnvironmentVariable("POSTGRES_PASSWORD").ifPresent(YamlLine::comment);
                 alertDbEnvironment.getEnvironmentVariable("POSTGRES_USER_FILE").ifPresent(YamlLine::uncomment);
                 alertDbEnvironment.getEnvironmentVariable("POSTGRES_PASSWORD_FILE").ifPresent(YamlLine::uncomment);
-                alertDbSecrets.getSecret("ALERT_DB_USERNAME").ifPresent(YamlLine::uncomment);
-                alertDbSecrets.getSecret("ALERT_DB_PASSWORD").ifPresent(YamlLine::uncomment);
-                parsedFile.getGlobalSecrets().uncomment();
-                parsedFile.getGlobalSecrets().getSecret("ALERT_DB_USERNAME").ifPresent(YamlBlock::uncommentBlock);
-                parsedFile.getGlobalSecrets().getSecret("ALERT_DB_PASSWORD").ifPresent(YamlBlock::uncommentBlock);
+                enableDatabaseSecrets(alertDbSecrets, parsedFile.getGlobalSecrets());
 
             } else {
                 if (alertDBUser.isPresent()) {
@@ -226,8 +242,88 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
         }
     }
 
-    private void updateAlertServiceValues() {
+    private void updateAlertServiceValues(OverridesFile parsedFile) throws BlackDuckInstallerException {
+        Optional<DockerService> alertService = parsedFile.getService("alert");
+        if (alertService.isEmpty()) {
+            throw new BlackDuckInstallerException("alert service missing from overrides file.");
+        }
+        DockerService alert = alertService.get();
+        DockerServiceEnvironment alertEnvironment = alert.getDockerServiceEnvironment();
+        DockerServiceSecrets alertSecrets = alert.getDockerServiceSecrets();
+        GlobalSecrets globalSecrets = parsedFile.getGlobalSecrets();
+        setEnvironmentValue(alertEnvironment, "ALERT_DB_NAME", alertDatabase.getDatabaseName());
 
+        if (alertDatabase.hasSecrets()) {
+            enableDatabaseSecrets(alertSecrets, globalSecrets);
+        }
+
+        if (alertDatabase.isExternal()) {
+            alertEnvironment.getEnvironmentVariable("ALERT_DB_HOST").ifPresent(YamlLine::uncomment);
+            alertEnvironment.getEnvironmentVariable("ALERT_DB_PORT").ifPresent(YamlLine::uncomment);
+        }
+
+        setEnvironmentValue(alertEnvironment, "ALERT_HOSTNAME", webServerHost);
+        setEnvironmentValue(alertEnvironment, "ALERT_PROVIDER_BLACKDUCK_BLACKDUCK_URL", alertBlackDuckInstallOptions.getBlackDuckUrl());
+        setEnvironmentValue(alertEnvironment, "ALERT_PROVIDER_BLACKDUCK_BLACKDUCK_API_KEY", alertBlackDuckInstallOptions.getBlackDuckApiToken());
+        setEnvironmentValue(alertEnvironment, "ALERT_PROVIDER_BLACKDUCK_BLACKDUCK_TIMEOUT", alertBlackDuckInstallOptions.getBlackDuckTimeoutInSeconds());
+
+        // add these environment variables to the beginning of the environment block:
+        ServiceEnvironmentLine publicWebserverHost = ServiceEnvironmentLine.newEnvironmentLine("PUBLIC_HUB_WEBSERVER_HOST");
+        ServiceEnvironmentLine publicWebserverPort = ServiceEnvironmentLine.newEnvironmentLine("PUBLIC_HUB_WEBSERVER_PORT");
+        ServiceEnvironmentLine alertImportCert = ServiceEnvironmentLine.newEnvironmentLine("ALERT_IMPORT_CERT");
+        ServiceEnvironmentLine defaultAdminEmail = ServiceEnvironmentLine.newEnvironmentLine("ALERT_COMPONENT_SETTINGS_SETTINGS_USER_DEFAULT_ADMIN_EMAIL");
+
+        alertEnvironment.addEnvironmentVariableAtBeginning(publicWebserverHost);
+        alertEnvironment.addEnvironmentVariableAtBeginning(publicWebserverPort);
+        alertEnvironment.addEnvironmentVariableAtBeginning(alertImportCert);
+        alertEnvironment.addEnvironmentVariableAtBeginning(defaultAdminEmail);
+
+        setEnvironmentValue(alertEnvironment, "PUBLIC_HUB_WEBSERVER_HOST", alertBlackDuckInstallOptions.getBlackDuckHostForAutoSslImport());
+        setEnvironmentValue(alertEnvironment, "PUBLIC_HUB_WEBSERVER_PORT", alertBlackDuckInstallOptions.getBlackDuckPortForAutoSslImport());
+        setEnvironmentValue(alertEnvironment, "ALERT_IMPORT_CERT", StringUtils.isNotBlank(alertBlackDuckInstallOptions.getBlackDuckHostForAutoSslImport()));
+        setEnvironmentValue(alertEnvironment, "ALERT_COMPONENT_SETTINGS_SETTINGS_USER_DEFAULT_ADMIN_EMAIL", alertAdminEmail);
+
+        //secrets
+        if (!alertEncryption.isEmpty()) {
+            alertSecrets.getSecret("ALERT_ENCRYPTION_PASSWORD").ifPresent(YamlLine::uncomment);
+            alertSecrets.getSecret("ALERT_ENCRYPTION_GLOBAL_SALT").ifPresent(YamlLine::uncomment);
+            globalSecrets.uncomment();
+            globalSecrets.getSecret("ALERT_ENCRYPTION_PASSWORD").ifPresent(YamlBlock::uncommentBlock);
+            globalSecrets.getSecret("ALERT_ENCRYPTION_GLOBAL_SALT").ifPresent(YamlBlock::uncommentBlock);
+        }
+
+        if (!customCertificate.isEmpty()) {
+            alertSecrets.getSecret("WEBSERVER_CUSTOM_CERT_FILE").ifPresent(YamlLine::uncomment);
+            alertSecrets.getSecret("WEBSERVER_CUSTOM_KEY_FILE").ifPresent(YamlLine::uncomment);
+            globalSecrets.uncomment();
+            globalSecrets.getSecret("WEBSERVER_CUSTOM_CERT_FILE").ifPresent(YamlBlock::uncommentBlock);
+            globalSecrets.getSecret("WEBSERVER_CUSTOM_KEY_FILE").ifPresent(YamlBlock::uncommentBlock);
+        }
+    }
+
+    private void enableDatabaseSecrets(DockerServiceSecrets secrets, GlobalSecrets globalSecrets) {
+        secrets.getSecret("ALERT_DB_USERNAME").ifPresent(YamlLine::uncomment);
+        secrets.getSecret("ALERT_DB_PASSWORD").ifPresent(YamlLine::uncomment);
+        globalSecrets.uncomment();
+        globalSecrets.getSecret("ALERT_DB_USERNAME").ifPresent(YamlBlock::uncommentBlock);
+        globalSecrets.getSecret("ALERT_DB_PASSWORD").ifPresent(YamlBlock::uncommentBlock);
+    }
+
+    private void setEnvironmentValue(DockerServiceEnvironment environmentBlock, String key, int value) {
+        setEnvironmentValue(environmentBlock, key, String.valueOf(value));
+    }
+
+    private void setEnvironmentValue(DockerServiceEnvironment environmentBlock, String key, boolean value) {
+        setEnvironmentValue(environmentBlock, key, String.valueOf(value));
+    }
+
+    private void setEnvironmentValue(DockerServiceEnvironment environmentBlock, String key, String value) {
+        Optional<ServiceEnvironmentLine> environmentLine = environmentBlock.getEnvironmentVariable(key);
+        if (environmentLine.isPresent() && StringUtils.isNotBlank(value)) {
+            ServiceEnvironmentLine environmentVariable = environmentLine.get();
+            environmentVariable.uncomment();
+            environmentVariable.setValue(value);
+        }
     }
 
     private AlertProcessingState createProcessingState(Writer writer, List<String> lines) throws IOException {
