@@ -36,15 +36,15 @@ import java.util.Set;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.DockerSecret;
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.DockerService;
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.DockerServiceEnvironment;
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.DockerServiceSecrets;
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.GlobalSecrets;
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.OverridesFile;
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.ServiceEnvironmentLine;
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.YamlBlock;
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.YamlLine;
+import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.DockerSecret;
+import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.DockerService;
+import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.DockerServiceEnvironment;
+import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.DockerServiceSecrets;
+import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.GlobalSecrets;
+import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.ServiceEnvironmentLine;
+import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.YamlBlock;
+import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.YamlFile;
+import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.YamlLine;
 import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.output.YamlWriter;
 import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
 import com.synopsys.integration.blackduck.installer.hash.HashUtility;
@@ -96,7 +96,7 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
 
         try (InputStream inputStream = new FileInputStream(configFile.getOriginalCopy())) {
             List<String> lines = IOUtils.readLines(inputStream, StandardCharsets.UTF_8);
-            OverridesFile yamlFileModel = createYamlFileModel(lines);
+            YamlFile yamlFileModel = createYamlFileModel(lines);
             updateValues(yamlFileModel);
             try (Writer writer = new FileWriter(configFile.getFileToEdit())) {
                 YamlWriter yamlWriter = new YamlWriter(writer, lineSeparator);
@@ -107,8 +107,8 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
         }
     }
 
-    private OverridesFile createYamlFileModel(List<String> lines) {
-        OverridesFile overridesFile = new OverridesFile();
+    private YamlFile createYamlFileModel(List<String> lines) {
+        YamlFile yamlFile = new YamlFile();
 
         boolean inServices = false;
         boolean inServiceEnvironment = false;
@@ -120,14 +120,14 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
         for (String line : lines) {
             boolean processingService = null != currentService;
             if (!inServices && line.startsWith("version:")) {
-                overridesFile.setVersion(line.replace("#", "")
-                                             .replace("version:", "")
-                                             .trim());
+                yamlFile.setVersion(line.replace("#", "")
+                                        .replace("version:", "")
+                                        .trim());
             } else if (line.startsWith("services:")) {
                 inServices = true;
             } else if (inServices && line.trim().equals("alertdb:")) {
                 if (processingService) {
-                    overridesFile.addService(currentService);
+                    yamlFile.addService(currentService);
                 }
                 inServiceEnvironment = false;
                 inServiceSecrets = false;
@@ -140,7 +140,7 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
                 inServiceSecrets = true;
             } else if (inServices && line.trim().equals("#  alert:")) {
                 if (processingService) {
-                    overridesFile.addService(currentService);
+                    yamlFile.addService(currentService);
                 }
                 inServiceEnvironment = false;
                 inServiceSecrets = false;
@@ -150,7 +150,7 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
                 inServices = false;
                 inServiceEnvironment = false;
                 inServiceSecrets = false;
-                overridesFile.addService(currentService);
+                yamlFile.addService(currentService);
             } else if (processingService && inServiceEnvironment) {
                 currentService.addEnvironmentVariable(line);
             } else if (processingService && inServiceSecrets) {
@@ -164,19 +164,19 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
                     currentGlobalSecret.applyName(line, "<STACK_NAME>_");
                 } else {
                     currentGlobalSecret = DockerSecret.of(stackName, line);
-                    overridesFile.addDockerSecret(currentGlobalSecret);
+                    yamlFile.addDockerSecret(currentGlobalSecret);
                 }
             }
         }
-        return overridesFile;
+        return yamlFile;
     }
 
-    private void updateValues(OverridesFile parsedFile) throws BlackDuckInstallerException {
+    private void updateValues(YamlFile parsedFile) throws BlackDuckInstallerException {
         updateAlertDbServiceValues(parsedFile);
         updateAlertServiceValues(parsedFile);
     }
 
-    private void updateAlertDbServiceValues(OverridesFile parsedFile) throws BlackDuckInstallerException {
+    private void updateAlertDbServiceValues(YamlFile parsedFile) throws BlackDuckInstallerException {
         Optional<DockerService> alertDbService = parsedFile.getService("alertdb");
         if (alertDbService.isEmpty()) {
             throw new BlackDuckInstallerException("alertDb service missing from overrides file.");
@@ -219,7 +219,7 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
         }
     }
 
-    private void updateAlertServiceValues(OverridesFile parsedFile) throws BlackDuckInstallerException {
+    private void updateAlertServiceValues(YamlFile parsedFile) throws BlackDuckInstallerException {
         Optional<DockerService> alertService = parsedFile.getService("alert");
         if (alertService.isEmpty()) {
             throw new BlackDuckInstallerException("alert service missing from overrides file.");
@@ -252,6 +252,7 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
         alertEnvironment.setEnvironmentVariableValue("ALERT_PROVIDER_BLACKDUCK_BLACKDUCK_TIMEOUT", alertBlackDuckInstallOptions.getBlackDuckTimeoutInSeconds());
 
         // add these environment variables to the beginning of the environment block:
+        // TODO: to be safe can check if these exist first.
         ServiceEnvironmentLine publicWebserverHost = ServiceEnvironmentLine.newEnvironmentLine("PUBLIC_HUB_WEBSERVER_HOST");
         ServiceEnvironmentLine publicWebserverPort = ServiceEnvironmentLine.newEnvironmentLine("PUBLIC_HUB_WEBSERVER_PORT");
         ServiceEnvironmentLine alertImportCert = ServiceEnvironmentLine.newEnvironmentLine("ALERT_IMPORT_CERT");

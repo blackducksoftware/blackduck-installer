@@ -1,4 +1,4 @@
-package com.synopsys.integration.blackduck.installer.dockerswarm.yaml;
+package com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model;
 
 import java.io.IOException;
 import java.util.LinkedHashMap;
@@ -8,7 +8,7 @@ import java.util.Optional;
 import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.output.YamlWritable;
 import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.output.YamlWriter;
 
-public class OverridesFile implements YamlWritable {
+public class YamlFile implements YamlWritable {
     private String version;
     private Map<String, DockerService> services = new LinkedHashMap<>();
     private GlobalSecrets globalSecrets = new GlobalSecrets();
