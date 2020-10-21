@@ -1,4 +1,4 @@
-package com.synopsys.integration.blackduck.installer.dockerswarm.parser;
+package com.synopsys.integration.blackduck.installer.dockerswarm.yaml;
 
 public interface YamlBlock {
     void commentBlock();

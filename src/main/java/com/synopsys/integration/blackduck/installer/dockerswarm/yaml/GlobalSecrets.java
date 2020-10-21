@@ -1,8 +1,11 @@
-package com.synopsys.integration.blackduck.installer.dockerswarm.parser;
+package com.synopsys.integration.blackduck.installer.dockerswarm.yaml;
 
+import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
+
+import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.output.YamlWriter;
 
 public class GlobalSecrets extends YamlLine {
     private Map<String, DockerSecret> secrets = new LinkedHashMap<>();
@@ -22,5 +25,13 @@ public class GlobalSecrets extends YamlLine {
     @Override
     public String createTextLine() {
         return "secrets:";
+    }
+
+    @Override
+    public void write(final YamlWriter writer) throws IOException {
+        super.write(writer);
+        for (DockerSecret secret : secrets.values()) {
+            secret.write(writer);
+        }
     }
 }

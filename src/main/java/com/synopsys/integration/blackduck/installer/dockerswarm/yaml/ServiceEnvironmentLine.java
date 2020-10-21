@@ -1,4 +1,4 @@
-package com.synopsys.integration.blackduck.installer.dockerswarm.parser;
+package com.synopsys.integration.blackduck.installer.dockerswarm.yaml;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -12,7 +12,12 @@ public class ServiceEnvironmentLine extends YamlLine {
         this.value = value;
     }
 
-    public static final ServiceEnvironmentLine of(String line) {
+    public static ServiceEnvironmentLine newEnvironmentLine(String key) {
+        // create a commented variable.
+        return of(String.format("#%s", key));
+    }
+
+    public static ServiceEnvironmentLine of(String line) {
         boolean commented = YamlLine.isCommented(line);
         int hyphenIndex = line.indexOf("-");
         int equalsIndex = line.indexOf("=");

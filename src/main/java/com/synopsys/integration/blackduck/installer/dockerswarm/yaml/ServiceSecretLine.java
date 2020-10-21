@@ -1,4 +1,4 @@
-package com.synopsys.integration.blackduck.installer.dockerswarm.parser;
+package com.synopsys.integration.blackduck.installer.dockerswarm.yaml;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -10,7 +10,7 @@ public class ServiceSecretLine extends YamlLine {
         this.key = key;
     }
 
-    public static final ServiceSecretLine of(String line) {
+    public static ServiceSecretLine of(String line) {
         boolean commented = YamlLine.isCommented(line);
         int hyphenIndex = line.indexOf("-");
         String key = null;

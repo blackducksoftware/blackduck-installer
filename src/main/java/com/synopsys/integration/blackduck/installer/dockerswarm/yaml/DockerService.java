@@ -1,4 +1,8 @@
-package com.synopsys.integration.blackduck.installer.dockerswarm.parser;
+package com.synopsys.integration.blackduck.installer.dockerswarm.yaml;
+
+import java.io.IOException;
+
+import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.output.YamlWriter;
 
 public class DockerService extends YamlLine implements YamlBlock {
     private final DockerServiceEnvironment dockerServiceEnvironment = new DockerServiceEnvironment();
@@ -49,5 +53,12 @@ public class DockerService extends YamlLine implements YamlBlock {
     @Override
     public String createTextLine() {
         return String.format("%s:", getName());
+    }
+
+    @Override
+    public void write(final YamlWriter writer) throws IOException {
+        super.write(writer);
+        dockerServiceEnvironment.write(writer);
+        dockerServiceSecrets.write(writer);
     }
 }

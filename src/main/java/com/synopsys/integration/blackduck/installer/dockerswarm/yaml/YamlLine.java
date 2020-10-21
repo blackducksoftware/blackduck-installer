@@ -1,6 +1,11 @@
-package com.synopsys.integration.blackduck.installer.dockerswarm.parser;
+package com.synopsys.integration.blackduck.installer.dockerswarm.yaml;
 
-public class YamlLine {
+import java.io.IOException;
+
+import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.output.YamlWritable;
+import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.output.YamlWriter;
+
+public class YamlLine implements YamlWritable {
     private final String line;
     private boolean commented;
 
@@ -14,15 +19,15 @@ public class YamlLine {
         this.line = line;
     }
 
-    public static final YamlLine create(String line) {
+    public static YamlLine create(String line) {
         return new YamlLine(line);
     }
 
-    public static final YamlLine create(boolean commented, String line) {
+    public static YamlLine create(boolean commented, String line) {
         return new YamlLine(commented, line);
     }
 
-    public static final boolean isCommented(String line) {
+    public static boolean isCommented(String line) {
         return line.trim().startsWith("#");
     }
 
@@ -44,6 +49,12 @@ public class YamlLine {
 
     public String getLine() {
         return line;
+    }
+
+    @Override
+    public void write(YamlWriter writer) throws IOException {
+        String line = this.toString();
+        writer.writeLine(line);
     }
 
     @Override
