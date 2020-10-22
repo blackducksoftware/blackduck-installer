@@ -23,20 +23,14 @@
 package com.synopsys.integration.blackduck.installer.dockerswarm.edit;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.Writer;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.DockerSecret;
 import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.DockerService;
 import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.DockerServiceEnvironment;
 import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.DockerServiceSecrets;
@@ -47,6 +41,7 @@ import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.YamlF
 import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.YamlLine;
 import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.output.YamlFileWriter;
 import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.output.YamlWriter;
+import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.parser.YamlParser;
 import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
 import com.synopsys.integration.blackduck.installer.hash.HashUtility;
 import com.synopsys.integration.blackduck.installer.hash.PreComputedHashes;
@@ -95,81 +90,15 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
         if (!shouldEditFile)
             return;
 
-        try (InputStream inputStream = new FileInputStream(configFile.getOriginalCopy())) {
-            List<String> lines = IOUtils.readLines(inputStream, StandardCharsets.UTF_8);
-            YamlFile yamlFileModel = createYamlFileModel(lines);
-            updateValues(yamlFileModel);
-            try (Writer writer = new FileWriter(configFile.getFileToEdit())) {
-                YamlWriter yamlWriter = new YamlWriter(writer, lineSeparator);
-                YamlFileWriter.write(yamlWriter, yamlFileModel);
-            }
+        YamlParser parser = new YamlParser(stackName, configFile);
+        YamlFile yamlFileModel = parser.parse();
+        updateValues(yamlFileModel);
+        try (Writer writer = new FileWriter(configFile.getFileToEdit())) {
+            YamlWriter yamlWriter = new YamlWriter(writer, lineSeparator);
+            YamlFileWriter.write(yamlWriter, yamlFileModel);
         } catch (IOException e) {
             throw new BlackDuckInstallerException("Error editing local overrides: " + e.getMessage());
         }
-    }
-
-    private YamlFile createYamlFileModel(List<String> lines) {
-        YamlFile yamlFile = new YamlFile();
-
-        boolean inServices = false;
-        boolean inServiceEnvironment = false;
-        boolean inServiceSecrets = false;
-        boolean inGlobalSecrets = false;
-        DockerService currentService = null;
-        DockerSecret currentGlobalSecret = null;
-
-        for (String line : lines) {
-            boolean processingService = null != currentService;
-            if (!inServices && line.startsWith("version:")) {
-                yamlFile.setVersion(line.replace("#", "")
-                                        .replace("version:", "")
-                                        .trim());
-            } else if (line.startsWith("services:")) {
-                inServices = true;
-            } else if (inServices && line.trim().equals("alertdb:")) {
-                if (processingService) {
-                    yamlFile.addService(currentService);
-                }
-                inServiceEnvironment = false;
-                inServiceSecrets = false;
-                currentService = new DockerService("alertdb");
-            } else if (processingService && line.trim().contains("environment:")) {
-                inServiceEnvironment = true;
-                inServiceSecrets = false;
-            } else if (processingService && line.trim().equals("#    secrets:")) {
-                inServiceEnvironment = false;
-                inServiceSecrets = true;
-            } else if (inServices && line.trim().equals("#  alert:")) {
-                if (processingService) {
-                    yamlFile.addService(currentService);
-                }
-                inServiceEnvironment = false;
-                inServiceSecrets = false;
-                currentService = new DockerService("alert");
-            } else if (inServices && line.equals("#secrets:")) {
-                inGlobalSecrets = true;
-                inServices = false;
-                inServiceEnvironment = false;
-                inServiceSecrets = false;
-                yamlFile.addService(currentService);
-            } else if (processingService && inServiceEnvironment) {
-                currentService.addEnvironmentVariable(line);
-            } else if (processingService && inServiceSecrets) {
-                currentService.addSecret(line);
-            } else if (inServices) {
-                currentService.addCommentBeforeSection(line);
-            } else if (inGlobalSecrets) {
-                if (line.trim().contains("external:")) {
-                    currentGlobalSecret.applyExternal(line);
-                } else if (line.trim().contains("name:")) {
-                    currentGlobalSecret.applyName(line, "<STACK_NAME>_");
-                } else {
-                    currentGlobalSecret = DockerSecret.of(stackName, line);
-                    yamlFile.addDockerSecret(currentGlobalSecret);
-                }
-            }
-        }
-        return yamlFile;
     }
 
     private void updateValues(YamlFile parsedFile) throws BlackDuckInstallerException {
@@ -180,7 +109,7 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
     private void updateAlertDbServiceValues(YamlFile parsedFile) throws BlackDuckInstallerException {
         Optional<DockerService> alertDbService = parsedFile.getService("alertdb");
         if (alertDbService.isEmpty()) {
-            throw new BlackDuckInstallerException("alertDb service missing from overrides file.");
+            throw new BlackDuckInstallerException("alertdb service missing from overrides file.");
         }
         DockerService alertDb = alertDbService.get();
         DockerServiceEnvironment alertDbEnvironment = alertDb.getDockerServiceEnvironment();

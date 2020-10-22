@@ -3,7 +3,7 @@ package com.synopsys.integration.blackduck.installer.dockerswarm.yaml.output;
 import java.io.IOException;
 import java.util.Collection;
 
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.DockerSecret;
+import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.DockerGlobalSecret;
 import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.DockerService;
 import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.GlobalSecrets;
 import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.YamlFile;
@@ -53,7 +53,7 @@ public class YamlFileWriter {
 
     private static void writeGlobalSecrets(YamlWriter writer, GlobalSecrets globalSecrets) throws IOException {
         writeYamlLine(writer, globalSecrets);
-        for (DockerSecret secret : globalSecrets.getSecrets()) {
+        for (DockerGlobalSecret secret : globalSecrets.getSecrets()) {
             for (YamlLine secretLine : secret.getLinesInBlock()) {
                 writeYamlLine(writer, secretLine);
             }

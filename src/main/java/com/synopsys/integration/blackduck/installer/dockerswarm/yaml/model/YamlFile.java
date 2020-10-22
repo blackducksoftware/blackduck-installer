@@ -2,11 +2,14 @@ package com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model;
 
 import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 public class YamlFile {
     private String version;
+    private List<YamlLine> commentsBeforeVersion = new LinkedList<>();
     private Map<String, DockerService> services = new LinkedHashMap<>();
     private GlobalSecrets globalSecrets = new GlobalSecrets();
     private YamlLine versionLine;
@@ -31,11 +34,15 @@ public class YamlFile {
         servicesLine = YamlLine.create("services:");
     }
 
+    public void addCommentBeforeVersion(YamlLine line) {
+        commentsBeforeVersion.add(line);
+    }
+
     public Optional<DockerService> getService(String serviceName) {
         return Optional.ofNullable(services.get(serviceName));
     }
 
-    public void addDockerSecret(DockerSecret secret) {
+    public void addDockerSecret(DockerGlobalSecret secret) {
         globalSecrets.addSecret(secret);
     }
 

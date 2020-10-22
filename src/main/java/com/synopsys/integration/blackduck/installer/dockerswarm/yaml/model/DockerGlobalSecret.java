@@ -5,20 +5,20 @@ import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 
-public class DockerSecret implements YamlBlock {
+public class DockerGlobalSecret implements YamlBlock {
     private String key;
     private String stackName;
     private YamlLine external;
     private YamlLine name;
     private YamlLine yamlKey;
 
-    private DockerSecret(String key, String stackName, YamlLine yamlKey) {
+    private DockerGlobalSecret(String key, String stackName, YamlLine yamlKey) {
         this.key = key;
         this.yamlKey = yamlKey;
         this.stackName = stackName;
     }
 
-    public static DockerSecret of(String stackName, String line) {
+    public static DockerGlobalSecret of(String stackName, String line) {
         boolean commented = YamlLine.isCommented(line);
         int colonIndex = line.indexOf(":");
         int startIndex = 0;
@@ -32,7 +32,7 @@ public class DockerSecret implements YamlBlock {
             yamlKey = YamlLine.create(String.format("  %s:", key));
         }
 
-        return new DockerSecret(key, stackName, yamlKey);
+        return new DockerGlobalSecret(key, stackName, yamlKey);
     }
 
     public void applyName(String nameLine, String stackPrefix) {
