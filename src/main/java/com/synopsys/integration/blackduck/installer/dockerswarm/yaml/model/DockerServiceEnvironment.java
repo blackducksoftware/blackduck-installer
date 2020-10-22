@@ -75,8 +75,12 @@ public class DockerServiceEnvironment extends YamlLine implements YamlBlock {
         lines.forEach(YamlLine::uncomment);
     }
 
-    public Collection<ServiceEnvironmentLine> getLinesInBlock() {
-        return lines;
+    @Override
+    public Collection<YamlLine> getLinesInBlock() {
+        List<YamlLine> linesInBlock = new LinkedList<>();
+        linesInBlock.add(this); // add the line containing the environment name
+        linesInBlock.addAll(lines);
+        return linesInBlock;
     }
 
     @Override

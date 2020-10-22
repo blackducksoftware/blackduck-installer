@@ -1,5 +1,6 @@
 package com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model;
 
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -69,6 +70,16 @@ public class DockerService extends YamlLine implements YamlBlock {
         uncomment();
         dockerServiceEnvironment.uncommentBlock();
         dockerServiceSecrets.uncommentBlock();
+    }
+
+    @Override
+    public Collection<YamlLine> getLinesInBlock() {
+        List<YamlLine> lines = new LinkedList<>();
+        lines.add(this); // add the line containing the service name
+        lines.addAll(commentsBeforeSections);
+        lines.addAll(dockerServiceEnvironment.getLinesInBlock());
+        lines.addAll(dockerServiceSecrets.getLinesInBlock());
+        return lines;
     }
 
     @Override

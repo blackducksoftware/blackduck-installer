@@ -2,15 +2,10 @@ package com.synopsys.integration.blackduck.installer.dockerswarm.yaml.output;
 
 import java.io.IOException;
 import java.util.Collection;
-import java.util.List;
 
 import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.DockerSecret;
 import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.DockerService;
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.DockerServiceEnvironment;
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.DockerServiceSecrets;
 import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.GlobalSecrets;
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.ServiceEnvironmentLine;
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.ServiceSecretLine;
 import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.YamlFile;
 import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.YamlLine;
 
@@ -47,28 +42,12 @@ public class YamlFileWriter {
     }
 
     private static void writeService(YamlWriter writer, DockerService service) throws IOException {
-        writeYamlLine(writer, service);
-        List<YamlLine> commentsBeforeSections = service.getCommentsBeforeSections();
-        DockerServiceEnvironment dockerServiceEnvironment = service.getDockerServiceEnvironment();
-        DockerServiceSecrets dockerServiceSecrets = service.getDockerServiceSecrets();
-        for (YamlLine comment : commentsBeforeSections) {
-            writeYamlLine(writer, comment);
-        }
-        writeServiceEnvironment(writer, dockerServiceEnvironment);
-        writeServiceSecrets(writer, dockerServiceSecrets);
+        writeYamlBlock(writer, service.getLinesInBlock());
     }
 
-    private static void writeServiceEnvironment(YamlWriter writer, DockerServiceEnvironment serviceEnvironment) throws IOException {
-        writeYamlLine(writer, serviceEnvironment);
-        for (ServiceEnvironmentLine environmentLine : serviceEnvironment.getLinesInBlock()) {
-            writeYamlLine(writer, environmentLine);
-        }
-    }
-
-    private static void writeServiceSecrets(YamlWriter writer, DockerServiceSecrets serviceSecrets) throws IOException {
-        writeYamlLine(writer, serviceSecrets);
-        for (ServiceSecretLine secretLine : serviceSecrets.getLinesInBlock()) {
-            writeYamlLine(writer, secretLine);
+    private static void writeYamlBlock(YamlWriter writer, Collection<YamlLine> lines) throws IOException {
+        for (YamlLine line : lines) {
+            writeYamlLine(writer, line);
         }
     }
 

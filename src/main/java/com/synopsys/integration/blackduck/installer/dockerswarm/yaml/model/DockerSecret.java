@@ -81,6 +81,7 @@ public class DockerSecret implements YamlBlock {
         }
     }
 
+    @Override
     public Collection<YamlLine> getLinesInBlock() {
         return List.of(yamlKey, external, name);
     }

@@ -48,8 +48,12 @@ public class DockerServiceSecrets extends YamlLine implements YamlBlock {
         lines.forEach(YamlLine::uncomment);
     }
 
-    public Collection<ServiceSecretLine> getLinesInBlock() {
-        return lines;
+    @Override
+    public Collection<YamlLine> getLinesInBlock() {
+        List<YamlLine> linesInBlock = new LinkedList<>();
+        linesInBlock.add(this); // add the line containing the secrets name
+        linesInBlock.addAll(lines);
+        return linesInBlock;
     }
 
     @Override
