@@ -1,14 +1,11 @@
 package com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model;
 
-import java.io.IOException;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.output.YamlWritable;
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.output.YamlWriter;
-
-public class YamlFile implements YamlWritable {
+public class YamlFile {
     private String version;
     private Map<String, DockerService> services = new LinkedHashMap<>();
     private GlobalSecrets globalSecrets = new GlobalSecrets();
@@ -46,31 +43,15 @@ public class YamlFile implements YamlWritable {
         return globalSecrets;
     }
 
-    @Override
-    public void write(YamlWriter writer) throws IOException {
-        boolean allServicesCommented = allServicesCommented();
-        boolean allSecretsCommented = globalSecrets.allSecretsCommented();
-        versionLine.uncomment();
-        servicesLine.uncomment();
-        globalSecrets.uncomment();
-
-        if (allServicesCommented) {
-            servicesLine.comment();
-        }
-        if (allSecretsCommented) {
-            globalSecrets.comment();
-        }
-
-        if (allSecretsCommented && allServicesCommented) {
-            versionLine.comment();
-        }
-
-        versionLine.write(writer);
-        servicesLine.write(writer);
-        for (DockerService service : services.values()) {
-            service.write(writer);
-        }
-        globalSecrets.write(writer);
+    public Collection<DockerService> getServices() {
+        return services.values();
     }
 
+    public YamlLine getVersionLine() {
+        return versionLine;
+    }
+
+    public YamlLine getServicesLine() {
+        return servicesLine;
+    }
 }

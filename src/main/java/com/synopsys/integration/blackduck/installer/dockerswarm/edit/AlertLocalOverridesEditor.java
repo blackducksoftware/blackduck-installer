@@ -45,6 +45,7 @@ import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.Servi
 import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.YamlBlock;
 import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.YamlFile;
 import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.YamlLine;
+import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.output.YamlFileWriter;
 import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.output.YamlWriter;
 import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
 import com.synopsys.integration.blackduck.installer.hash.HashUtility;
@@ -100,7 +101,7 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
             updateValues(yamlFileModel);
             try (Writer writer = new FileWriter(configFile.getFileToEdit())) {
                 YamlWriter yamlWriter = new YamlWriter(writer, lineSeparator);
-                yamlFileModel.write(yamlWriter);
+                YamlFileWriter.write(yamlWriter, yamlFileModel);
             }
         } catch (IOException e) {
             throw new BlackDuckInstallerException("Error editing local overrides: " + e.getMessage());

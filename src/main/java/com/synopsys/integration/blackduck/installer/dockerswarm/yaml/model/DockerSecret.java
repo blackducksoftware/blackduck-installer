@@ -1,13 +1,11 @@
 package com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model;
 
-import java.io.IOException;
+import java.util.Collection;
+import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.output.YamlWritable;
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.output.YamlWriter;
-
-public class DockerSecret implements YamlBlock, YamlWritable {
+public class DockerSecret implements YamlBlock {
     private String key;
     private String stackName;
     private YamlLine external;
@@ -83,6 +81,10 @@ public class DockerSecret implements YamlBlock, YamlWritable {
         }
     }
 
+    public Collection<YamlLine> getLinesInBlock() {
+        return List.of(yamlKey, external, name);
+    }
+
     public boolean isCommented() {
         return yamlKey.isCommented();
     }
@@ -93,12 +95,5 @@ public class DockerSecret implements YamlBlock, YamlWritable {
 
     public String getStackName() {
         return stackName;
-    }
-
-    @Override
-    public void write(final YamlWriter writer) throws IOException {
-        yamlKey.write(writer);
-        external.write(writer);
-        name.write(writer);
     }
 }

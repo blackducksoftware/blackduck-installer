@@ -1,11 +1,6 @@
 package com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model;
 
-import java.io.IOException;
-
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.output.YamlWritable;
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.output.YamlWriter;
-
-public class YamlLine implements YamlWritable {
+public class YamlLine {
     private final String line;
     private boolean commented;
 
@@ -49,12 +44,6 @@ public class YamlLine implements YamlWritable {
 
     public String getLine() {
         return line;
-    }
-
-    @Override
-    public void write(YamlWriter writer) throws IOException {
-        String line = this.toString();
-        writer.writeLine(line);
     }
 
     @Override

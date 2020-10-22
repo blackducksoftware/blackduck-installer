@@ -1,6 +1,6 @@
 package com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model;
 
-import java.io.IOException;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -8,8 +8,6 @@ import java.util.Map;
 import java.util.Optional;
 
 import org.apache.commons.lang3.StringUtils;
-
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.output.YamlWriter;
 
 public class DockerServiceEnvironment extends YamlLine implements YamlBlock {
     // The list contains comments and environmentVariables
@@ -77,16 +75,13 @@ public class DockerServiceEnvironment extends YamlLine implements YamlBlock {
         lines.forEach(YamlLine::uncomment);
     }
 
+    public Collection<ServiceEnvironmentLine> getLinesInBlock() {
+        return lines;
+    }
+
     @Override
     public String createTextLine() {
         return "    environment:";
     }
 
-    @Override
-    public void write(final YamlWriter writer) throws IOException {
-        super.write(writer);
-        for (ServiceEnvironmentLine environmentLine : lines) {
-            environmentLine.write(writer);
-        }
-    }
 }

@@ -1,10 +1,7 @@
 package com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model;
 
-import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
-
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.output.YamlWriter;
 
 public class DockerService extends YamlLine implements YamlBlock {
     private final List<YamlLine> commentsBeforeSections = new LinkedList<>();
@@ -34,6 +31,10 @@ public class DockerService extends YamlLine implements YamlBlock {
 
     public String getName() {
         return name;
+    }
+
+    public List<YamlLine> getCommentsBeforeSections() {
+        return commentsBeforeSections;
     }
 
     public DockerServiceEnvironment getDockerServiceEnvironment() {
@@ -73,15 +74,5 @@ public class DockerService extends YamlLine implements YamlBlock {
     @Override
     public String createTextLine() {
         return String.format("  %s:", getName());
-    }
-
-    @Override
-    public void write(final YamlWriter writer) throws IOException {
-        super.write(writer);
-        for (YamlLine comment : commentsBeforeSections) {
-            comment.write(writer);
-        }
-        dockerServiceEnvironment.write(writer);
-        dockerServiceSecrets.write(writer);
     }
 }
