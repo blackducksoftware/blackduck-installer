@@ -38,6 +38,7 @@ import com.synopsys.integration.blackduck.installer.download.ZipFileDownloader;
 import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
 import com.synopsys.integration.blackduck.installer.hash.HashUtility;
 import com.synopsys.integration.blackduck.installer.model.BlackDuckAdditionalOrchestrationFiles;
+import com.synopsys.integration.blackduck.installer.model.CustomCertificate;
 import com.synopsys.integration.blackduck.installer.model.LoadedConfigProperties;
 import com.synopsys.integration.blackduck.installer.workflow.DownloadUrlDecider;
 import com.synopsys.integration.log.IntLogger;
@@ -57,6 +58,7 @@ public class BlackDuckInstallerCreator {
         IntLogger intLogger = deployProductProperties.getIntLogger();
         HashUtility hashUtility = deployProductProperties.getHashUtility();
         String stackName = applicationValues.getStackName();
+        CustomCertificate customCertificate = deployProductProperties.getCustomCertificate();
 
         BlackDuckGithubDownloadUrl blackDuckGithubDownloadUrl = new BlackDuckGithubDownloadUrl(applicationValues.getBlackDuckGithubDownloadUrlPrefix(), applicationValues.getBlackDuckVersion());
         ArtifactoryDownloadUrl blackDuckArtifactoryDownloadUrl = new ArtifactoryDownloadUrl(applicationValues.getBlackDuckArtifactoryUrl(), applicationValues.getBlackDuckArtifactoryRepo(), applicationValues.getBlackDuckArtifactPath(),
@@ -72,7 +74,7 @@ public class BlackDuckInstallerCreator {
         if (!deployProductProperties.getCustomCertificate().isEmpty()) {
             useLocalOverrides = true;
         }
-        BlackDuckLocalOverridesEditor blackDuckLocalOverridesEditor = new BlackDuckLocalOverridesEditor(intLogger, hashUtility, deployProductProperties.getLineSeparator(), stackName, useLocalOverrides);
+        BlackDuckLocalOverridesEditor blackDuckLocalOverridesEditor = new BlackDuckLocalOverridesEditor(intLogger, hashUtility, deployProductProperties.getLineSeparator(), stackName, useLocalOverrides, customCertificate);
         ZipFileDownloader blackDuckDownloader = new ZipFileDownloader(intLogger, deployProductProperties.getIntHttpClient(), deployProductProperties.getCommonZipExpander(), downloadUrlDecider, deployProductProperties.getBaseDirectory(),
             "blackduck", applicationValues.getBlackDuckVersion(), applicationValues.isBlackDuckDownloadForce());
 

@@ -2,16 +2,15 @@ package com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model;
 
 import java.util.Collection;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-public class GlobalSecrets extends YamlLine implements YamlBlock {
+public class GlobalSecrets implements YamlTextLine, YamlBlock {
     private Map<String, DockerGlobalSecret> secrets = new LinkedHashMap<>();
+    private YamlLine yamlLine;
 
-    public GlobalSecrets() {
-        super("");
+    public GlobalSecrets(final YamlLine yamlLine) {
+        this.yamlLine = yamlLine;
     }
 
     public boolean allSecretsCommented() {
@@ -31,37 +30,37 @@ public class GlobalSecrets extends YamlLine implements YamlBlock {
     }
 
     @Override
+    public boolean isCommented() {
+        return yamlLine.isCommented();
+    }
+
+    @Override
+    public void comment() {
+        yamlLine.comment();
+    }
+
+    @Override
+    public void uncomment() {
+        yamlLine.uncomment();
+    }
+
+    @Override
     public void commentBlock() {
-        comment();
+        yamlLine.comment();
         Collection<DockerGlobalSecret> dockerSecrets = getSecrets();
         dockerSecrets.forEach(YamlBlock::commentBlock);
     }
 
     @Override
     public void uncommentBlock() {
-        uncomment();
+        yamlLine.uncomment();
         Collection<DockerGlobalSecret> dockerSecrets = getSecrets();
         dockerSecrets.forEach(YamlBlock::commentBlock);
     }
 
     @Override
     public boolean isBlockCommented() {
-        return false;
-    }
-
-    @Override
-    public Collection<YamlLine> getLinesInBlock() {
-        List<YamlLine> linesInBlock = new LinkedList<>();
-        linesInBlock.add(this); // add the line containing the secrets name
-        Collection<DockerGlobalSecret> dockerSecrets = getSecrets();
-        for (DockerGlobalSecret secret : dockerSecrets) {
-            linesInBlock.addAll(secret.getLinesInBlock());
-        }
-        return linesInBlock;
-    }
-
-    @Override
-    public String createTextLine() {
-        return "secrets:";
+        return getSecrets().stream()
+                   .allMatch(DockerGlobalSecret::isCommented);
     }
 }

@@ -30,15 +30,17 @@ import java.util.Optional;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.DockerService;
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.DockerServiceEnvironment;
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.DockerServiceSecrets;
 import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.GlobalSecrets;
 import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.ServiceEnvironmentLine;
+import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.ServiceEnvironmentSection;
+import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.ServiceSecretsSection;
 import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.YamlBlock;
 import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.YamlFile;
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.YamlLine;
+import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.YamlSection;
+import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.YamlTextLine;
 import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.output.YamlFileWriter;
 import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.output.YamlWriter;
 import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.parser.YamlParser;
@@ -52,7 +54,6 @@ import com.synopsys.integration.blackduck.installer.model.CustomCertificate;
 import com.synopsys.integration.log.IntLogger;
 
 public class AlertLocalOverridesEditor extends ConfigFileEditor {
-    private final String stackName;
     private final String webServerHost;
     private final String alertAdminEmail;
     private final AlertEncryption alertEncryption;
@@ -60,12 +61,13 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
     private final AlertBlackDuckInstallOptions alertBlackDuckInstallOptions;
     private final boolean shouldEditFile;
     private final AlertDatabase alertDatabase;
+    private final YamlParser yamlParser;
+    private Logger logger = LoggerFactory.getLogger(AlertLocalOverridesEditor.class);
 
     public AlertLocalOverridesEditor(IntLogger logger, HashUtility hashUtility, String lineSeparator, String stackName, String webServerHost, String alertAdminEmail, AlertEncryption alertEncryption, CustomCertificate customCertificate,
         AlertBlackDuckInstallOptions alertBlackDuckInstallOptions, boolean useLocalOverrides, AlertDatabase alertDatabase) {
         super(logger, hashUtility, lineSeparator);
 
-        this.stackName = stackName;
         this.webServerHost = webServerHost;
         this.alertAdminEmail = alertAdminEmail;
         this.alertEncryption = alertEncryption;
@@ -73,6 +75,7 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
         this.alertBlackDuckInstallOptions = alertBlackDuckInstallOptions;
         shouldEditFile = useLocalOverrides;
         this.alertDatabase = alertDatabase;
+        this.yamlParser = new YamlParser(stackName, "<STACK_NAME>_");
     }
 
     public String getFilename() {
@@ -90,8 +93,7 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
         if (!shouldEditFile)
             return;
 
-        YamlParser parser = new YamlParser(stackName, configFile);
-        YamlFile yamlFileModel = parser.parse();
+        YamlFile yamlFileModel = yamlParser.parse(configFile);
         updateValues(yamlFileModel);
         try (Writer writer = new FileWriter(configFile.getFileToEdit())) {
             YamlWriter yamlWriter = new YamlWriter(writer, lineSeparator);
@@ -101,19 +103,35 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
         }
     }
 
-    private void updateValues(YamlFile parsedFile) throws BlackDuckInstallerException {
+    private void updateValues(YamlFile parsedFile) {
         updateAlertDbServiceValues(parsedFile);
         updateAlertServiceValues(parsedFile);
     }
 
-    private void updateAlertDbServiceValues(YamlFile parsedFile) throws BlackDuckInstallerException {
-        Optional<DockerService> alertDbService = parsedFile.getService("alertdb");
-        if (alertDbService.isEmpty()) {
-            throw new BlackDuckInstallerException("alertdb service missing from overrides file.");
+    private void updateAlertDbServiceValues(YamlFile parsedFile) {
+        Optional<YamlSection> alertDbSection = parsedFile.getModifiableSection("services")
+                                                   .flatMap(servicesSection -> servicesSection.getSubSection("alertdb"));
+        if (alertDbSection.isEmpty()) {
+            logger.error("alertdb service missing from overrides file.");
+            return;
         }
-        DockerService alertDb = alertDbService.get();
-        DockerServiceEnvironment alertDbEnvironment = alertDb.getDockerServiceEnvironment();
-        DockerServiceSecrets alertDbSecrets = alertDb.getDockerServiceSecrets();
+
+        YamlSection alertDb = alertDbSection.get();
+        Optional<ServiceEnvironmentSection> alertDbEnvironmentSection = alertDb.getSubSection("environment");
+        Optional<ServiceSecretsSection> alertDbSecretsSection = alertDb.getSubSection("secrets");
+        if (alertDbEnvironmentSection.isEmpty()) {
+            logger.error("alertdb -> environment section missing from overrides file.");
+            return;
+        }
+
+        if (alertDbSecretsSection.isEmpty()) {
+            logger.error("alertdb -> secrets section missing from overrides file.");
+            return;
+        }
+
+        ServiceEnvironmentSection alertDbEnvironment = alertDbEnvironmentSection.get();
+        ServiceSecretsSection alertDbSecrets = alertDbSecretsSection.get();
+
         if (alertDatabase.isExternal()) {
             alertDb.commentBlock();
         } else {
@@ -123,15 +141,17 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
             Optional<ServiceEnvironmentLine> alertDBPassword = alertDbEnvironment.getVariableLine("POSTGRES_PASSWORD");
 
             if (alertDBLine.isPresent() && StringUtils.isNotBlank(alertDatabase.getDatabaseName())) {
+                alertDbEnvironment.uncomment();
                 alertDBLine.get().uncomment();
                 alertDBLine.get().setValue(alertDatabase.getDatabaseName());
             }
 
             if (alertDatabase.hasSecrets()) {
-                alertDbEnvironment.getVariableLine("POSTGRES_USER").ifPresent(YamlLine::comment);
-                alertDbEnvironment.getVariableLine("POSTGRES_PASSWORD").ifPresent(YamlLine::comment);
-                alertDbEnvironment.getVariableLine("POSTGRES_USER_FILE").ifPresent(YamlLine::uncomment);
-                alertDbEnvironment.getVariableLine("POSTGRES_PASSWORD_FILE").ifPresent(YamlLine::uncomment);
+                alertDbSecrets.uncomment();
+                alertDbEnvironment.getVariableLine("POSTGRES_USER").ifPresent(YamlTextLine::comment);
+                alertDbEnvironment.getVariableLine("POSTGRES_PASSWORD").ifPresent(YamlTextLine::comment);
+                alertDbEnvironment.getVariableLine("POSTGRES_USER_FILE").ifPresent(YamlTextLine::uncomment);
+                alertDbEnvironment.getVariableLine("POSTGRES_PASSWORD_FILE").ifPresent(YamlTextLine::uncomment);
                 enableDatabaseSecrets(alertDbSecrets, parsedFile.getGlobalSecrets());
 
             } else {
@@ -149,20 +169,45 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
         }
     }
 
-    private void updateAlertServiceValues(YamlFile parsedFile) throws BlackDuckInstallerException {
-        Optional<DockerService> alertService = parsedFile.getService("alert");
-        if (alertService.isEmpty()) {
-            throw new BlackDuckInstallerException("alert service missing from overrides file.");
+    private void updateAlertServiceValues(YamlFile parsedFile) {
+        Optional<YamlSection> alertSection = parsedFile.getModifiableSection("services")
+                                                 .flatMap(servicesSection -> servicesSection.getSubSection("alert"));
+        if (alertSection.isEmpty()) {
+            logger.error("alert service missing from overrides file.");
+            return;
         }
-        DockerService alert = alertService.get();
-        DockerServiceEnvironment alertEnvironment = alert.getDockerServiceEnvironment();
-        DockerServiceSecrets alertSecrets = alert.getDockerServiceSecrets();
+        YamlSection alert = alertSection.get();
+        Optional<ServiceEnvironmentSection> alertDbEnvironmentSection = alert.getSubSection("environment");
+        Optional<ServiceSecretsSection> alertDbSecretsSection = alert.getSubSection("secrets");
         GlobalSecrets globalSecrets = parsedFile.getGlobalSecrets();
+
+        if (alertDbEnvironmentSection.isEmpty()) {
+            logger.error("alertdb -> environment section missing from overrides file.");
+            return;
+        }
+
+        if (alertDbSecretsSection.isEmpty()) {
+            logger.error("alertdb -> secrets section missing from overrides file.");
+            return;
+        }
+
+        ServiceEnvironmentSection alertEnvironment = alertDbEnvironmentSection.get();
+        ServiceSecretsSection alertSecrets = alertDbSecretsSection.get();
         alertEnvironment.setEnvironmentVariableValue("ALERT_DB_NAME", alertDatabase.getDatabaseName());
 
+        boolean hasEnvironmentSettings = StringUtils.isNotBlank(alertAdminEmail) || StringUtils.isNotBlank(webServerHost) || alertDatabase.isExternal() || !alertBlackDuckInstallOptions.isEmpty();
+        boolean hasSecretsSettings = alertDatabase.hasSecrets() || !alertEncryption.isEmpty() || !customCertificate.isEmpty();
         // check if the alert service should be uncommented because there are settings.
-        if (StringUtils.isNotBlank(alertAdminEmail) || StringUtils.isNotBlank(webServerHost) || !alertDatabase.isEmpty() || !alertEncryption.isEmpty() || !customCertificate.isEmpty() || !alertBlackDuckInstallOptions.isEmpty()) {
+        if (hasEnvironmentSettings || hasSecretsSettings) {
             alert.uncomment();
+        }
+
+        if (hasEnvironmentSettings) {
+            alertEnvironment.uncomment();
+        }
+
+        if (hasSecretsSettings) {
+            alertSecrets.uncomment();
         }
 
         if (alertDatabase.hasSecrets()) {
@@ -170,8 +215,8 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
         }
 
         if (alertDatabase.isExternal()) {
-            alertEnvironment.getVariableLine("ALERT_DB_HOST").ifPresent(YamlLine::uncomment);
-            alertEnvironment.getVariableLine("ALERT_DB_PORT").ifPresent(YamlLine::uncomment);
+            alertEnvironment.getVariableLine("ALERT_DB_HOST").ifPresent(YamlTextLine::uncomment);
+            alertEnvironment.getVariableLine("ALERT_DB_PORT").ifPresent(YamlTextLine::uncomment);
             alertEnvironment.setEnvironmentVariableValue("ALERT_DB_HOST", alertDatabase.getExternalHost());
             alertEnvironment.setEnvironmentVariableValue("ALERT_DB_PORT", alertDatabase.getExternalPort());
         }
@@ -183,15 +228,10 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
 
         // add these environment variables to the beginning of the environment block:
         // TODO: to be safe can check if these exist first.
-        ServiceEnvironmentLine publicWebserverHost = ServiceEnvironmentLine.newEnvironmentLine("PUBLIC_HUB_WEBSERVER_HOST");
-        ServiceEnvironmentLine publicWebserverPort = ServiceEnvironmentLine.newEnvironmentLine("PUBLIC_HUB_WEBSERVER_PORT");
-        ServiceEnvironmentLine alertImportCert = ServiceEnvironmentLine.newEnvironmentLine("ALERT_IMPORT_CERT");
-        ServiceEnvironmentLine defaultAdminEmail = ServiceEnvironmentLine.newEnvironmentLine("ALERT_COMPONENT_SETTINGS_SETTINGS_USER_DEFAULT_ADMIN_EMAIL");
-
-        alertEnvironment.addVariableLineAtBeginning(publicWebserverHost);
-        alertEnvironment.addVariableLineAtBeginning(publicWebserverPort);
-        alertEnvironment.addVariableLineAtBeginning(alertImportCert);
-        alertEnvironment.addVariableLineAtBeginning(defaultAdminEmail);
+        addEnvironmentVariable(parsedFile, alertEnvironment, 1, "PUBLIC_HUB_WEBSERVER_HOST");
+        addEnvironmentVariable(parsedFile, alertEnvironment, 2, "PUBLIC_HUB_WEBSERVER_PORT");
+        addEnvironmentVariable(parsedFile, alertEnvironment, 3, "ALERT_IMPORT_CERT");
+        addEnvironmentVariable(parsedFile, alertEnvironment, 4, "ALERT_COMPONENT_SETTINGS_SETTINGS_USER_DEFAULT_ADMIN_EMAIL");
 
         alertEnvironment.setEnvironmentVariableValue("PUBLIC_HUB_WEBSERVER_HOST", alertBlackDuckInstallOptions.getBlackDuckHostForAutoSslImport());
         alertEnvironment.setEnvironmentVariableValue("PUBLIC_HUB_WEBSERVER_PORT", alertBlackDuckInstallOptions.getBlackDuckPortForAutoSslImport());
@@ -200,25 +240,32 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
 
         //secrets
         if (!alertEncryption.isEmpty()) {
-            alertSecrets.getSecret("ALERT_ENCRYPTION_PASSWORD").ifPresent(YamlLine::uncomment);
-            alertSecrets.getSecret("ALERT_ENCRYPTION_GLOBAL_SALT").ifPresent(YamlLine::uncomment);
+            alertSecrets.getSecret("ALERT_ENCRYPTION_PASSWORD").ifPresent(YamlTextLine::uncomment);
+            alertSecrets.getSecret("ALERT_ENCRYPTION_GLOBAL_SALT").ifPresent(YamlTextLine::uncomment);
             globalSecrets.uncomment();
             globalSecrets.getSecret("ALERT_ENCRYPTION_PASSWORD").ifPresent(YamlBlock::uncommentBlock);
             globalSecrets.getSecret("ALERT_ENCRYPTION_GLOBAL_SALT").ifPresent(YamlBlock::uncommentBlock);
         }
 
         if (!customCertificate.isEmpty()) {
-            alertSecrets.getSecret("WEBSERVER_CUSTOM_CERT_FILE").ifPresent(YamlLine::uncomment);
-            alertSecrets.getSecret("WEBSERVER_CUSTOM_KEY_FILE").ifPresent(YamlLine::uncomment);
+            alertSecrets.getSecret("WEBSERVER_CUSTOM_CERT_FILE").ifPresent(YamlTextLine::uncomment);
+            alertSecrets.getSecret("WEBSERVER_CUSTOM_KEY_FILE").ifPresent(YamlTextLine::uncomment);
             globalSecrets.uncomment();
             globalSecrets.getSecret("WEBSERVER_CUSTOM_CERT_FILE").ifPresent(YamlBlock::uncommentBlock);
             globalSecrets.getSecret("WEBSERVER_CUSTOM_KEY_FILE").ifPresent(YamlBlock::uncommentBlock);
         }
     }
 
-    private void enableDatabaseSecrets(DockerServiceSecrets secrets, GlobalSecrets globalSecrets) {
-        secrets.getSecret("ALERT_DB_USERNAME").ifPresent(YamlLine::uncomment);
-        secrets.getSecret("ALERT_DB_PASSWORD").ifPresent(YamlLine::uncomment);
+    private void addEnvironmentVariable(YamlFile yamlFile, ServiceEnvironmentSection environmentSection, int offsetFromBeginning, String key) {
+        ServiceEnvironmentLine newVariable = ServiceEnvironmentLine.newEnvironmentLine(-1, key);
+        int enivronmentStart = environmentSection.getStartLine();
+        environmentSection.addLine(offsetFromBeginning, newVariable.getYamlLine());
+        yamlFile.addLine(enivronmentStart + offsetFromBeginning, newVariable.getYamlLine());
+    }
+
+    private void enableDatabaseSecrets(ServiceSecretsSection secrets, GlobalSecrets globalSecrets) {
+        secrets.getSecret("ALERT_DB_USERNAME").ifPresent(YamlTextLine::uncomment);
+        secrets.getSecret("ALERT_DB_PASSWORD").ifPresent(YamlTextLine::uncomment);
         globalSecrets.uncomment();
         globalSecrets.getSecret("ALERT_DB_USERNAME").ifPresent(YamlBlock::uncommentBlock);
         globalSecrets.getSecret("ALERT_DB_PASSWORD").ifPresent(YamlBlock::uncommentBlock);

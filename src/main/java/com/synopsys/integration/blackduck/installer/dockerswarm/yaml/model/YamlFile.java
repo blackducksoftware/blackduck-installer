@@ -1,45 +1,31 @@
 package com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model;
 
-import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+// This is a mutable representation of the yaml files.
 public class YamlFile {
-    private String version;
-    private List<YamlLine> commentsBeforeVersion = new LinkedList<>();
-    private Map<String, DockerService> services = new LinkedHashMap<>();
-    private GlobalSecrets globalSecrets = new GlobalSecrets();
-    private YamlLine versionLine;
-    private YamlLine servicesLine;
+    private List<YamlLine> allLines = new LinkedList<>();
+    private Map<String, YamlSection> modifiableSections = new LinkedHashMap<>();
+    private GlobalSecrets globalSecrets = new GlobalSecrets(YamlLine.create(-1, "#secrets:"));
 
-    public boolean allServicesCommented() {
-        return !services.isEmpty() && services.values().stream().allMatch(DockerService::isCommented);
+    public void createGlobalSecrets(YamlLine line) {
+        globalSecrets = new GlobalSecrets(line);
     }
 
-    public String getVersion() {
-        return version;
+    public void addLine(YamlLine line) {
+        allLines.add(line);
     }
 
-    public void setVersion(final String version) {
-        this.version = version;
-        String versionString = String.format("version: %s", getVersion());
-        this.versionLine = YamlLine.create(versionString);
+    public void addLine(int index, YamlLine line) {
+        allLines.add(index, line);
     }
 
-    public void addService(DockerService service) {
-        services.put(service.getName(), service);
-        servicesLine = YamlLine.create("services:");
-    }
-
-    public void addCommentBeforeVersion(YamlLine line) {
-        commentsBeforeVersion.add(line);
-    }
-
-    public Optional<DockerService> getService(String serviceName) {
-        return Optional.ofNullable(services.get(serviceName));
+    public List<YamlLine> getAllLines() {
+        return allLines;
     }
 
     public void addDockerSecret(DockerGlobalSecret secret) {
@@ -50,15 +36,11 @@ public class YamlFile {
         return globalSecrets;
     }
 
-    public Collection<DockerService> getServices() {
-        return services.values();
+    public void addModifiableSection(YamlSection yamlSection) {
+        modifiableSections.put(yamlSection.getKey(), yamlSection);
     }
 
-    public YamlLine getVersionLine() {
-        return versionLine;
-    }
-
-    public YamlLine getServicesLine() {
-        return servicesLine;
+    public Optional<YamlSection> getModifiableSection(String sectionKey) {
+        return Optional.ofNullable(modifiableSections.get(sectionKey));
     }
 }

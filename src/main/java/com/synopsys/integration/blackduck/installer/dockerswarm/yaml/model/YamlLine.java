@@ -1,33 +1,56 @@
 package com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model;
 
-public class YamlLine {
-    private final String line;
+public class YamlLine implements YamlTextLine {
+    public static final String YAML_COMMENT_REGEX = "\\#";
     private boolean commented;
+    private String currentRawText;
+    private int lineNumber;
 
-    protected YamlLine(String line) {
+    protected YamlLine(int lineNumber, String line) {
         this.commented = true;
-        this.line = line;
+        this.currentRawText = line;
+        this.lineNumber = lineNumber;
     }
 
-    protected YamlLine(boolean commented, String line) {
+    protected YamlLine(boolean commented, int lineNumber, String line) {
         this.commented = commented;
-        this.line = line;
+        this.currentRawText = line;
+        this.lineNumber = lineNumber;
     }
 
-    public static YamlLine create(String line) {
-        return new YamlLine(line);
+    public static YamlLine create(int lineNumber, String line) {
+        return new YamlLine(lineNumber, line);
     }
 
-    public static YamlLine create(boolean commented, String line) {
-        return new YamlLine(commented, line);
+    public static YamlLine create(boolean commented, int lineNumber, String line) {
+        return new YamlLine(commented, lineNumber, line);
     }
 
     public static boolean isCommented(String line) {
         return line.trim().startsWith("#");
     }
 
-    public String createTextLine() {
-        return getLine();
+    public static void fixLineIndentation(YamlLine line, String requiredIndentation) {
+        // get the text including the comment
+        String currentText = line.getFormattedText();
+        // remove the comment character and indent the line accordingly
+        String indentedText = currentText.replaceFirst(YAML_COMMENT_REGEX, "");
+        if (!indentedText.startsWith(requiredIndentation)) {
+            indentedText = requiredIndentation + indentedText;
+        }
+        line.setCurrentRawText(indentedText);
+    }
+
+    public String getCurrentRawText() {
+        return currentRawText;
+    }
+
+    public void setCurrentRawText(final String currentRawText) {
+        this.currentRawText = currentRawText;
+    }
+
+    public int getLineNumber() {
+        return lineNumber;
     }
 
     public boolean isCommented() {
@@ -42,16 +65,20 @@ public class YamlLine {
         this.commented = false;
     }
 
-    public String getLine() {
-        return line;
+    public String getFormattedText() {
+        String textLine = getCurrentRawText();
+        if (isCommented()) {
+            if (!textLine.trim().startsWith("#")) {
+                textLine = "#" + textLine;
+            }
+        } else {
+            textLine = textLine.replaceFirst(YAML_COMMENT_REGEX, "");
+        }
+        return textLine;
     }
 
     @Override
     public String toString() {
-        String textLine = createTextLine();
-        if (isCommented() && !textLine.trim().startsWith("#")) {
-            textLine = "#" + textLine;
-        }
-        return textLine;
+        return getFormattedText();
     }
 }

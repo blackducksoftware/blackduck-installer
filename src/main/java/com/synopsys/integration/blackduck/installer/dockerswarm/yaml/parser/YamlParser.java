@@ -5,26 +5,118 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.commons.io.IOUtils;
 
 import com.synopsys.integration.blackduck.installer.dockerswarm.edit.ConfigFile;
+import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.DefaultSection;
 import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.DockerGlobalSecret;
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.DockerService;
+import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.ServiceEnvironmentSection;
+import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.ServiceSecretsSection;
 import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.YamlFile;
 import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.YamlLine;
+import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.YamlSection;
 import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
 
 public class YamlParser {
+    private static final Set<String> DOCKER_RESERVED_KEYS = Set.of(
+        "constraints", "deploy", "environment", "external", "limits", "mode", "name", "placement", "replicas", "reservations", "resources",
+        "secrets", "services", "source", "target", "version");
     private String stackName;
-    private ConfigFile configFile;
+    private String stackReplacementToken;
 
-    public YamlParser(final String stackName, final ConfigFile configFile) {
+    public YamlParser(String stackName, String stackReplacementToken) {
         this.stackName = stackName;
-        this.configFile = configFile;
+        this.stackReplacementToken = stackReplacementToken;
     }
 
-    public YamlFile parse() throws BlackDuckInstallerException {
+    protected YamlFile createYamlFileModel(List<String> lines) {
+        YamlFile yamlFile = new YamlFile();
+
+        boolean inServices = false;
+        boolean inGlobalSecrets = false;
+        boolean inServiceSecrets = false;
+        DockerGlobalSecret currentGlobalSecret = null;
+        YamlSection currentSection = null;
+        YamlSection currentService = null;
+        YamlSection servicesSection = null;
+
+        int count = lines.size();
+        for (int index = 0; index < count; index++) {
+            String line = lines.get(index);
+            boolean isCommented = YamlLine.isCommented(line);
+            YamlLine yamlLine = YamlLine.create(isCommented, index, line);
+            yamlFile.addLine(yamlLine);
+            if (line.contains("services:")) {
+                inServices = true;
+                inGlobalSecrets = false;
+                currentSection = new DefaultSection("services", yamlLine);
+                yamlFile.addModifiableSection(currentSection);
+                servicesSection = currentSection;
+            } else if (inServices) {
+                boolean processingSection = null != currentSection;
+                String sectionKey = null;
+                boolean isSectionKey = false;
+                // check for potential start of service name
+                if (line.contains(":")) {
+                    int colonIndex = line.indexOf(":");
+                    String potentialServiceName = line.substring(0, colonIndex);
+                    if (isCommented) {
+                        potentialServiceName = potentialServiceName.replaceFirst(YamlLine.YAML_COMMENT_REGEX, "");
+                    }
+                    potentialServiceName = potentialServiceName.trim();
+
+                    if (!YamlLine.isCommented(potentialServiceName) && !potentialServiceName.startsWith("-") && !DOCKER_RESERVED_KEYS.contains(potentialServiceName)) {
+                        sectionKey = potentialServiceName;
+                        isSectionKey = true;
+                    }
+                }
+
+                if (processingSection && inServiceSecrets && line.equals("#secrets:")) {
+                    inGlobalSecrets = true;
+                    inServices = false;
+                    inServiceSecrets = false;
+                    yamlFile.createGlobalSecrets(yamlLine);
+                } else if (processingSection && line.trim().contains("environment:")) {
+                    inServiceSecrets = false;
+                    DefaultSection environmentSection = new ServiceEnvironmentSection("environment", yamlLine);
+                    environmentSection.setIndentation(DefaultSection.SERVICE_SUB_SECTION_INDENTATION);
+                    currentService.addSubSection(environmentSection);
+                    currentSection = environmentSection;
+                } else if (processingSection && line.trim().contains("secrets:")) {
+                    inServiceSecrets = true;
+                    DefaultSection secretsSection = new ServiceSecretsSection("secrets", yamlLine);
+                    secretsSection.setIndentation(DefaultSection.SERVICE_SUB_SECTION_INDENTATION);
+                    currentService.addSubSection(secretsSection);
+                    currentSection = secretsSection;
+                } else if (isSectionKey) {
+                    DefaultSection newSection = new DefaultSection(sectionKey, yamlLine);
+                    newSection.setIndentation(DefaultSection.SERVICE_SECTION_INDENTATION);
+                    if (processingSection) {
+                        servicesSection.addSubSection(newSection);
+                    }
+                    inServiceSecrets = false;
+                    currentSection = newSection;
+                    currentService = newSection;
+                } else {
+                    currentSection.addLine(yamlLine);
+                }
+            } else if (inGlobalSecrets) {
+                if (line.trim().contains("external:")) {
+                    currentGlobalSecret.applyExternal(yamlLine);
+                } else if (line.trim().contains("name:")) {
+                    currentGlobalSecret.applyName(yamlLine, stackReplacementToken);
+                } else {
+                    currentGlobalSecret = DockerGlobalSecret.of(getStackName(), yamlLine);
+                    yamlFile.addDockerSecret(currentGlobalSecret);
+                }
+            }
+        }
+        return yamlFile;
+    }
+
+    public YamlFile parse(ConfigFile configFile) throws BlackDuckInstallerException {
         try (InputStream inputStream = new FileInputStream(configFile.getOriginalCopy())) {
             List<String> lines = IOUtils.readLines(inputStream, StandardCharsets.UTF_8);
             return createYamlFileModel(lines);
@@ -33,78 +125,7 @@ public class YamlParser {
         }
     }
 
-    private YamlFile createYamlFileModel(List<String> lines) {
-        YamlFile yamlFile = new YamlFile();
-
-        boolean inServices = false;
-        boolean inServiceEnvironment = false;
-        boolean inServiceSecrets = false;
-        boolean inGlobalSecrets = false;
-        DockerService currentService = null;
-        DockerGlobalSecret currentGlobalSecret = null;
-
-        for (String line : lines) {
-            if (!inServices && line.startsWith("version:")) {
-                yamlFile.setVersion(line.replace("#", "")
-                                        .replace("version:", "")
-                                        .trim());
-            } else if (line.startsWith("services:")) {
-                inServices = true;
-                inGlobalSecrets = false;
-            } else if (inServices) {
-                boolean processingService = null != currentService;
-                String serviceName = null;
-                boolean isServiceName = false;
-                // check for potential start of service name
-                if (line.contains(":")) {
-                    if (line.trim().equals("#  alert:")) {
-                        isServiceName = true;
-                        serviceName = "alert";
-                    } else if (line.trim().equals("alertdb:")) {
-                        isServiceName = true;
-                        serviceName = "alertdb";
-                    }
-                }
-
-                if (processingService && line.trim().contains("environment:")) {
-                    inServiceEnvironment = true;
-                    inServiceSecrets = false;
-                } else if (processingService && line.trim().equals("#    secrets:")) {
-                    inServiceEnvironment = false;
-                    inServiceSecrets = true;
-                } else if (isServiceName) {
-                    if (processingService) {
-                        yamlFile.addService(currentService);
-                    }
-                    inServiceEnvironment = false;
-                    inServiceSecrets = false;
-                    currentService = new DockerService(serviceName);
-                } else if (inServices && line.equals("#secrets:")) {
-                    inGlobalSecrets = true;
-                    inServices = false;
-                    inServiceEnvironment = false;
-                    inServiceSecrets = false;
-                    yamlFile.addService(currentService);
-                } else if (processingService && inServiceEnvironment) {
-                    currentService.addEnvironmentVariable(line);
-                } else if (processingService && inServiceSecrets) {
-                    currentService.addSecret(line);
-                } else {
-                    currentService.addCommentBeforeSection(line);
-                }
-            } else if (inGlobalSecrets) {
-                if (line.trim().contains("external:")) {
-                    currentGlobalSecret.applyExternal(line);
-                } else if (line.trim().contains("name:")) {
-                    currentGlobalSecret.applyName(line, "<STACK_NAME>_");
-                } else {
-                    currentGlobalSecret = DockerGlobalSecret.of(stackName, line);
-                    yamlFile.addDockerSecret(currentGlobalSecret);
-                }
-            } else {
-                yamlFile.addCommentBeforeVersion(YamlLine.create(line));
-            }
-        }
-        return yamlFile;
+    public String getStackName() {
+        return stackName;
     }
 }

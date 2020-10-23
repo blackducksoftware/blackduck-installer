@@ -10,6 +10,7 @@ import java.nio.file.Files;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,17 +30,18 @@ public class AlertLocalOverridesEditorTest {
     private static final String ALERT_ADMIN_EMAIL = "noreply@blackducksoftware.com";
     private static final String ALERT_HOST = "alert-host";
     private Logger logger = LoggerFactory.getLogger(AlertLocalOverridesEditorTest.class);
+    private File tempInstallDirectory = new File("build/temp/");
+
+    @BeforeEach
+    public void cleanDirectory() {
+        FileUtils.deleteQuietly(tempInstallDirectory);
+    }
 
     @Test
     public void testOverrides() throws IOException, BlackDuckInstallerException, URISyntaxException {
-        String input = IOUtils.toString(getClass().getResourceAsStream("/alert-docker-compose.yaml"), StandardCharsets.UTF_8);
-        String expectedOutput = IOUtils.toString(getClass().getResourceAsStream("/desired-alert-docker-compose.yaml"), StandardCharsets.UTF_8);
+        String expectedOutput = IOUtils.toString(getClass().getResourceAsStream("/alert/desired-alert-docker-compose.yaml"), StandardCharsets.UTF_8);
         File tempInstallDirectory = new File("build/temp/");
-        tempInstallDirectory.mkdirs();
-        File dockerDir = new File(tempInstallDirectory, "docker-swarm");
-        dockerDir.mkdirs();
-        File testComposeFile = new File(dockerDir, "docker-compose.local-overrides.yml");
-        Files.write(testComposeFile.toPath(), input.getBytes());
+        File testComposeFile = ComposeFileUtility.createLocalOverridesFile(tempInstallDirectory, "/alert/alert-docker-compose.yaml");
 
         IntLogger intLogger = new Slf4jIntLogger(logger);
         HashUtility hashUtility = new HashUtility();
@@ -58,14 +60,9 @@ public class AlertLocalOverridesEditorTest {
 
     @Test
     public void testExternalDBOverrides() throws IOException, BlackDuckInstallerException, URISyntaxException {
-        String input = IOUtils.toString(getClass().getResourceAsStream("/alert-docker-compose.yaml"), StandardCharsets.UTF_8);
-        String expectedOutput = IOUtils.toString(getClass().getResourceAsStream("/desired-alert-external-db-docker-compose.yaml"), StandardCharsets.UTF_8);
-        File tempInstallDirectory = new File("build/temp/");
-        tempInstallDirectory.mkdirs();
-        File dockerDir = new File(tempInstallDirectory, "docker-swarm");
-        dockerDir.mkdirs();
-        File testComposeFile = new File(dockerDir, "docker-compose.local-overrides.yml");
-        Files.write(testComposeFile.toPath(), input.getBytes());
+        String expectedOutput = IOUtils.toString(getClass().getResourceAsStream("/alert/desired-alert-external-db-docker-compose.yaml"), StandardCharsets.UTF_8);
+
+        File testComposeFile = ComposeFileUtility.createLocalOverridesFile(tempInstallDirectory, "/alert/alert-docker-compose.yaml");
 
         IntLogger intLogger = new Slf4jIntLogger(logger);
         HashUtility hashUtility = new HashUtility();
