@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.apache.commons.io.IOUtils;
@@ -56,22 +57,7 @@ public class YamlParser {
                 servicesSection = currentSection;
             } else if (inServices) {
                 boolean processingSection = null != currentSection;
-                String sectionKey = null;
-                boolean isSectionKey = false;
-                // check for potential start of service name
-                if (line.contains(":")) {
-                    int colonIndex = line.indexOf(":");
-                    String potentialServiceName = line.substring(0, colonIndex);
-                    if (isCommented) {
-                        potentialServiceName = potentialServiceName.replaceFirst(YamlLine.YAML_COMMENT_REGEX, "");
-                    }
-                    potentialServiceName = potentialServiceName.trim();
-
-                    if (!YamlLine.isCommented(potentialServiceName) && !potentialServiceName.startsWith("-") && !DOCKER_RESERVED_KEYS.contains(potentialServiceName)) {
-                        sectionKey = potentialServiceName;
-                        isSectionKey = true;
-                    }
-                }
+                Optional<String> sectionKey = calculateSectionKey(isCommented, line);
 
                 if (processingSection && inServiceSecrets && line.equals("#secrets:")) {
                     inGlobalSecrets = true;
@@ -90,8 +76,8 @@ public class YamlParser {
                     secretsSection.setIndentation(DefaultSection.SERVICE_SUB_SECTION_INDENTATION);
                     currentService.addSubSection(secretsSection);
                     currentSection = secretsSection;
-                } else if (isSectionKey) {
-                    DefaultSection newSection = new DefaultSection(sectionKey, yamlLine);
+                } else if (sectionKey.isPresent()) {
+                    DefaultSection newSection = new DefaultSection(sectionKey.get(), yamlLine);
                     newSection.setIndentation(DefaultSection.SERVICE_SECTION_INDENTATION);
                     if (processingSection) {
                         servicesSection.addSubSection(newSection);
@@ -114,6 +100,23 @@ public class YamlParser {
             }
         }
         return yamlFile;
+    }
+
+    private Optional<String> calculateSectionKey(boolean isCommented, String line) {
+        // check for potential start of service name
+        if (line.contains(":")) {
+            int colonIndex = line.indexOf(":");
+            String potentialServiceName = line.substring(0, colonIndex);
+            if (isCommented) {
+                potentialServiceName = potentialServiceName.replaceFirst(YamlLine.YAML_COMMENT_REGEX, "");
+            }
+            potentialServiceName = potentialServiceName.trim();
+
+            if (!YamlLine.isCommented(potentialServiceName) && !potentialServiceName.startsWith("-") && !DOCKER_RESERVED_KEYS.contains(potentialServiceName)) {
+                return Optional.ofNullable(potentialServiceName);
+            }
+        }
+        return Optional.empty();
     }
 
     public YamlFile parse(ConfigFile configFile) throws BlackDuckInstallerException {
