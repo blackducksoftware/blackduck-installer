@@ -117,6 +117,10 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
         }
 
         YamlSection alertDb = alertDbSection.get();
+        if (alertDatabase.isExternal()) {
+            alertDb.commentBlock();
+            return;
+        }
         Optional<ServiceEnvironmentSection> alertDbEnvironmentSection = alertDb.getSubSection("environment");
         Optional<ServiceSecretsSection> alertDbSecretsSection = alertDb.getSubSection("secrets");
         if (alertDbEnvironmentSection.isEmpty()) {
@@ -131,40 +135,35 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
 
         ServiceEnvironmentSection alertDbEnvironment = alertDbEnvironmentSection.get();
         ServiceSecretsSection alertDbSecrets = alertDbSecretsSection.get();
+        alertDb.uncomment();
+        Optional<ServiceEnvironmentLine> alertDBLine = alertDbEnvironment.getVariableLine("POSTGRES_DB");
+        Optional<ServiceEnvironmentLine> alertDBUser = alertDbEnvironment.getVariableLine("POSTGRES_USER");
+        Optional<ServiceEnvironmentLine> alertDBPassword = alertDbEnvironment.getVariableLine("POSTGRES_PASSWORD");
 
-        if (alertDatabase.isExternal()) {
-            alertDb.commentBlock();
+        if (alertDBLine.isPresent() && StringUtils.isNotBlank(alertDatabase.getDatabaseName())) {
+            alertDbEnvironment.uncomment();
+            alertDBLine.get().uncomment();
+            alertDBLine.get().setValue(alertDatabase.getDatabaseName());
+        }
+
+        if (alertDatabase.hasSecrets()) {
+            alertDbSecrets.uncomment();
+            alertDbEnvironment.getVariableLine("POSTGRES_USER").ifPresent(YamlTextLine::comment);
+            alertDbEnvironment.getVariableLine("POSTGRES_PASSWORD").ifPresent(YamlTextLine::comment);
+            alertDbEnvironment.getVariableLine("POSTGRES_USER_FILE").ifPresent(YamlTextLine::uncomment);
+            alertDbEnvironment.getVariableLine("POSTGRES_PASSWORD_FILE").ifPresent(YamlTextLine::uncomment);
+            enableDatabaseSecrets(alertDbSecrets, parsedFile.getGlobalSecrets());
+
         } else {
-            alertDb.uncomment();
-            Optional<ServiceEnvironmentLine> alertDBLine = alertDbEnvironment.getVariableLine("POSTGRES_DB");
-            Optional<ServiceEnvironmentLine> alertDBUser = alertDbEnvironment.getVariableLine("POSTGRES_USER");
-            Optional<ServiceEnvironmentLine> alertDBPassword = alertDbEnvironment.getVariableLine("POSTGRES_PASSWORD");
-
-            if (alertDBLine.isPresent() && StringUtils.isNotBlank(alertDatabase.getDatabaseName())) {
-                alertDbEnvironment.uncomment();
-                alertDBLine.get().uncomment();
-                alertDBLine.get().setValue(alertDatabase.getDatabaseName());
+            if (alertDBUser.isPresent()) {
+                ServiceEnvironmentLine dbUser = alertDBUser.get();
+                dbUser.uncomment();
+                dbUser.setValue(alertDatabase.getDefaultUserName());
             }
-
-            if (alertDatabase.hasSecrets()) {
-                alertDbSecrets.uncomment();
-                alertDbEnvironment.getVariableLine("POSTGRES_USER").ifPresent(YamlTextLine::comment);
-                alertDbEnvironment.getVariableLine("POSTGRES_PASSWORD").ifPresent(YamlTextLine::comment);
-                alertDbEnvironment.getVariableLine("POSTGRES_USER_FILE").ifPresent(YamlTextLine::uncomment);
-                alertDbEnvironment.getVariableLine("POSTGRES_PASSWORD_FILE").ifPresent(YamlTextLine::uncomment);
-                enableDatabaseSecrets(alertDbSecrets, parsedFile.getGlobalSecrets());
-
-            } else {
-                if (alertDBUser.isPresent()) {
-                    ServiceEnvironmentLine dbUser = alertDBUser.get();
-                    dbUser.uncomment();
-                    dbUser.setValue(alertDatabase.getDefaultUserName());
-                }
-                if (alertDBPassword.isPresent()) {
-                    ServiceEnvironmentLine dbPassword = alertDBPassword.get();
-                    dbPassword.uncomment();
-                    dbPassword.setValue(alertDatabase.getDefaultPassword());
-                }
+            if (alertDBPassword.isPresent()) {
+                ServiceEnvironmentLine dbPassword = alertDBPassword.get();
+                dbPassword.uncomment();
+                dbPassword.setValue(alertDatabase.getDefaultPassword());
             }
         }
     }
