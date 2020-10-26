@@ -53,6 +53,15 @@ public class FileParser {
         this.stackReplacementToken = stackReplacementToken;
     }
 
+    public CustomYamlFile parse(ConfigFile configFile) throws BlackDuckInstallerException {
+        try (InputStream inputStream = new FileInputStream(configFile.getOriginalCopy())) {
+            List<String> lines = IOUtils.readLines(inputStream, StandardCharsets.UTF_8);
+            return createYamlFileModel(lines);
+        } catch (IOException e) {
+            throw new BlackDuckInstallerException("Error editing local overrides: " + e.getMessage());
+        }
+    }
+
     protected CustomYamlFile createYamlFileModel(List<String> lines) {
         CustomYamlFile yamlFile = new CustomYamlFile();
 
@@ -138,15 +147,6 @@ public class FileParser {
             }
         }
         return Optional.empty();
-    }
-
-    public CustomYamlFile parse(ConfigFile configFile) throws BlackDuckInstallerException {
-        try (InputStream inputStream = new FileInputStream(configFile.getOriginalCopy())) {
-            List<String> lines = IOUtils.readLines(inputStream, StandardCharsets.UTF_8);
-            return createYamlFileModel(lines);
-        } catch (IOException e) {
-            throw new BlackDuckInstallerException("Error editing local overrides: " + e.getMessage());
-        }
     }
 
     public String getStackName() {
