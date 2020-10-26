@@ -22,12 +22,13 @@
  */
 package com.synopsys.integration.blackduck.installer;
 
-import com.synopsys.integration.blackduck.installer.download.DownloadSource;
-import com.synopsys.integration.blackduck.installer.model.DeployMethod;
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
+import com.synopsys.integration.blackduck.installer.download.DownloadSource;
+import com.synopsys.integration.blackduck.installer.model.DeployMethod;
 
 @Component
 public class ApplicationValues {
@@ -216,6 +217,27 @@ public class ApplicationValues {
 
     @Value("${alert.install.use.local.overrides}")
     private boolean alertInstallUseLocalOverrides;
+
+    @Value("${alert.install.database.name:alertdb}")
+    private String alertInstallDatabaseName;
+
+    @Value("${alert.install.database.external.host:}")
+    private String alertInstallDatabaseExternalHost;
+
+    @Value("${alert.install.database.external.port:0}")
+    private int alertInstallDatabaseExternalPort;
+
+    @Value("${alert.install.database.username.default:sa}")
+    private String alertInstallDatabaseDefaultUserName;
+
+    @Value("${alert.install.database.password.default:blackduck}")
+    private String alertInstallDatabaseDefaultPassword;
+
+    @Value("${alert.install.database.username.path}")
+    private String alertInstallDatabaseUserNamePath;
+
+    @Value("${alert.install.database.password.path}")
+    private String alertInstallDatabasePasswordPath;
 
     public String getBaseDirectory() {
         return baseDirectory;
@@ -463,6 +485,34 @@ public class ApplicationValues {
 
     public boolean isAlertInstallUseLocalOverrides() {
         return alertInstallUseLocalOverrides;
+    }
+
+    public String getAlertInstallDatabaseName() {
+        return alertInstallDatabaseName;
+    }
+
+    public String getAlertInstallDatabaseExternalHost() {
+        return alertInstallDatabaseExternalHost;
+    }
+
+    public int getAlertInstallDatabaseExternalPort() {
+        return alertInstallDatabaseExternalPort;
+    }
+
+    public String getAlertInstallDatabaseDefaultUserName() {
+        return alertInstallDatabaseDefaultUserName;
+    }
+
+    public String getAlertInstallDatabaseDefaultPassword() {
+        return alertInstallDatabaseDefaultPassword;
+    }
+
+    public String getAlertInstallDatabaseUserNamePath() {
+        return alertInstallDatabaseUserNamePath;
+    }
+
+    public String getAlertInstallDatabasePasswordPath() {
+        return alertInstallDatabasePasswordPath;
     }
 
 }

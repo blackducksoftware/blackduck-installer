@@ -22,16 +22,19 @@
  */
 package com.synopsys.integration.blackduck.installer.dockerswarm.install;
 
+import java.io.File;
+import java.util.List;
+
+import org.apache.commons.lang3.StringUtils;
+
 import com.synopsys.integration.blackduck.installer.dockerswarm.DockerCommands;
 import com.synopsys.integration.blackduck.installer.dockerswarm.DockerStackDeploy;
 import com.synopsys.integration.blackduck.installer.dockerswarm.OrchestrationFiles;
 import com.synopsys.integration.blackduck.installer.dockerswarm.deploy.BlackDuckDockerManager;
 import com.synopsys.integration.blackduck.installer.dockerswarm.edit.BlackDuckConfigEnvEditor;
+import com.synopsys.integration.blackduck.installer.dockerswarm.edit.BlackDuckLocalOverridesEditor;
 import com.synopsys.integration.blackduck.installer.dockerswarm.edit.ConfigFileEditor;
 import com.synopsys.integration.blackduck.installer.dockerswarm.edit.HubWebServerEnvEditor;
-import com.synopsys.integration.blackduck.installer.dockerswarm.edit.LocalOverridesEditor;
-import com.synopsys.integration.blackduck.installer.dockerswarm.output.DockerServices;
-import com.synopsys.integration.blackduck.installer.dockerswarm.output.DockerStacks;
 import com.synopsys.integration.blackduck.installer.download.ZipFileDownloader;
 import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
 import com.synopsys.integration.blackduck.installer.model.BlackDuckAdditionalOrchestrationFiles;
@@ -40,10 +43,6 @@ import com.synopsys.integration.exception.IntegrationException;
 import com.synopsys.integration.log.IntLogger;
 import com.synopsys.integration.wait.WaitJob;
 import com.synopsys.integration.wait.WaitJobTask;
-import org.apache.commons.lang3.StringUtils;
-
-import java.io.File;
-import java.util.List;
 
 public class BlackDuckInstaller extends Installer {
     private final ConfigFileEditor blackDuckConfigEnvEditor;
@@ -52,12 +51,14 @@ public class BlackDuckInstaller extends Installer {
     private final boolean useLocalOverrides;
     private final BlackDuckAdditionalOrchestrationFiles blackDuckAdditionalOrchestrationFiles;
 
-    public BlackDuckInstaller(IntLogger logger, ZipFileDownloader zipFileDownloader, ExecutablesRunner executablesRunner, BlackDuckDockerManager blackDuckDockerManager, DockerStackDeploy dockerStackDeploy, DockerCommands dockerCommands, String stackName, List<File> additionalOrchestrationFiles, BlackDuckConfigEnvEditor blackDuckConfigEnvEditor, HubWebServerEnvEditor hubWebServerEnvEditor, LocalOverridesEditor localOverridesEditor, boolean useLocalOverrides, BlackDuckAdditionalOrchestrationFiles blackDuckAdditionalOrchestrationFiles) {
+    public BlackDuckInstaller(IntLogger logger, ZipFileDownloader zipFileDownloader, ExecutablesRunner executablesRunner, BlackDuckDockerManager blackDuckDockerManager, DockerStackDeploy dockerStackDeploy, DockerCommands dockerCommands,
+        String stackName, List<File> additionalOrchestrationFiles, BlackDuckConfigEnvEditor blackDuckConfigEnvEditor, HubWebServerEnvEditor hubWebServerEnvEditor, BlackDuckLocalOverridesEditor blackDuckLocalOverridesEditor,
+        boolean useLocalOverrides, BlackDuckAdditionalOrchestrationFiles blackDuckAdditionalOrchestrationFiles) {
         super(logger, zipFileDownloader, executablesRunner, blackDuckDockerManager, dockerStackDeploy, dockerCommands, stackName, additionalOrchestrationFiles);
 
         this.blackDuckConfigEnvEditor = blackDuckConfigEnvEditor;
         this.hubWebServerEnvEditor = hubWebServerEnvEditor;
-        this.localOverridesEditor = localOverridesEditor;
+        this.localOverridesEditor = blackDuckLocalOverridesEditor;
         this.useLocalOverrides = useLocalOverrides;
         this.blackDuckAdditionalOrchestrationFiles = blackDuckAdditionalOrchestrationFiles;
     }
@@ -77,9 +78,9 @@ public class BlackDuckInstaller extends Installer {
         addAdditionalOrchestrationFiles();
 
         blackDuckAdditionalOrchestrationFiles.getBlackDuckAdditionalOrchestrationFilePaths()
-                .stream()
-                .map(blackDuckOrchestrationFile -> blackDuckOrchestrationFile.filePath)
-                .forEach(filePath -> addOrchestrationFile(dockerSwarm, filePath));
+            .stream()
+            .map(blackDuckOrchestrationFile -> blackDuckOrchestrationFile.filePath)
+            .forEach(filePath -> addOrchestrationFile(dockerSwarm, filePath));
 
         if (useLocalOverrides) {
             addOrchestrationFile(dockerSwarm, OrchestrationFiles.LOCAL_OVERRIDES);

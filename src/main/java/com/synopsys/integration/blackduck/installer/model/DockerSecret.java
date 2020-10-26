@@ -27,6 +27,15 @@ public class DockerSecret {
     public static final String SECRET_KEY = "WEBSERVER_CUSTOM_KEY_FILE";
     public static final String SECRET_ALERT_ENCRYPTION_PASSWORD = "ALERT_ENCRYPTION_PASSWORD";
     public static final String SECRET_ALERT_ENCRYPTION_GLOBAL_SALT = "ALERT_ENCRYPTION_GLOBAL_SALT";
+    public static final String SECRET_ALERT_DB_USERNAME = "ALERT_DB_USERNAME";
+    public static final String SECRET_ALERT_DB_PASSWORD = "ALERT_DB_PASSWORD";
+    private final String label;
+    private final String path;
+
+    public DockerSecret(String label, String path) {
+        this.label = label;
+        this.path = path;
+    }
 
     public static DockerSecret createCert(String secretPath) {
         return new DockerSecret(SECRET_CERT, secretPath);
@@ -44,12 +53,12 @@ public class DockerSecret {
         return new DockerSecret(SECRET_ALERT_ENCRYPTION_GLOBAL_SALT, secretPath);
     }
 
-    private final String label;
-    private final String path;
+    public static DockerSecret createAlertDBUser(String secretPath) {
+        return new DockerSecret(SECRET_ALERT_DB_USERNAME, secretPath);
+    }
 
-    public DockerSecret(String label, String path) {
-        this.label = label;
-        this.path = path;
+    public static DockerSecret createAlertDBPassword(String secretPath) {
+        return new DockerSecret(SECRET_ALERT_DB_PASSWORD, secretPath);
     }
 
     public String getLabel() {
