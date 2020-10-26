@@ -34,7 +34,7 @@ public class Section implements CustomYamlBlock, CustomYamlTextLine {
     private List<CustomYamlLine> lines;
     private Map<String, Section> subSections;
     private String key;
-    private CustomYamlLine sectionLine;
+    private CustomYamlLine sectionHeading;
     private int startLine;
     private String indentation;
 
@@ -42,7 +42,7 @@ public class Section implements CustomYamlBlock, CustomYamlTextLine {
         this.key = key;
         this.lines = new LinkedList<>();
         this.subSections = new LinkedHashMap<>();
-        this.sectionLine = line;
+        this.sectionHeading = line;
         this.startLine = line.getLineNumber();
         this.indentation = "";
     }
@@ -86,19 +86,19 @@ public class Section implements CustomYamlBlock, CustomYamlTextLine {
 
     @Override
     public boolean isCommented() {
-        return sectionLine.isCommented() && isBlockCommented();
+        return sectionHeading.isCommented() && isBlockCommented();
     }
 
     @Override
     public void comment() {
-        sectionLine.comment();
-        CustomYamlLine.fixLineIndentation(sectionLine, getIndentation());
+        sectionHeading.comment();
+        CustomYamlLine.fixLineIndentation(sectionHeading, getIndentation());
     }
 
     @Override
     public void uncomment() {
-        sectionLine.uncomment();
-        CustomYamlLine.fixLineIndentation(sectionLine, getIndentation());
+        sectionHeading.uncomment();
+        CustomYamlLine.fixLineIndentation(sectionHeading, getIndentation());
     }
 
     @Override
@@ -109,7 +109,7 @@ public class Section implements CustomYamlBlock, CustomYamlTextLine {
 
     @Override
     public void commentBlock() {
-        sectionLine.comment();
+        sectionHeading.comment();
         subSections.values().stream()
             .forEach(Section::commentBlock);
         lines.stream()
@@ -118,7 +118,7 @@ public class Section implements CustomYamlBlock, CustomYamlTextLine {
 
     @Override
     public void uncommentBlock() {
-        sectionLine.uncomment();
+        sectionHeading.uncomment();
         subSections.values().stream()
             .forEach(Section::uncommentBlock);
         lines.stream()
