@@ -20,7 +20,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model;
+package com.synopsys.integration.blackduck.installer.dockerswarm.configfile.model;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -28,30 +28,30 @@ import java.util.Optional;
 
 import org.apache.commons.lang3.StringUtils;
 
-public class ServiceEnvironmentSection extends DefaultSection {
+public class ServiceEnvironmentSection extends Section {
     private Map<String, ServiceEnvironmentLine> environmentVariables;
 
-    public ServiceEnvironmentSection(final String key, final YamlLine line) {
+    public ServiceEnvironmentSection(final String key, final CustomYamlLine line) {
         super(key, line);
         environmentVariables = new HashMap<>();
     }
 
     @Override
-    public void addLine(final YamlLine yamlLine) {
-        ServiceEnvironmentLine environmentLine = ServiceEnvironmentLine.of(yamlLine);
+    public void addLine(final CustomYamlLine customYamlLine) {
+        ServiceEnvironmentLine environmentLine = ServiceEnvironmentLine.of(customYamlLine);
         if (environmentLine.hasKey()) {
             environmentVariables.put(environmentLine.getKey(), environmentLine);
         }
-        super.addLine(yamlLine);
+        super.addLine(customYamlLine);
     }
 
     @Override
-    public void addLine(int index, YamlLine yamlLine) {
-        ServiceEnvironmentLine environmentLine = ServiceEnvironmentLine.of(yamlLine);
+    public void addLine(int index, CustomYamlLine customYamlLine) {
+        ServiceEnvironmentLine environmentLine = ServiceEnvironmentLine.of(customYamlLine);
         if (environmentLine.hasKey()) {
             environmentVariables.put(environmentLine.getKey(), environmentLine);
         }
-        super.addLine(index, yamlLine);
+        super.addLine(index, customYamlLine);
     }
 
     public Optional<ServiceEnvironmentLine> getVariableLine(String key) {
@@ -73,5 +73,13 @@ public class ServiceEnvironmentSection extends DefaultSection {
             environmentVariable.getYamlLine().uncomment();
             environmentVariable.setValue(value);
         }
+    }
+
+    public void commentIfPresent(String key) {
+        getVariableLine(key).ifPresent(CustomYamlTextLine::comment);
+    }
+
+    public void uncommentIfPresent(String key) {
+        getVariableLine(key).ifPresent(CustomYamlTextLine::uncomment);
     }
 }

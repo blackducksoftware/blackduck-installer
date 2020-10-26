@@ -20,28 +20,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model;
+package com.synopsys.integration.blackduck.installer.dockerswarm.configfile.model;
 
 import org.apache.commons.lang3.StringUtils;
 
-public class ServiceEnvironmentLine implements YamlTextLine {
+public class ServiceEnvironmentLine implements CustomYamlTextLine {
     private final String key;
     private String value;
-    private YamlLine yamlLine;
+    private CustomYamlLine customYamlLine;
 
-    private ServiceEnvironmentLine(String key, String value, YamlLine yamlLine) {
+    private ServiceEnvironmentLine(String key, String value, CustomYamlLine customYamlLine) {
         this.key = key;
         this.value = value;
-        this.yamlLine = yamlLine;
+        this.customYamlLine = customYamlLine;
     }
 
     public static ServiceEnvironmentLine newEnvironmentLine(int lineNumber, String key) {
         // create a commented variable.
-        return of(YamlLine.create(lineNumber, String.format("#      - %s=", key)));
+        return of(CustomYamlLine.create(lineNumber, String.format("#      - %s=", key)));
     }
 
-    public static ServiceEnvironmentLine of(YamlLine line) {
-        boolean commented = YamlLine.isCommented(line.getFormattedText());
+    public static ServiceEnvironmentLine of(CustomYamlLine line) {
+        boolean commented = CustomYamlLine.isCommented(line.getFormattedText());
         if (commented) {
             line.comment();
         } else {
@@ -61,23 +61,23 @@ public class ServiceEnvironmentLine implements YamlTextLine {
         return new ServiceEnvironmentLine(key, value, line);
     }
 
-    public YamlLine getYamlLine() {
-        return yamlLine;
+    public CustomYamlLine getYamlLine() {
+        return customYamlLine;
     }
 
     @Override
     public boolean isCommented() {
-        return yamlLine.isCommented();
+        return customYamlLine.isCommented();
     }
 
     @Override
     public void comment() {
-        yamlLine.comment();
+        customYamlLine.comment();
     }
 
     @Override
     public void uncomment() {
-        yamlLine.uncomment();
+        customYamlLine.uncomment();
     }
 
     public boolean hasKey() {
@@ -95,7 +95,7 @@ public class ServiceEnvironmentLine implements YamlTextLine {
     public void setValue(final String value) {
         this.value = value;
         if (hasKey()) {
-            yamlLine.setCurrentRawText(String.format("      - %s=%s", getKey(), getValue()));
+            customYamlLine.setCurrentRawText(String.format("      - %s=%s", getKey(), getValue()));
         }
     }
 }

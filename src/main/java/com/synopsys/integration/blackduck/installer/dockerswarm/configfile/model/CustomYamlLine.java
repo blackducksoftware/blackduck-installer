@@ -20,39 +20,39 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model;
+package com.synopsys.integration.blackduck.installer.dockerswarm.configfile.model;
 
-public class YamlLine implements YamlTextLine {
+public class CustomYamlLine implements CustomYamlTextLine {
     public static final String YAML_COMMENT_REGEX = "\\#";
     private boolean commented;
     private String currentRawText;
     private int lineNumber;
 
-    protected YamlLine(int lineNumber, String line) {
+    protected CustomYamlLine(int lineNumber, String line) {
         this.commented = true;
         this.currentRawText = line;
         this.lineNumber = lineNumber;
     }
 
-    protected YamlLine(boolean commented, int lineNumber, String line) {
+    protected CustomYamlLine(boolean commented, int lineNumber, String line) {
         this.commented = commented;
         this.currentRawText = line;
         this.lineNumber = lineNumber;
     }
 
-    public static YamlLine create(int lineNumber, String line) {
-        return new YamlLine(lineNumber, line);
+    public static CustomYamlLine create(int lineNumber, String line) {
+        return new CustomYamlLine(lineNumber, line);
     }
 
-    public static YamlLine create(boolean commented, int lineNumber, String line) {
-        return new YamlLine(commented, lineNumber, line);
+    public static CustomYamlLine create(boolean commented, int lineNumber, String line) {
+        return new CustomYamlLine(commented, lineNumber, line);
     }
 
     public static boolean isCommented(String line) {
         return line.trim().startsWith("#");
     }
 
-    public static void fixLineIndentation(YamlLine line, String requiredIndentation) {
+    public static void fixLineIndentation(CustomYamlLine line, String requiredIndentation) {
         // get the text including the comment
         String currentText = line.getFormattedText();
         // remove the comment character and indent the line accordingly

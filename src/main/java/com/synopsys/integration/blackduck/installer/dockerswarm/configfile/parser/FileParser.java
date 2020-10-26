@@ -20,7 +20,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.synopsys.integration.blackduck.installer.dockerswarm.yaml.parser;
+package com.synopsys.integration.blackduck.installer.dockerswarm.configfile.parser;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -32,49 +32,48 @@ import java.util.Set;
 
 import org.apache.commons.io.IOUtils;
 
+import com.synopsys.integration.blackduck.installer.dockerswarm.configfile.model.CustomYamlFile;
+import com.synopsys.integration.blackduck.installer.dockerswarm.configfile.model.CustomYamlLine;
+import com.synopsys.integration.blackduck.installer.dockerswarm.configfile.model.DockerGlobalSecret;
+import com.synopsys.integration.blackduck.installer.dockerswarm.configfile.model.Section;
+import com.synopsys.integration.blackduck.installer.dockerswarm.configfile.model.ServiceEnvironmentSection;
+import com.synopsys.integration.blackduck.installer.dockerswarm.configfile.model.ServiceSecretsSection;
 import com.synopsys.integration.blackduck.installer.dockerswarm.edit.ConfigFile;
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.DefaultSection;
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.DockerGlobalSecret;
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.ServiceEnvironmentSection;
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.ServiceSecretsSection;
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.YamlFile;
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.YamlLine;
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.YamlSection;
 import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
 
-public class YamlParser {
+public class FileParser {
     private static final Set<String> DOCKER_RESERVED_KEYS = Set.of(
         "constraints", "deploy", "environment", "external", "limits", "mode", "name", "placement", "replicas", "reservations", "resources",
         "secrets", "services", "source", "target", "version");
     private String stackName;
     private String stackReplacementToken;
 
-    public YamlParser(String stackName, String stackReplacementToken) {
+    public FileParser(String stackName, String stackReplacementToken) {
         this.stackName = stackName;
         this.stackReplacementToken = stackReplacementToken;
     }
 
-    protected YamlFile createYamlFileModel(List<String> lines) {
-        YamlFile yamlFile = new YamlFile();
+    protected CustomYamlFile createYamlFileModel(List<String> lines) {
+        CustomYamlFile yamlFile = new CustomYamlFile();
 
         boolean inServices = false;
         boolean inGlobalSecrets = false;
         boolean inServiceSecrets = false;
         DockerGlobalSecret currentGlobalSecret = null;
-        YamlSection currentSection = null;
-        YamlSection currentService = null;
-        YamlSection servicesSection = null;
+        Section currentSection = null;
+        Section currentService = null;
+        Section servicesSection = null;
 
         int count = lines.size();
         for (int index = 0; index < count; index++) {
             String line = lines.get(index);
-            boolean isCommented = YamlLine.isCommented(line);
-            YamlLine yamlLine = YamlLine.create(isCommented, index, line);
-            yamlFile.addLine(yamlLine);
+            boolean isCommented = CustomYamlLine.isCommented(line);
+            CustomYamlLine customYamlLine = CustomYamlLine.create(isCommented, index, line);
+            yamlFile.addLine(customYamlLine);
             if (line.contains("services:")) {
                 inServices = true;
                 inGlobalSecrets = false;
-                currentSection = new DefaultSection("services", yamlLine);
+                currentSection = new Section("services", customYamlLine);
                 yamlFile.addModifiableSection(currentSection);
                 servicesSection = currentSection;
             } else if (inServices) {
@@ -85,22 +84,22 @@ public class YamlParser {
                     inGlobalSecrets = true;
                     inServices = false;
                     inServiceSecrets = false;
-                    yamlFile.createGlobalSecrets(yamlLine);
+                    yamlFile.createGlobalSecrets(customYamlLine);
                 } else if (processingSection && line.trim().contains("environment:")) {
                     inServiceSecrets = false;
-                    DefaultSection environmentSection = new ServiceEnvironmentSection("environment", yamlLine);
-                    environmentSection.setIndentation(DefaultSection.SERVICE_SUB_SECTION_INDENTATION);
+                    Section environmentSection = new ServiceEnvironmentSection("environment", customYamlLine);
+                    environmentSection.setIndentation(Section.SERVICE_SUB_SECTION_INDENTATION);
                     currentService.addSubSection(environmentSection);
                     currentSection = environmentSection;
                 } else if (processingSection && line.trim().contains("secrets:")) {
                     inServiceSecrets = true;
-                    DefaultSection secretsSection = new ServiceSecretsSection("secrets", yamlLine);
-                    secretsSection.setIndentation(DefaultSection.SERVICE_SUB_SECTION_INDENTATION);
+                    Section secretsSection = new ServiceSecretsSection("secrets", customYamlLine);
+                    secretsSection.setIndentation(Section.SERVICE_SUB_SECTION_INDENTATION);
                     currentService.addSubSection(secretsSection);
                     currentSection = secretsSection;
                 } else if (sectionKey.isPresent()) {
-                    DefaultSection newSection = new DefaultSection(sectionKey.get(), yamlLine);
-                    newSection.setIndentation(DefaultSection.SERVICE_SECTION_INDENTATION);
+                    Section newSection = new Section(sectionKey.get(), customYamlLine);
+                    newSection.setIndentation(Section.SERVICE_SECTION_INDENTATION);
                     if (processingSection) {
                         servicesSection.addSubSection(newSection);
                     }
@@ -108,15 +107,15 @@ public class YamlParser {
                     currentSection = newSection;
                     currentService = newSection;
                 } else {
-                    currentSection.addLine(yamlLine);
+                    currentSection.addLine(customYamlLine);
                 }
             } else if (inGlobalSecrets) {
                 if (line.trim().contains("external:")) {
-                    currentGlobalSecret.applyExternal(yamlLine);
+                    currentGlobalSecret.applyExternal(customYamlLine);
                 } else if (line.trim().contains("name:")) {
-                    currentGlobalSecret.applyName(yamlLine, stackReplacementToken);
+                    currentGlobalSecret.applyName(customYamlLine, stackReplacementToken);
                 } else {
-                    currentGlobalSecret = DockerGlobalSecret.of(getStackName(), yamlLine);
+                    currentGlobalSecret = DockerGlobalSecret.of(getStackName(), customYamlLine);
                     yamlFile.addDockerSecret(currentGlobalSecret);
                 }
             }
@@ -130,18 +129,18 @@ public class YamlParser {
             int colonIndex = line.indexOf(":");
             String potentialServiceName = line.substring(0, colonIndex);
             if (isCommented) {
-                potentialServiceName = potentialServiceName.replaceFirst(YamlLine.YAML_COMMENT_REGEX, "");
+                potentialServiceName = potentialServiceName.replaceFirst(CustomYamlLine.YAML_COMMENT_REGEX, "");
             }
             potentialServiceName = potentialServiceName.trim();
 
-            if (!YamlLine.isCommented(potentialServiceName) && !potentialServiceName.startsWith("-") && !DOCKER_RESERVED_KEYS.contains(potentialServiceName)) {
+            if (!CustomYamlLine.isCommented(potentialServiceName) && !potentialServiceName.startsWith("-") && !DOCKER_RESERVED_KEYS.contains(potentialServiceName)) {
                 return Optional.ofNullable(potentialServiceName);
             }
         }
         return Optional.empty();
     }
 
-    public YamlFile parse(ConfigFile configFile) throws BlackDuckInstallerException {
+    public CustomYamlFile parse(ConfigFile configFile) throws BlackDuckInstallerException {
         try (InputStream inputStream = new FileInputStream(configFile.getOriginalCopy())) {
             List<String> lines = IOUtils.readLines(inputStream, StandardCharsets.UTF_8);
             return createYamlFileModel(lines);

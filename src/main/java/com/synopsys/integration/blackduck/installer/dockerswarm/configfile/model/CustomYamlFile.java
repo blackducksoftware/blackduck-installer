@@ -20,7 +20,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model;
+package com.synopsys.integration.blackduck.installer.dockerswarm.configfile.model;
 
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -29,24 +29,24 @@ import java.util.Map;
 import java.util.Optional;
 
 // This is a mutable representation of the yaml files.
-public class YamlFile {
-    private List<YamlLine> allLines = new LinkedList<>();
-    private Map<String, YamlSection> modifiableSections = new LinkedHashMap<>();
-    private GlobalSecrets globalSecrets = new GlobalSecrets(YamlLine.create(-1, "#secrets:"));
+public class CustomYamlFile {
+    private List<CustomYamlLine> allLines = new LinkedList<>();
+    private Map<String, Section> modifiableSections = new LinkedHashMap<>();
+    private GlobalSecrets globalSecrets = new GlobalSecrets(CustomYamlLine.create(-1, "#secrets:"));
 
-    public void createGlobalSecrets(YamlLine line) {
+    public void createGlobalSecrets(CustomYamlLine line) {
         globalSecrets = new GlobalSecrets(line);
     }
 
-    public void addLine(YamlLine line) {
+    public void addLine(CustomYamlLine line) {
         allLines.add(line);
     }
 
-    public void addLine(int index, YamlLine line) {
+    public void addLine(int index, CustomYamlLine line) {
         allLines.add(index, line);
     }
 
-    public List<YamlLine> getAllLines() {
+    public List<CustomYamlLine> getAllLines() {
         return allLines;
     }
 
@@ -58,11 +58,11 @@ public class YamlFile {
         return globalSecrets;
     }
 
-    public void addModifiableSection(YamlSection yamlSection) {
+    public void addModifiableSection(Section yamlSection) {
         modifiableSections.put(yamlSection.getKey(), yamlSection);
     }
 
-    public Optional<YamlSection> getModifiableSection(String sectionKey) {
+    public Optional<Section> getModifiableSection(String sectionKey) {
         return Optional.ofNullable(modifiableSections.get(sectionKey));
     }
 }

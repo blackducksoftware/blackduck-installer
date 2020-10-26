@@ -20,21 +20,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model;
+package com.synopsys.integration.blackduck.installer.dockerswarm.configfile.model;
 
 import org.apache.commons.lang3.StringUtils;
 
-public class ServiceSecretLine implements YamlTextLine {
+public class ServiceSecretLine implements CustomYamlTextLine {
     private String key;
-    private YamlLine yamlLine;
+    private CustomYamlLine customYamlLine;
 
-    private ServiceSecretLine(String key, YamlLine yamlLine) {
+    private ServiceSecretLine(String key, CustomYamlLine customYamlLine) {
         this.key = key;
-        this.yamlLine = yamlLine;
+        this.customYamlLine = customYamlLine;
     }
 
-    public static ServiceSecretLine of(YamlLine line) {
-        boolean commented = YamlLine.isCommented(line.getFormattedText());
+    public static ServiceSecretLine of(CustomYamlLine line) {
+        boolean commented = CustomYamlLine.isCommented(line.getFormattedText());
         if (commented) {
             line.comment();
         } else {
@@ -56,23 +56,23 @@ public class ServiceSecretLine implements YamlTextLine {
         return secretLine;
     }
 
-    public YamlLine getYamlLine() {
-        return yamlLine;
+    public CustomYamlLine getYamlLine() {
+        return customYamlLine;
     }
 
     @Override
     public boolean isCommented() {
-        return yamlLine.isCommented();
+        return customYamlLine.isCommented();
     }
 
     @Override
     public void comment() {
-        yamlLine.comment();
+        customYamlLine.comment();
     }
 
     @Override
     public void uncomment() {
-        yamlLine.uncomment();
+        customYamlLine.uncomment();
     }
 
     public boolean hasKey() {

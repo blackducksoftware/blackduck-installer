@@ -20,16 +20,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model;
+package com.synopsys.integration.blackduck.installer.dockerswarm.configfile.model;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-public class ServiceSecretsSection extends DefaultSection {
+public class ServiceSecretsSection extends Section {
     private Map<String, ServiceSecretLine> secrets;
 
-    public ServiceSecretsSection(String key, YamlLine line) {
+    public ServiceSecretsSection(String key, CustomYamlLine line) {
         super(key, line);
         secrets = new HashMap<>();
     }
@@ -39,11 +39,19 @@ public class ServiceSecretsSection extends DefaultSection {
     }
 
     @Override
-    public void addLine(YamlLine yamlLine) {
-        ServiceSecretLine secretLine = ServiceSecretLine.of(yamlLine);
+    public void addLine(CustomYamlLine customYamlLine) {
+        ServiceSecretLine secretLine = ServiceSecretLine.of(customYamlLine);
         if (secretLine.hasKey()) {
             secrets.put(secretLine.getKey(), secretLine);
         }
-        super.addLine(yamlLine);
+        super.addLine(customYamlLine);
+    }
+
+    public void commentIfPresent(String key) {
+        getSecret(key).ifPresent(CustomYamlTextLine::comment);
+    }
+
+    public void uncommentIfPresent(String key) {
+        getSecret(key).ifPresent(CustomYamlTextLine::uncomment);
     }
 }

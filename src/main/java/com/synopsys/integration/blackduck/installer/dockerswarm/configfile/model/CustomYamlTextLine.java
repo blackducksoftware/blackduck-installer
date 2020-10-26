@@ -20,21 +20,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.synopsys.integration.blackduck.installer.dockerswarm.yaml.output;
+package com.synopsys.integration.blackduck.installer.dockerswarm.configfile.model;
 
-import java.io.IOException;
-import java.io.Writer;
+public interface CustomYamlTextLine {
+    boolean isCommented();
 
-public class YamlWriter {
-    private final Writer writer;
-    private final String lineSeparator;
+    void comment();
 
-    public YamlWriter(final Writer writer, final String lineSeparator) {
-        this.writer = writer;
-        this.lineSeparator = lineSeparator;
-    }
-
-    public void writeLine(String line) throws IOException {
-        writer.write(line + lineSeparator);
-    }
+    void uncomment();
 }

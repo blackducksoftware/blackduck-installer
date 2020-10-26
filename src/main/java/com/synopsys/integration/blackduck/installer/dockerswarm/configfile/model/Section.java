@@ -20,7 +20,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model;
+package com.synopsys.integration.blackduck.installer.dockerswarm.configfile.model;
 
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -28,17 +28,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-public class DefaultSection extends YamlSection {
+public class Section implements CustomYamlBlock, CustomYamlTextLine {
     public static final String SERVICE_SECTION_INDENTATION = "  ";
     public static final String SERVICE_SUB_SECTION_INDENTATION = "    ";
-    private List<YamlLine> lines;
-    private Map<String, YamlSection> subSections;
+    private List<CustomYamlLine> lines;
+    private Map<String, Section> subSections;
     private String key;
-    private YamlLine sectionLine;
+    private CustomYamlLine sectionLine;
     private int startLine;
     private String indentation;
 
-    public DefaultSection(String key, YamlLine line) {
+    public Section(String key, CustomYamlLine line) {
         this.key = key;
         this.lines = new LinkedList<>();
         this.subSections = new LinkedHashMap<>();
@@ -47,44 +47,36 @@ public class DefaultSection extends YamlSection {
         this.indentation = "";
     }
 
-    @Override
     public String getIndentation() {
         return indentation;
     }
 
-    @Override
     public void setIndentation(final String indentation) {
         this.indentation = indentation;
     }
 
-    @Override
     public String getKey() {
         return key;
     }
 
-    @Override
     public int getStartLine() {
         return startLine;
     }
 
-    @Override
-    public void addSubSection(YamlSection subSection) {
+    public void addSubSection(Section subSection) {
         subSections.put(subSection.getKey(), subSection);
     }
 
-    @Override
-    public <T extends YamlSection> Optional<T> getSubSection(String subSectionKey) {
+    public <T extends Section> Optional<T> getSubSection(String subSectionKey) {
         return Optional.ofNullable((T) subSections.get(subSectionKey));
     }
 
-    @Override
-    public void addLine(YamlLine yamlLine) {
-        lines.add(yamlLine);
+    public void addLine(CustomYamlLine customYamlLine) {
+        lines.add(customYamlLine);
     }
 
-    @Override
-    public void addLine(int index, YamlLine yamlLine) {
-        lines.add(index, yamlLine);
+    public void addLine(int index, CustomYamlLine customYamlLine) {
+        lines.add(index, customYamlLine);
     }
 
     @Override
@@ -100,36 +92,36 @@ public class DefaultSection extends YamlSection {
     @Override
     public void comment() {
         sectionLine.comment();
-        YamlLine.fixLineIndentation(sectionLine, getIndentation());
+        CustomYamlLine.fixLineIndentation(sectionLine, getIndentation());
     }
 
     @Override
     public void uncomment() {
         sectionLine.uncomment();
-        YamlLine.fixLineIndentation(sectionLine, getIndentation());
+        CustomYamlLine.fixLineIndentation(sectionLine, getIndentation());
     }
 
     @Override
     public boolean isBlockCommented() {
         return lines.stream()
-                   .allMatch(YamlLine::isCommented);
+                   .allMatch(CustomYamlLine::isCommented);
     }
 
     @Override
     public void commentBlock() {
         sectionLine.comment();
         subSections.values().stream()
-            .forEach(YamlSection::commentBlock);
+            .forEach(Section::commentBlock);
         lines.stream()
-            .forEach(YamlLine::comment);
+            .forEach(CustomYamlLine::comment);
     }
 
     @Override
     public void uncommentBlock() {
         sectionLine.uncomment();
         subSections.values().stream()
-            .forEach(YamlSection::uncommentBlock);
+            .forEach(Section::uncommentBlock);
         lines.stream()
-            .forEach(YamlLine::uncomment);
+            .forEach(CustomYamlLine::uncomment);
     }
 }

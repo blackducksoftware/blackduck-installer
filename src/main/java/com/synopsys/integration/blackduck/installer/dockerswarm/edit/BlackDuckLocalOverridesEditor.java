@@ -23,21 +23,18 @@
 package com.synopsys.integration.blackduck.installer.dockerswarm.edit;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.Optional;
 import java.util.Set;
 
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.GlobalSecrets;
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.ServiceSecretsSection;
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.YamlBlock;
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.YamlFile;
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.YamlSection;
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.YamlTextLine;
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.output.YamlFileWriter;
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.output.YamlWriter;
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.parser.YamlParser;
+import com.synopsys.integration.blackduck.installer.dockerswarm.configfile.model.CustomYamlFile;
+import com.synopsys.integration.blackduck.installer.dockerswarm.configfile.model.GlobalSecrets;
+import com.synopsys.integration.blackduck.installer.dockerswarm.configfile.model.Section;
+import com.synopsys.integration.blackduck.installer.dockerswarm.configfile.model.ServiceSecretsSection;
+import com.synopsys.integration.blackduck.installer.dockerswarm.configfile.output.FileWriter;
+import com.synopsys.integration.blackduck.installer.dockerswarm.configfile.output.LineWriter;
+import com.synopsys.integration.blackduck.installer.dockerswarm.configfile.parser.FileParser;
 import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
 import com.synopsys.integration.blackduck.installer.hash.HashUtility;
 import com.synopsys.integration.blackduck.installer.hash.PreComputedHashes;
@@ -47,7 +44,7 @@ import com.synopsys.integration.log.IntLogger;
 public class BlackDuckLocalOverridesEditor extends ConfigFileEditor {
     private final String stackName;
     private final boolean shouldEditFile;
-    private YamlParser yamlParser;
+    private FileParser fileParser;
     private CustomCertificate customCertificate;
 
     public BlackDuckLocalOverridesEditor(IntLogger logger, HashUtility hashUtility, String lineSeparator, String stackName, boolean useLocalOverrides, CustomCertificate customCertificate) {
@@ -55,7 +52,7 @@ public class BlackDuckLocalOverridesEditor extends ConfigFileEditor {
 
         this.stackName = stackName;
         shouldEditFile = useLocalOverrides;
-        yamlParser = new YamlParser(stackName, "hub_");
+        fileParser = new FileParser(stackName, "hub_");
         this.customCertificate = customCertificate;
     }
 
@@ -73,25 +70,25 @@ public class BlackDuckLocalOverridesEditor extends ConfigFileEditor {
         if (!shouldEditFile)
             return;
 
-        YamlFile yamlFileModel = yamlParser.parse(configFile);
+        CustomYamlFile yamlFileModel = fileParser.parse(configFile);
         updateValues(yamlFileModel);
-        try (Writer writer = new FileWriter(configFile.getFileToEdit())) {
-            YamlWriter yamlWriter = new YamlWriter(writer, lineSeparator);
-            YamlFileWriter.write(yamlWriter, yamlFileModel);
+        try (Writer writer = new java.io.FileWriter(configFile.getFileToEdit())) {
+            LineWriter lineWriter = new LineWriter(writer, lineSeparator);
+            FileWriter.write(lineWriter, yamlFileModel);
         } catch (IOException e) {
             throw new BlackDuckInstallerException("Error editing local overrides: " + e.getMessage());
         }
     }
 
-    private void updateValues(YamlFile parsedFile) throws BlackDuckInstallerException {
+    private void updateValues(CustomYamlFile parsedFile) throws BlackDuckInstallerException {
 
-        Optional<YamlSection> webServerSection = parsedFile.getModifiableSection("services")
-                                                     .flatMap(servicesSection -> servicesSection.getSubSection("webserver"));
+        Optional<Section> webServerSection = parsedFile.getModifiableSection("services")
+                                                 .flatMap(servicesSection -> servicesSection.getSubSection("webserver"));
         if (webServerSection.isEmpty()) {
             throw new BlackDuckInstallerException("webserver service missing from overrides file.");
         }
 
-        YamlSection webserver = webServerSection.get();
+        Section webserver = webServerSection.get();
         Optional<ServiceSecretsSection> webserverSecretsSection = webserver.getSubSection("secrets");
         GlobalSecrets globalSecrets = parsedFile.getGlobalSecrets();
         // exit if we don't have the section we need. Write the file content as is.
@@ -104,11 +101,11 @@ public class BlackDuckLocalOverridesEditor extends ConfigFileEditor {
         if (!customCertificate.isEmpty()) {
             webserver.uncomment();
             webServerSecrets.uncomment();
-            webServerSecrets.getSecret("WEBSERVER_CUSTOM_CERT_FILE").ifPresent(YamlTextLine::uncomment);
-            webServerSecrets.getSecret("WEBSERVER_CUSTOM_KEY_FILE").ifPresent(YamlTextLine::uncomment);
+            webServerSecrets.uncommentIfPresent("WEBSERVER_CUSTOM_CERT_FILE");
+            webServerSecrets.uncommentIfPresent("WEBSERVER_CUSTOM_KEY_FILE");
             globalSecrets.uncomment();
-            globalSecrets.getSecret("WEBSERVER_CUSTOM_CERT_FILE").ifPresent(YamlBlock::uncommentBlock);
-            globalSecrets.getSecret("WEBSERVER_CUSTOM_KEY_FILE").ifPresent(YamlBlock::uncommentBlock);
+            globalSecrets.uncommentIfPresent("WEBSERVER_CUSTOM_CERT_FILE");
+            globalSecrets.uncommentIfPresent("WEBSERVER_CUSTOM_KEY_FILE");
         }
     }
 }

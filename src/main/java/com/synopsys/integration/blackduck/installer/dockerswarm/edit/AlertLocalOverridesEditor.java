@@ -23,7 +23,6 @@
 package com.synopsys.integration.blackduck.installer.dockerswarm.edit;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.Optional;
@@ -33,17 +32,15 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.GlobalSecrets;
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.ServiceEnvironmentLine;
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.ServiceEnvironmentSection;
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.ServiceSecretsSection;
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.YamlBlock;
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.YamlFile;
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.YamlSection;
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model.YamlTextLine;
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.output.YamlFileWriter;
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.output.YamlWriter;
-import com.synopsys.integration.blackduck.installer.dockerswarm.yaml.parser.YamlParser;
+import com.synopsys.integration.blackduck.installer.dockerswarm.configfile.model.CustomYamlFile;
+import com.synopsys.integration.blackduck.installer.dockerswarm.configfile.model.GlobalSecrets;
+import com.synopsys.integration.blackduck.installer.dockerswarm.configfile.model.Section;
+import com.synopsys.integration.blackduck.installer.dockerswarm.configfile.model.ServiceEnvironmentLine;
+import com.synopsys.integration.blackduck.installer.dockerswarm.configfile.model.ServiceEnvironmentSection;
+import com.synopsys.integration.blackduck.installer.dockerswarm.configfile.model.ServiceSecretsSection;
+import com.synopsys.integration.blackduck.installer.dockerswarm.configfile.output.FileWriter;
+import com.synopsys.integration.blackduck.installer.dockerswarm.configfile.output.LineWriter;
+import com.synopsys.integration.blackduck.installer.dockerswarm.configfile.parser.FileParser;
 import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
 import com.synopsys.integration.blackduck.installer.hash.HashUtility;
 import com.synopsys.integration.blackduck.installer.hash.PreComputedHashes;
@@ -61,7 +58,7 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
     private final AlertBlackDuckInstallOptions alertBlackDuckInstallOptions;
     private final boolean shouldEditFile;
     private final AlertDatabase alertDatabase;
-    private final YamlParser yamlParser;
+    private final FileParser fileParser;
     private Logger logger = LoggerFactory.getLogger(AlertLocalOverridesEditor.class);
 
     public AlertLocalOverridesEditor(IntLogger logger, HashUtility hashUtility, String lineSeparator, String stackName, String webServerHost, String alertAdminEmail, AlertEncryption alertEncryption, CustomCertificate customCertificate,
@@ -75,7 +72,7 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
         this.alertBlackDuckInstallOptions = alertBlackDuckInstallOptions;
         shouldEditFile = useLocalOverrides;
         this.alertDatabase = alertDatabase;
-        this.yamlParser = new YamlParser(stackName, "<STACK_NAME>_");
+        this.fileParser = new FileParser(stackName, "<STACK_NAME>_");
     }
 
     public String getFilename() {
@@ -93,30 +90,30 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
         if (!shouldEditFile)
             return;
 
-        YamlFile yamlFileModel = yamlParser.parse(configFile);
+        CustomYamlFile yamlFileModel = fileParser.parse(configFile);
         updateValues(yamlFileModel);
-        try (Writer writer = new FileWriter(configFile.getFileToEdit())) {
-            YamlWriter yamlWriter = new YamlWriter(writer, lineSeparator);
-            YamlFileWriter.write(yamlWriter, yamlFileModel);
+        try (Writer writer = new java.io.FileWriter(configFile.getFileToEdit())) {
+            LineWriter lineWriter = new LineWriter(writer, lineSeparator);
+            FileWriter.write(lineWriter, yamlFileModel);
         } catch (IOException e) {
             throw new BlackDuckInstallerException("Error editing local overrides: " + e.getMessage());
         }
     }
 
-    private void updateValues(YamlFile parsedFile) {
+    private void updateValues(CustomYamlFile parsedFile) {
         updateAlertDbServiceValues(parsedFile);
         updateAlertServiceValues(parsedFile);
     }
 
-    private void updateAlertDbServiceValues(YamlFile parsedFile) {
-        Optional<YamlSection> alertDbSection = parsedFile.getModifiableSection("services")
-                                                   .flatMap(servicesSection -> servicesSection.getSubSection("alertdb"));
+    private void updateAlertDbServiceValues(CustomYamlFile parsedFile) {
+        Optional<Section> alertDbSection = parsedFile.getModifiableSection("services")
+                                               .flatMap(servicesSection -> servicesSection.getSubSection("alertdb"));
         if (alertDbSection.isEmpty()) {
             logger.error("alertdb service missing from overrides file.");
             return;
         }
 
-        YamlSection alertDb = alertDbSection.get();
+        Section alertDb = alertDbSection.get();
         if (alertDatabase.isExternal()) {
             alertDb.commentBlock();
             return;
@@ -148,10 +145,10 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
 
         if (alertDatabase.hasSecrets()) {
             alertDbSecrets.uncomment();
-            alertDbEnvironment.getVariableLine("POSTGRES_USER").ifPresent(YamlTextLine::comment);
-            alertDbEnvironment.getVariableLine("POSTGRES_PASSWORD").ifPresent(YamlTextLine::comment);
-            alertDbEnvironment.getVariableLine("POSTGRES_USER_FILE").ifPresent(YamlTextLine::uncomment);
-            alertDbEnvironment.getVariableLine("POSTGRES_PASSWORD_FILE").ifPresent(YamlTextLine::uncomment);
+            alertDbEnvironment.commentIfPresent("POSTGRES_USER");
+            alertDbEnvironment.commentIfPresent("POSTGRES_PASSWORD");
+            alertDbEnvironment.uncommentIfPresent("POSTGRES_USER_FILE");
+            alertDbEnvironment.uncommentIfPresent("POSTGRES_PASSWORD_FILE");
             enableDatabaseSecrets(alertDbSecrets, parsedFile.getGlobalSecrets());
 
         } else {
@@ -168,14 +165,14 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
         }
     }
 
-    private void updateAlertServiceValues(YamlFile parsedFile) {
-        Optional<YamlSection> alertSection = parsedFile.getModifiableSection("services")
-                                                 .flatMap(servicesSection -> servicesSection.getSubSection("alert"));
+    private void updateAlertServiceValues(CustomYamlFile parsedFile) {
+        Optional<Section> alertSection = parsedFile.getModifiableSection("services")
+                                             .flatMap(servicesSection -> servicesSection.getSubSection("alert"));
         if (alertSection.isEmpty()) {
             logger.error("alert service missing from overrides file.");
             return;
         }
-        YamlSection alert = alertSection.get();
+        Section alert = alertSection.get();
         Optional<ServiceEnvironmentSection> alertEnvironmentSection = alert.getSubSection("environment");
         Optional<ServiceSecretsSection> alertSecretsSection = alert.getSubSection("secrets");
         GlobalSecrets globalSecrets = parsedFile.getGlobalSecrets();
@@ -214,8 +211,8 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
         }
 
         if (alertDatabase.isExternal()) {
-            alertEnvironment.getVariableLine("ALERT_DB_HOST").ifPresent(YamlTextLine::uncomment);
-            alertEnvironment.getVariableLine("ALERT_DB_PORT").ifPresent(YamlTextLine::uncomment);
+            alertEnvironment.uncommentIfPresent("ALERT_DB_HOST");
+            alertEnvironment.uncommentIfPresent("ALERT_DB_PORT");
             alertEnvironment.setEnvironmentVariableValue("ALERT_DB_HOST", alertDatabase.getExternalHost());
             alertEnvironment.setEnvironmentVariableValue("ALERT_DB_PORT", alertDatabase.getExternalPort());
         }
@@ -239,23 +236,23 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
 
         //secrets
         if (!alertEncryption.isEmpty()) {
-            alertSecrets.getSecret("ALERT_ENCRYPTION_PASSWORD").ifPresent(YamlTextLine::uncomment);
-            alertSecrets.getSecret("ALERT_ENCRYPTION_GLOBAL_SALT").ifPresent(YamlTextLine::uncomment);
+            alertSecrets.uncommentIfPresent("ALERT_ENCRYPTION_PASSWORD");
+            alertSecrets.uncommentIfPresent("ALERT_ENCRYPTION_GLOBAL_SALT");
             globalSecrets.uncomment();
-            globalSecrets.getSecret("ALERT_ENCRYPTION_PASSWORD").ifPresent(YamlBlock::uncommentBlock);
-            globalSecrets.getSecret("ALERT_ENCRYPTION_GLOBAL_SALT").ifPresent(YamlBlock::uncommentBlock);
+            globalSecrets.uncommentIfPresent("ALERT_ENCRYPTION_PASSWORD");
+            globalSecrets.uncommentIfPresent("ALERT_ENCRYPTION_GLOBAL_SALT");
         }
 
         if (!customCertificate.isEmpty()) {
-            alertSecrets.getSecret("WEBSERVER_CUSTOM_CERT_FILE").ifPresent(YamlTextLine::uncomment);
-            alertSecrets.getSecret("WEBSERVER_CUSTOM_KEY_FILE").ifPresent(YamlTextLine::uncomment);
+            alertSecrets.uncommentIfPresent("WEBSERVER_CUSTOM_CERT_FILE");
+            alertSecrets.uncommentIfPresent("WEBSERVER_CUSTOM_KEY_FILE");
             globalSecrets.uncomment();
-            globalSecrets.getSecret("WEBSERVER_CUSTOM_CERT_FILE").ifPresent(YamlBlock::uncommentBlock);
-            globalSecrets.getSecret("WEBSERVER_CUSTOM_KEY_FILE").ifPresent(YamlBlock::uncommentBlock);
+            globalSecrets.uncommentIfPresent("WEBSERVER_CUSTOM_CERT_FILE");
+            globalSecrets.uncommentIfPresent("WEBSERVER_CUSTOM_KEY_FILE");
         }
     }
 
-    private void addEnvironmentVariable(YamlFile yamlFile, ServiceEnvironmentSection environmentSection, int offsetFromBeginning, String key) {
+    private void addEnvironmentVariable(CustomYamlFile yamlFile, ServiceEnvironmentSection environmentSection, int offsetFromBeginning, String key) {
         ServiceEnvironmentLine newVariable = ServiceEnvironmentLine.newEnvironmentLine(-1, key);
         int enivronmentStart = environmentSection.getStartLine();
         environmentSection.addLine(offsetFromBeginning, newVariable.getYamlLine());
@@ -263,10 +260,10 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
     }
 
     private void enableDatabaseSecrets(ServiceSecretsSection secrets, GlobalSecrets globalSecrets) {
-        secrets.getSecret("ALERT_DB_USERNAME").ifPresent(YamlTextLine::uncomment);
-        secrets.getSecret("ALERT_DB_PASSWORD").ifPresent(YamlTextLine::uncomment);
+        secrets.uncommentIfPresent("ALERT_DB_USERNAME");
+        secrets.uncommentIfPresent("ALERT_DB_PASSWORD");
         globalSecrets.uncomment();
-        globalSecrets.getSecret("ALERT_DB_USERNAME").ifPresent(YamlBlock::uncommentBlock);
-        globalSecrets.getSecret("ALERT_DB_PASSWORD").ifPresent(YamlBlock::uncommentBlock);
+        globalSecrets.uncommentIfPresent("ALERT_DB_USERNAME");
+        globalSecrets.uncommentIfPresent("ALERT_DB_PASSWORD");
     }
 }

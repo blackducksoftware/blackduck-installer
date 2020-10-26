@@ -20,23 +20,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.synopsys.integration.blackduck.installer.dockerswarm.yaml.model;
+package com.synopsys.integration.blackduck.installer.dockerswarm.configfile.model;
 
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 
-public class GlobalSecrets implements YamlTextLine, YamlBlock {
+public class GlobalSecrets implements CustomYamlTextLine, CustomYamlBlock {
     private Map<String, DockerGlobalSecret> secrets = new LinkedHashMap<>();
-    private YamlLine yamlLine;
+    private CustomYamlLine customYamlLine;
 
-    public GlobalSecrets(final YamlLine yamlLine) {
-        this.yamlLine = yamlLine;
-    }
-
-    public boolean allSecretsCommented() {
-        return !secrets.isEmpty() && secrets.values().stream().allMatch(DockerGlobalSecret::isCommented);
+    public GlobalSecrets(final CustomYamlLine customYamlLine) {
+        this.customYamlLine = customYamlLine;
     }
 
     public void addSecret(DockerGlobalSecret secret) {
@@ -53,36 +49,44 @@ public class GlobalSecrets implements YamlTextLine, YamlBlock {
 
     @Override
     public boolean isCommented() {
-        return yamlLine.isCommented();
+        return customYamlLine.isCommented();
     }
 
     @Override
     public void comment() {
-        yamlLine.comment();
+        customYamlLine.comment();
     }
 
     @Override
     public void uncomment() {
-        yamlLine.uncomment();
+        customYamlLine.uncomment();
     }
 
     @Override
     public void commentBlock() {
-        yamlLine.comment();
+        customYamlLine.comment();
         Collection<DockerGlobalSecret> dockerSecrets = getSecrets();
-        dockerSecrets.forEach(YamlBlock::commentBlock);
+        dockerSecrets.forEach(CustomYamlBlock::commentBlock);
     }
 
     @Override
     public void uncommentBlock() {
-        yamlLine.uncomment();
+        customYamlLine.uncomment();
         Collection<DockerGlobalSecret> dockerSecrets = getSecrets();
-        dockerSecrets.forEach(YamlBlock::commentBlock);
+        dockerSecrets.forEach(CustomYamlBlock::commentBlock);
     }
 
     @Override
     public boolean isBlockCommented() {
         return getSecrets().stream()
                    .allMatch(DockerGlobalSecret::isCommented);
+    }
+
+    public void commentIfPresent(String key) {
+        getSecret(key).ifPresent(CustomYamlBlock::commentBlock);
+    }
+
+    public void uncommentIfPresent(String key) {
+        getSecret(key).ifPresent(CustomYamlBlock::uncommentBlock);
     }
 }
