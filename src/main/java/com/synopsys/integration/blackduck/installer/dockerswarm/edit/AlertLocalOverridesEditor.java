@@ -176,22 +176,22 @@ public class AlertLocalOverridesEditor extends ConfigFileEditor {
             return;
         }
         YamlSection alert = alertSection.get();
-        Optional<ServiceEnvironmentSection> alertDbEnvironmentSection = alert.getSubSection("environment");
-        Optional<ServiceSecretsSection> alertDbSecretsSection = alert.getSubSection("secrets");
+        Optional<ServiceEnvironmentSection> alertEnvironmentSection = alert.getSubSection("environment");
+        Optional<ServiceSecretsSection> alertSecretsSection = alert.getSubSection("secrets");
         GlobalSecrets globalSecrets = parsedFile.getGlobalSecrets();
 
-        if (alertDbEnvironmentSection.isEmpty()) {
+        if (alertEnvironmentSection.isEmpty()) {
             logger.error("alertdb -> environment section missing from overrides file.");
             return;
         }
 
-        if (alertDbSecretsSection.isEmpty()) {
+        if (alertSecretsSection.isEmpty()) {
             logger.error("alertdb -> secrets section missing from overrides file.");
             return;
         }
 
-        ServiceEnvironmentSection alertEnvironment = alertDbEnvironmentSection.get();
-        ServiceSecretsSection alertSecrets = alertDbSecretsSection.get();
+        ServiceEnvironmentSection alertEnvironment = alertEnvironmentSection.get();
+        ServiceSecretsSection alertSecrets = alertSecretsSection.get();
         alertEnvironment.setEnvironmentVariableValue("ALERT_DB_NAME", alertDatabase.getDatabaseName());
 
         boolean hasEnvironmentSettings = StringUtils.isNotBlank(alertAdminEmail) || StringUtils.isNotBlank(webServerHost) || alertDatabase.isExternal() || !alertBlackDuckInstallOptions.isEmpty();
