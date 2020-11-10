@@ -8,5 +8,3 @@
 
 
 # Documentation
-
-All documentation is located on our public [Black Duck Confluence]()

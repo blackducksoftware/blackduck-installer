@@ -22,20 +22,23 @@
  */
 package com.synopsys.integration.blackduck.installer;
 
+import com.synopsys.integration.blackduck.installer.dockerswarm.install.AlertBlackDuckInstallOptionsBuilder;
 import com.synopsys.integration.blackduck.installer.model.AlertBlackDuckInstallOptions;
+import com.synopsys.integration.blackduck.installer.model.AlertDatabase;
 import com.synopsys.integration.blackduck.installer.model.AlertEncryption;
 import com.synopsys.integration.blackduck.installer.model.DockerService;
-import com.synopsys.integration.blackduck.installer.dockerswarm.install.AlertBlackDuckInstallOptionsBuilder;
 
 public class DeployAlertProperties {
     private final DockerService alertService;
     private final AlertBlackDuckInstallOptionsBuilder alertBlackDuckInstallOptionsBuilder;
     private final AlertEncryption alertEncryption;
+    private final AlertDatabase alertDatabase;
 
-    public DeployAlertProperties(DockerService alertService, AlertBlackDuckInstallOptionsBuilder alertBlackDuckInstallOptionsBuilder, AlertEncryption alertEncryption) {
+    public DeployAlertProperties(DockerService alertService, AlertBlackDuckInstallOptionsBuilder alertBlackDuckInstallOptionsBuilder, AlertEncryption alertEncryption, AlertDatabase alertDatabase) {
         this.alertService = alertService;
         this.alertBlackDuckInstallOptionsBuilder = alertBlackDuckInstallOptionsBuilder;
         this.alertEncryption = alertEncryption;
+        this.alertDatabase = alertDatabase;
     }
 
     public DockerService getAlertService() {
@@ -54,4 +57,7 @@ public class DeployAlertProperties {
         return alertEncryption;
     }
 
+    public AlertDatabase getAlertDatabase() {
+        return alertDatabase;
+    }
 }

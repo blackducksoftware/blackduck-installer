@@ -1,11 +1,12 @@
 package com.synopsys.integration.blackduck.installer.model;
 
-import com.google.gson.Gson;
+import java.io.File;
+import java.io.IOException;
+
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import java.io.File;
-import java.io.IOException;
+import com.google.gson.Gson;
 
 public class ConfigPropertiesLoaderTest {
     @Test
@@ -13,7 +14,7 @@ public class ConfigPropertiesLoaderTest {
         Gson gson = new Gson();
         ConfigPropertiesLoader configPropertiesLoader = new ConfigPropertiesLoader(gson);
 
-        File propertiesFile = new File(getClass().getClassLoader().getResource("blackDuckConfigEnvProperties.json").getFile());
+        File propertiesFile = new File(getClass().getClassLoader().getResource("blackduck/blackDuckConfigEnvProperties.json").getFile());
         LoadedConfigProperties loadedConfigProperties = configPropertiesLoader.loadPropertiesFromFile(propertiesFile);
 
         Assertions.assertNotNull(loadedConfigProperties);
