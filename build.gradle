@@ -29,7 +29,7 @@ artifactory {
 }
 
 dependencies {
-    implementation 'com.blackducksoftware.integration:blackduck-common:50.0.3'
+    implementation 'com.blackducksoftware.integration:blackduck-common:50.3.0'
 
     implementation 'org.springframework.boot:spring-boot-starter'
 
