@@ -1,19 +1,14 @@
 buildscript {
-    repositories {
-        mavenCentral()
-        maven { url 'https://plugins.gradle.org/m2/' }
-    }
-    dependencies { classpath 'com.synopsys.integration:common-gradle-plugin:1.7.0' }
+    apply from: 'https://raw.githubusercontent.com/blackducksoftware/integration-resources/master/gradle_common/buildscript-repositories.gradle', to: buildscript
+    apply from: 'https://raw.githubusercontent.com/blackducksoftware/integration-resources/master/gradle_common/buildscript-dependencies.gradle', to: buildscript
 }
 
 plugins {
     id 'org.springframework.boot' version '2.2.0.RELEASE'
     id 'io.spring.dependency-management' version '1.0.8.RELEASE'
-    id "io.freefair.lombok" version "4.1.6"
 }
 
-group = 'com.synopsys.integration'
-version = '0.0.5'
+version = '0.0.5-SNAPSHOT'
 project.ext.javaSourceCompatibility = JavaVersion.VERSION_11
 project.ext.javaTargetCompatibility = JavaVersion.VERSION_11
 
@@ -34,10 +29,7 @@ artifactory {
 }
 
 dependencies {
-    implementation 'com.blackducksoftware.integration:blackduck-common:44.4.0'
-
-    //temporary - ejk
-    implementation 'com.blackducksoftware.integration:integration-common:18.1.0'
+    implementation 'com.blackducksoftware.integration:blackduck-common:50.0.3'
 
     implementation 'org.springframework.boot:spring-boot-starter'
 
