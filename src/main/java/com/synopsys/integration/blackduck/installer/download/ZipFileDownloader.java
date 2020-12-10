@@ -22,22 +22,22 @@
  */
 package com.synopsys.integration.blackduck.installer.download;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+
+import org.apache.commons.compress.archivers.ArchiveException;
+
 import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
 import com.synopsys.integration.blackduck.installer.model.ThrowingConsumer;
 import com.synopsys.integration.blackduck.installer.workflow.DownloadUrlDecider;
 import com.synopsys.integration.exception.IntegrationException;
-import com.synopsys.integration.function.ThrowingSupplier;
 import com.synopsys.integration.log.IntLogger;
+import com.synopsys.integration.rest.HttpUrl;
 import com.synopsys.integration.rest.client.IntHttpClient;
 import com.synopsys.integration.rest.request.Request;
-import com.synopsys.integration.rest.request.Response;
+import com.synopsys.integration.rest.response.Response;
 import com.synopsys.integration.util.CommonZipExpander;
-import org.apache.commons.compress.archivers.ArchiveException;
-
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.function.Consumer;
 
 public class ZipFileDownloader {
     private final IntLogger logger;
@@ -72,7 +72,7 @@ public class ZipFileDownloader {
             }
         }
 
-        String downloadUrl = downloadUrlDecider.determineDownloadUrl().orElseThrow(() -> new BlackDuckInstallerException("No download url could be determined - not enough information provided to use github or artifactory."));
+        HttpUrl downloadUrl = downloadUrlDecider.determineDownloadUrl().orElseThrow(() -> new BlackDuckInstallerException("No download url could be determined - not enough information provided to use github or artifactory."));
 
         logger.info("Downloading " + name + " version " + version + " from " + downloadUrl + ".");
         Request downloadRequest = new Request.Builder(downloadUrl).build();
@@ -84,7 +84,7 @@ public class ZipFileDownloader {
             }
 
             logger.info(String.format(name + " downloaded successfully."));
-        } catch (IntegrationException| IOException e) {
+        } catch (IntegrationException | IOException e) {
             throw new BlackDuckInstallerException("Could not download: " + downloadUrl + ". Make sure that the url finder is configured correctly.", e);
         }
 

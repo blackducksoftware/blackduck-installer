@@ -38,8 +38,8 @@ public class StandardCookieSpecHttpClient extends IntHttpClient {
     }
 
     @Override
-    public void populateHttpClientBuilder(HttpClientBuilder httpClientBuilder, RequestConfig.Builder defaultRequestConfigBuilder) {
-        super.populateHttpClientBuilder(httpClientBuilder, defaultRequestConfigBuilder);
+    public void addToHttpClientBuilder(HttpClientBuilder httpClientBuilder, RequestConfig.Builder defaultRequestConfigBuilder) {
+        super.addToHttpClientBuilder(httpClientBuilder, defaultRequestConfigBuilder);
 
         defaultRequestConfigBuilder.setCookieSpec(CookieSpecs.STANDARD);
     }

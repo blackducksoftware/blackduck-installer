@@ -25,15 +25,36 @@ package com.synopsys.integration.blackduck.installer.dockerswarm.install;
 import com.synopsys.integration.blackduck.installer.dockerswarm.output.DockerSecrets;
 import com.synopsys.integration.blackduck.installer.dockerswarm.output.DockerServices;
 import com.synopsys.integration.blackduck.installer.dockerswarm.output.DockerStacks;
-import lombok.Value;
 
 import java.io.File;
 
-@Value
 public class InstallerDockerData {
     private final File installDirectory;
     private final DockerStacks dockerStacks;
     private final DockerSecrets dockerSecrets;
     private final DockerServices dockerServices;
+
+    public InstallerDockerData(File installDirectory, DockerStacks dockerStacks, DockerSecrets dockerSecrets, DockerServices dockerServices) {
+        this.installDirectory = installDirectory;
+        this.dockerStacks = dockerStacks;
+        this.dockerSecrets = dockerSecrets;
+        this.dockerServices = dockerServices;
+    }
+
+    public File getInstallDirectory() {
+        return installDirectory;
+    }
+
+    public DockerStacks getDockerStacks() {
+        return dockerStacks;
+    }
+
+    public DockerSecrets getDockerSecrets() {
+        return dockerSecrets;
+    }
+
+    public DockerServices getDockerServices() {
+        return dockerServices;
+    }
 
 }

@@ -22,28 +22,34 @@
  */
 package com.synopsys.integration.blackduck.installer.configure;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.gson.Gson;
-import com.synopsys.integration.blackduck.api.generated.component.EndUserLicenseAgreementAction;
-import com.synopsys.integration.blackduck.api.generated.component.RegistrationRequest;
-import com.synopsys.integration.blackduck.api.generated.discovery.ApiDiscovery;
-import com.synopsys.integration.blackduck.api.generated.view.RegistrationView;
-import com.synopsys.integration.blackduck.configuration.BlackDuckServerConfig;
-import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
-import com.synopsys.integration.blackduck.installer.exception.IntegrationKeyStoreException;
-import com.synopsys.integration.blackduck.installer.model.BlackDuckConfigurationOptions;
-import com.synopsys.integration.blackduck.rest.BlackDuckHttpClient;
-import com.synopsys.integration.blackduck.service.*;
-import com.synopsys.integration.exception.IntegrationException;
-import com.synopsys.integration.log.IntLogger;
-import org.apache.commons.lang3.StringUtils;
-
-import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.util.Optional;
 
+import org.apache.commons.lang3.StringUtils;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.Gson;
+import com.synopsys.integration.blackduck.api.core.BlackDuckPath;
+import com.synopsys.integration.blackduck.api.generated.discovery.ApiDiscovery;
+import com.synopsys.integration.blackduck.api.generated.view.RegistrationView;
+import com.synopsys.integration.blackduck.api.manual.temporary.component.EndUserLicenseAgreementAction;
+import com.synopsys.integration.blackduck.api.manual.temporary.component.RegistrationRequest;
+import com.synopsys.integration.blackduck.configuration.BlackDuckServerConfig;
+import com.synopsys.integration.blackduck.http.BlackDuckRequestFactory;
+import com.synopsys.integration.blackduck.http.client.BlackDuckHttpClient;
+import com.synopsys.integration.blackduck.http.transform.BlackDuckJsonTransformer;
+import com.synopsys.integration.blackduck.http.transform.BlackDuckResponseTransformer;
+import com.synopsys.integration.blackduck.http.transform.BlackDuckResponsesTransformer;
+import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
+import com.synopsys.integration.blackduck.installer.model.BlackDuckConfigurationOptions;
+import com.synopsys.integration.blackduck.service.BlackDuckApiClient;
+import com.synopsys.integration.blackduck.service.BlackDuckServicesFactory;
+import com.synopsys.integration.exception.IntegrationException;
+import com.synopsys.integration.log.IntLogger;
+
 public class BlackDuckConfigureService {
+    public static final BlackDuckPath ENDUSERLICENSEAGREEMENT_LINK = new BlackDuckPath("/api/enduserlicenseagreement");
     public static final String TOKEN_NAME = "installer_token";
 
     private final IntLogger intLogger;
@@ -63,24 +69,25 @@ public class BlackDuckConfigureService {
         Gson gson = blackDuckServicesFactory.getGson();
         ObjectMapper objectMapper = blackDuckServicesFactory.getObjectMapper();
         BlackDuckHttpClient blackDuckHttpClient = blackDuckServicesFactory.getBlackDuckHttpClient();
-        BlackDuckService blackDuckService = blackDuckServicesFactory.createBlackDuckService();
+        BlackDuckApiClient blackDuckApiClient = blackDuckServicesFactory.getBlackDuckService();
 
         BlackDuckJsonTransformer blackDuckJsonTransformer = new BlackDuckJsonTransformer(gson, objectMapper, intLogger);
         BlackDuckResponseTransformer blackDuckResponseTransformer = new BlackDuckResponseTransformer(blackDuckHttpClient, blackDuckJsonTransformer);
         BlackDuckResponsesTransformer blackDuckResponsesTransformer = new BlackDuckResponsesTransformer(blackDuckHttpClient, blackDuckJsonTransformer);
+        BlackDuckRequestFactory blackDuckRequestFactory = new BlackDuckRequestFactory();
 
         if (StringUtils.isNotBlank(blackDuckConfigurationOptions.getRegistrationKey())) {
-            applyRegistrationId(blackDuckConfigurationOptions.getRegistrationKey(), blackDuckService);
+            applyRegistrationId(blackDuckConfigurationOptions.getRegistrationKey(), blackDuckApiClient);
         }
 
         if (blackDuckConfigurationOptions.isAcceptEula()) {
-            acceptEndUserLicenseAgreement(blackDuckService);
+            acceptEndUserLicenseAgreement(blackDuckApiClient);
         }
 
         ConfigureResult configureResult = new ConfigureResult(true);
         if (blackDuckConfigurationOptions.isCreateApiToken()) {
             try {
-                ApiTokenService apiTokenService = new ApiTokenService(blackDuckHttpClient, gson, blackDuckJsonTransformer, blackDuckResponseTransformer, blackDuckResponsesTransformer);
+                ApiTokenService apiTokenService = new ApiTokenService(blackDuckHttpClient, gson, blackDuckJsonTransformer, blackDuckResponseTransformer, blackDuckResponsesTransformer, blackDuckRequestFactory);
                 Optional<ApiTokenView> apiTokenView = apiTokenService.getExistingApiToken(TOKEN_NAME);
                 if (apiTokenView.isPresent()) {
                     intLogger.warn(String.format("A token named %s already exists - no new token will be created.", TOKEN_NAME));
@@ -96,13 +103,13 @@ public class BlackDuckConfigureService {
         return configureResult;
     }
 
-    public void acceptEndUserLicenseAgreement(BlackDuckService blackDuckService) throws IntegrationException {
+    public void acceptEndUserLicenseAgreement(BlackDuckApiClient blackDuckApiClient) throws IntegrationException {
         intLogger.info("Attempting to accept the end user license agreement...");
         EndUserLicenseAgreementAction endUserLicenseAgreementAction = new EndUserLicenseAgreementAction();
         endUserLicenseAgreementAction.setAccept(true);
         endUserLicenseAgreementAction.setAcceptEndUserLicense(true);
 
-        blackDuckService.post(ApiDiscovery.ENDUSERLICENSEAGREEMENT_LINK, endUserLicenseAgreementAction);
+        blackDuckApiClient.post(ENDUSERLICENSEAGREEMENT_LINK, endUserLicenseAgreementAction);
         intLogger.info("Successfully accepted the end user license agreement.");
     }
 
@@ -119,14 +126,14 @@ public class BlackDuckConfigureService {
         }
     }
 
-    public void applyRegistrationId(final String registrationId, BlackDuckService blackDuckService) throws IntegrationException {
+    public void applyRegistrationId(final String registrationId, BlackDuckApiClient blackDuckApiClient) throws IntegrationException {
         intLogger.info("Attempting to update the registration id...");
         try {
-            final RegistrationView registrationView = blackDuckService.getResponse(ApiDiscovery.REGISTRATION_LINK_RESPONSE);
+            final RegistrationView registrationView = blackDuckApiClient.getResponse(ApiDiscovery.REGISTRATION_LINK_RESPONSE);
             if (!registrationView.getRegistrationId().equals(registrationId)) {
                 intLogger.info("Attempting to change the registration id from " + registrationView.getRegistrationId() + " to " + registrationId + "...");
                 registrationView.setRegistrationId(registrationId);
-                blackDuckService.put(registrationView);
+                blackDuckApiClient.put(registrationView);
             }
         } catch (IntegrationException e) {
             intLogger.info("No previous registration was found - attempting to create one...");
@@ -134,10 +141,10 @@ public class BlackDuckConfigureService {
             RegistrationRequest registrationRequest = new RegistrationRequest();
             registrationRequest.setRegistrationId(registrationId);
 
-            blackDuckService.post(ApiDiscovery.REGISTRATION_LINK, registrationRequest);
+            blackDuckApiClient.post(ApiDiscovery.REGISTRATION_LINK, registrationRequest);
         }
 
-        RegistrationView registrationView = blackDuckService.getResponse(ApiDiscovery.REGISTRATION_LINK_RESPONSE);
+        RegistrationView registrationView = blackDuckApiClient.getResponse(ApiDiscovery.REGISTRATION_LINK_RESPONSE);
         if (registrationView.getRegistrationId().equals(registrationId)) {
             intLogger.info("Successfully set the registration id to " + registrationId + ".");
         }

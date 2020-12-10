@@ -23,8 +23,9 @@
 package com.synopsys.integration.blackduck.installer.download;
 
 import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
+import com.synopsys.integration.rest.HttpUrl;
 
 public interface DownloadUrl {
-    String getDownloadUrl() throws BlackDuckInstallerException;
+    HttpUrl getDownloadUrl() throws BlackDuckInstallerException;
 
 }

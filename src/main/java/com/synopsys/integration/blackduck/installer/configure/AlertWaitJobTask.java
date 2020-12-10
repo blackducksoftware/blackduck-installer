@@ -28,7 +28,7 @@ import com.synopsys.integration.log.IntLogger;
 import com.synopsys.integration.rest.client.IntHttpClient;
 import com.synopsys.integration.rest.proxy.ProxyInfo;
 import com.synopsys.integration.rest.request.Request;
-import com.synopsys.integration.rest.request.Response;
+import com.synopsys.integration.rest.response.Response;
 import com.synopsys.integration.wait.WaitJobTask;
 
 import javax.net.ssl.SSLHandshakeException;
@@ -56,7 +56,7 @@ public class AlertWaitJobTask implements WaitJobTask {
 
     @Override
     public boolean isComplete() throws BlackDuckInstallerException {
-        intLogger.info(String.format("Attempting to connect to %s.", alertRequest.getUri()));
+        intLogger.info(String.format("Attempting to connect to %s.", alertRequest.getUrl()));
         IntHttpClient httpClient = new IntHttpClient(intLogger, timeoutInSeconds, alwaysTrust, proxyInfo);
         try (Response response = httpClient.execute(alertRequest)) {
             // at the moment, any valid http response is considered healthy

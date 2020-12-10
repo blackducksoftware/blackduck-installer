@@ -79,6 +79,7 @@ import com.synopsys.integration.executable.ExecutableRunner;
 import com.synopsys.integration.executable.ProcessBuilderRunner;
 import com.synopsys.integration.log.IntLogger;
 import com.synopsys.integration.log.Slf4jIntLogger;
+import com.synopsys.integration.rest.HttpUrl;
 import com.synopsys.integration.rest.client.IntHttpClient;
 import com.synopsys.integration.rest.credentials.Credentials;
 import com.synopsys.integration.rest.credentials.CredentialsBuilder;
@@ -153,7 +154,7 @@ public class Application implements ApplicationRunner {
                 logger.info("Executing a dry run of installer");
                 executableRunner = new DryRunExecutableRunner(intLogger::info);
             } else {
-                executableRunner = new ProcessBuilderRunner();
+                executableRunner = new ProcessBuilderRunner(intLogger, intLogger::info, intLogger::trace);
             }
             ExecutablesRunner executablesRunner = new ExecutablesRunner(executableRunner);
             DockerStackDeploy deployStack = new DockerStackDeploy(applicationValues.getStackName());
@@ -285,11 +286,10 @@ public class Application implements ApplicationRunner {
         return builder.build();
     }
 
-    private AlertWait createAlertWait(IntLogger intLogger, UpdateKeyStoreService alertUpdateKeyStoreService, AlertBlackDuckInstallOptions alertBlackDuckInstallOptions) {
-        String alertUrl = String.format("https://%s:%s/alert", applicationValues.getWebServerHost(), applicationValues.getAlertInstallPort());
-        Request.Builder requestBuilder = Request.newBuilder();
-        requestBuilder.uri(alertUrl);
-        requestBuilder.mimeType(ContentType.TEXT_HTML.getMimeType());
+    private AlertWait createAlertWait(IntLogger intLogger, UpdateKeyStoreService alertUpdateKeyStoreService, AlertBlackDuckInstallOptions alertBlackDuckInstallOptions) throws IntegrationException {
+        HttpUrl alertUrl = new HttpUrl(String.format("https://%s:%s/alert", applicationValues.getWebServerHost(), applicationValues.getAlertInstallPort()));
+        Request.Builder requestBuilder = new Request.Builder(alertUrl);
+        requestBuilder.acceptMimeType(ContentType.TEXT_HTML.getMimeType());
         Request alertRequest = requestBuilder.build();
         return new AlertWait(intLogger, applicationValues.getBlackDuckInstallTimeoutInSeconds(), applicationValues.getTimeoutInSeconds(), applicationValues.isAlwaysTrust(), ProxyInfo.NO_PROXY_INFO, alertRequest, alertUpdateKeyStoreService);
     }

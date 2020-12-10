@@ -25,22 +25,23 @@ package com.synopsys.integration.blackduck.installer.workflow;
 import com.synopsys.integration.blackduck.installer.download.DownloadSource;
 import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
 import com.synopsys.integration.function.ThrowingSupplier;
+import com.synopsys.integration.rest.HttpUrl;
 
 import java.util.Optional;
 import java.util.function.Supplier;
 
 public class DownloadUrlDecider {
     private final DownloadSource downloadSource;
-    private final ThrowingSupplier<String, BlackDuckInstallerException> githubDownloadUrl;
-    private final ThrowingSupplier<String, BlackDuckInstallerException> artifactoryDownloadUrl;
+    private final ThrowingSupplier<HttpUrl, BlackDuckInstallerException> githubDownloadUrl;
+    private final ThrowingSupplier<HttpUrl, BlackDuckInstallerException> artifactoryDownloadUrl;
 
-    public DownloadUrlDecider(DownloadSource downloadSource, ThrowingSupplier<String, BlackDuckInstallerException> githubDownloadUrl, ThrowingSupplier<String, BlackDuckInstallerException> artifactoryDownloadUrl) {
+    public DownloadUrlDecider(DownloadSource downloadSource, ThrowingSupplier<HttpUrl, BlackDuckInstallerException> githubDownloadUrl, ThrowingSupplier<HttpUrl, BlackDuckInstallerException> artifactoryDownloadUrl) {
         this.downloadSource = downloadSource;
         this.githubDownloadUrl = githubDownloadUrl;
         this.artifactoryDownloadUrl = artifactoryDownloadUrl;
     }
 
-    public Optional<String> determineDownloadUrl() throws BlackDuckInstallerException {
+    public Optional<HttpUrl> determineDownloadUrl() throws BlackDuckInstallerException {
         if (DownloadSource.GITHUB == downloadSource) {
             return Optional.of(githubDownloadUrl.get());
         } else if (DownloadSource.ARTIFACTORY == downloadSource) {

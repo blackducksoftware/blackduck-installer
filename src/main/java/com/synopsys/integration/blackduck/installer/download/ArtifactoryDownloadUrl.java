@@ -23,6 +23,9 @@
 package com.synopsys.integration.blackduck.installer.download;
 
 import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
+import com.synopsys.integration.exception.IntegrationException;
+import com.synopsys.integration.rest.HttpUrl;
+
 import org.apache.commons.lang3.StringUtils;
 
 public class ArtifactoryDownloadUrl implements DownloadUrl {
@@ -40,12 +43,16 @@ public class ArtifactoryDownloadUrl implements DownloadUrl {
         this.version = version;
     }
 
-    public String getDownloadUrl() throws BlackDuckInstallerException {
+    public HttpUrl getDownloadUrl() throws BlackDuckInstallerException {
         if (StringUtils.isAnyBlank(artifactoryUrl, artifactoryRepo, artifactPath, artifact, version)) {
             throw new BlackDuckInstallerException("To use Artifactory for downloading, the url, repo, path, artifact and version must all be set.");
         }
 
-        return String.format("%s/%s/%s/%s/%s/%s-%s.zip", artifactoryUrl, artifactoryRepo, artifactPath, artifact, version, artifact, version);
+        try {
+            return new HttpUrl(String.format("%s/%s/%s/%s/%s/%s-%s.zip", artifactoryUrl, artifactoryRepo, artifactPath, artifact, version, artifact, version));
+        } catch (IntegrationException e) {
+            throw new BlackDuckInstallerException("bad artifactory download url");
+        }
     }
 
 }

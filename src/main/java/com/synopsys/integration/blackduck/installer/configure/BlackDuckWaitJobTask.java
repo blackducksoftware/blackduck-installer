@@ -22,20 +22,21 @@
  */
 package com.synopsys.integration.blackduck.installer.configure;
 
+import java.io.File;
+
+import javax.net.ssl.SSLHandshakeException;
+
+import org.apache.commons.lang3.StringUtils;
+
 import com.synopsys.integration.blackduck.api.generated.discovery.ApiDiscovery;
 import com.synopsys.integration.blackduck.api.generated.response.CurrentVersionView;
 import com.synopsys.integration.blackduck.configuration.BlackDuckServerConfig;
 import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
-import com.synopsys.integration.blackduck.installer.exception.IntegrationKeyStoreException;
-import com.synopsys.integration.blackduck.service.BlackDuckService;
+import com.synopsys.integration.blackduck.service.BlackDuckApiClient;
 import com.synopsys.integration.blackduck.service.BlackDuckServicesFactory;
 import com.synopsys.integration.exception.IntegrationException;
 import com.synopsys.integration.log.IntLogger;
 import com.synopsys.integration.wait.WaitJobTask;
-import org.apache.commons.lang3.StringUtils;
-
-import javax.net.ssl.SSLHandshakeException;
-import java.io.File;
 
 public class BlackDuckWaitJobTask implements WaitJobTask {
     private final IntLogger intLogger;
@@ -53,9 +54,9 @@ public class BlackDuckWaitJobTask implements WaitJobTask {
     @Override
     public boolean isComplete() throws BlackDuckInstallerException {
         BlackDuckServicesFactory blackDuckServicesFactory = blackDuckServerConfig.createBlackDuckServicesFactory(intLogger);
-        BlackDuckService blackDuckService = blackDuckServicesFactory.createBlackDuckService();
+        BlackDuckApiClient blackDuckApiClient = blackDuckServicesFactory.getBlackDuckService();
         try {
-            CurrentVersionView currentVersionView = blackDuckService.getResponse(ApiDiscovery.CURRENT_VERSION_LINK_RESPONSE);
+            CurrentVersionView currentVersionView = blackDuckApiClient.getResponse(ApiDiscovery.CURRENT_VERSION_LINK_RESPONSE);
             if (null != currentVersionView) {
                 String currentVersion = currentVersionView.getVersion();
                 if (StringUtils.isNotBlank(currentVersion)) {

@@ -23,6 +23,9 @@
 package com.synopsys.integration.blackduck.installer.download;
 
 import com.synopsys.integration.blackduck.installer.exception.BlackDuckInstallerException;
+import com.synopsys.integration.exception.IntegrationException;
+import com.synopsys.integration.rest.HttpUrl;
+
 import org.apache.commons.lang3.StringUtils;
 
 public class AlertGithubDownloadUrl implements DownloadUrl {
@@ -34,12 +37,16 @@ public class AlertGithubDownloadUrl implements DownloadUrl {
         this.version = version;
     }
 
-    public String getDownloadUrl() throws BlackDuckInstallerException {
+    public HttpUrl getDownloadUrl() throws BlackDuckInstallerException {
         if (StringUtils.isAnyBlank(githubReleasesUrlPrefix, version)) {
             throw new BlackDuckInstallerException("To use GitHub for downloading Alert, the url prefix and version must be set.");
         }
 
-        return String.format("%s/%s/blackduck-alert-%s-deployment.zip", githubReleasesUrlPrefix, version, version);
+        try {
+            return new HttpUrl(String.format("%s/%s/blackduck-alert-%s-deployment.zip", githubReleasesUrlPrefix, version, version));
+        } catch (IntegrationException e) {
+            throw new BlackDuckInstallerException("bad alert github download url");
+        }
     }
 
 }
