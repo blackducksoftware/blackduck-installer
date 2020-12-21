@@ -36,6 +36,7 @@ import com.synopsys.integration.blackduck.api.generated.view.RegistrationView;
 import com.synopsys.integration.blackduck.api.manual.temporary.component.EndUserLicenseAgreementAction;
 import com.synopsys.integration.blackduck.api.manual.temporary.component.RegistrationRequest;
 import com.synopsys.integration.blackduck.configuration.BlackDuckServerConfig;
+import com.synopsys.integration.blackduck.http.BlackDuckRequestBuilder;
 import com.synopsys.integration.blackduck.http.BlackDuckRequestFactory;
 import com.synopsys.integration.blackduck.http.client.BlackDuckHttpClient;
 import com.synopsys.integration.blackduck.http.transform.BlackDuckJsonTransformer;
@@ -47,9 +48,12 @@ import com.synopsys.integration.blackduck.service.BlackDuckApiClient;
 import com.synopsys.integration.blackduck.service.BlackDuckServicesFactory;
 import com.synopsys.integration.exception.IntegrationException;
 import com.synopsys.integration.log.IntLogger;
+import com.synopsys.integration.rest.HttpMethod;
+import com.synopsys.integration.rest.body.StringBodyContent;
+import com.synopsys.integration.rest.request.Request;
 
 public class BlackDuckConfigureService {
-    public static final BlackDuckPath ENDUSERLICENSEAGREEMENT_LINK = new BlackDuckPath("/api/enduserlicenseagreement");
+    public static final BlackDuckPath ENDUSERLICENSEAGREEMENT_PATH = new BlackDuckPath("/api/enduserlicenseagreement");
     public static final String TOKEN_NAME = "installer_token";
 
     private final IntLogger intLogger;
@@ -108,8 +112,13 @@ public class BlackDuckConfigureService {
         EndUserLicenseAgreementAction endUserLicenseAgreementAction = new EndUserLicenseAgreementAction();
         endUserLicenseAgreementAction.setAccept(true);
         endUserLicenseAgreementAction.setAcceptEndUserLicense(true);
+        String json = blackDuckApiClient.convertToJson(endUserLicenseAgreementAction);
 
-        blackDuckApiClient.post(ENDUSERLICENSEAGREEMENT_LINK, endUserLicenseAgreementAction);
+        BlackDuckRequestBuilder blackDuckRequestBuilder = new BlackDuckRequestBuilder(new Request.Builder());
+        blackDuckRequestBuilder.bodyContent(new StringBodyContent(json));
+        blackDuckRequestBuilder.method(HttpMethod.POST);
+
+        blackDuckApiClient.execute(ENDUSERLICENSEAGREEMENT_PATH, blackDuckRequestBuilder);
         intLogger.info("Successfully accepted the end user license agreement.");
     }
 
@@ -126,10 +135,10 @@ public class BlackDuckConfigureService {
         }
     }
 
-    public void applyRegistrationId(final String registrationId, BlackDuckApiClient blackDuckApiClient) throws IntegrationException {
+    public void applyRegistrationId(String registrationId, BlackDuckApiClient blackDuckApiClient) throws IntegrationException {
         intLogger.info("Attempting to update the registration id...");
         try {
-            final RegistrationView registrationView = blackDuckApiClient.getResponse(ApiDiscovery.REGISTRATION_LINK_RESPONSE);
+            RegistrationView registrationView = blackDuckApiClient.getResponse(ApiDiscovery.REGISTRATION_LINK_RESPONSE);
             if (!registrationView.getRegistrationId().equals(registrationId)) {
                 intLogger.info("Attempting to change the registration id from " + registrationView.getRegistrationId() + " to " + registrationId + "...");
                 registrationView.setRegistrationId(registrationId);
