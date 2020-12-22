@@ -95,13 +95,13 @@ public class Application implements ApplicationRunner {
     @Autowired
     private ApplicationValues applicationValues;
 
-    public static void main(final String[] args) {
+    public static void main(String[] args) {
         SpringApplicationBuilder builder = new SpringApplicationBuilder(Application.class);
         builder.run(args);
     }
 
     @Override
-    public void run(final ApplicationArguments applicationArguments) {
+    public void run(ApplicationArguments applicationArguments) {
         try {
             File baseDirectory = new File(applicationValues.getBaseDirectory());
             baseDirectory.mkdirs();
@@ -240,24 +240,28 @@ public class Application implements ApplicationRunner {
             return new BlackDuckDeployResult(blackDuckInstallResult);
         }
 
-        if (blackDuckInstallResult.getReturnCode() == 0) {
-            blackDuckWait.waitForBlackDuck(blackDuckInstallResult.getInstallDirectory());
-            logger.info("The Black Duck install was successful!");
-            if (blackDuckConfigurationOptions.shouldConfigure()) {
-                logger.info("Black Duck will now be configured.");
-                ConfigureResult configureResult = blackDuckConfigureService.configureBlackDuck();
-                if (configureResult.isSuccess() && configureResult.getApiToken().isPresent()) {
-                    return new BlackDuckDeployResult(configureResult.getApiToken().get(), blackDuckInstallResult);
-                }
-            }
-
-            return new BlackDuckDeployResult(blackDuckInstallResult);
-        } else {
+        if (blackDuckInstallResult.getReturnCode() != 0) {
             throw new BlackDuckInstallerException("At least one Black Duck install command was not successful, the install can not continue - please check the output for any errors.");
         }
+
+        boolean isBlackDuckRunning = blackDuckWait.waitForBlackDuck(blackDuckInstallResult.getInstallDirectory());
+        if (!isBlackDuckRunning) {
+            throw new BlackDuckInstallerException("Black Duck did not respond within the configured timeout period, the install can not continue - please check the output for any errors.");
+        }
+
+        logger.info("The Black Duck install was successful!");
+        if (blackDuckConfigurationOptions.shouldConfigure()) {
+            logger.info("Black Duck will now be configured.");
+            ConfigureResult configureResult = blackDuckConfigureService.configureBlackDuck();
+            if (configureResult.isSuccess() && configureResult.getApiToken().isPresent()) {
+                return new BlackDuckDeployResult(configureResult.getApiToken().get(), blackDuckInstallResult);
+            }
+        }
+
+        return new BlackDuckDeployResult(blackDuckInstallResult);
     }
 
-    private void deployAlert(AlertInstaller alertInstaller, AlertWait alertWait) throws IntegrationException, BlackDuckInstallerException, InterruptedException {
+    private void deployAlert(AlertInstaller alertInstaller, AlertWait alertWait) throws IntegrationException, InterruptedException {
         InstallResult alertInstallResult = alertInstaller.performInstall();
 
         if (applicationValues.isInstallDryRun()) {
@@ -265,12 +269,16 @@ public class Application implements ApplicationRunner {
             return;
         }
 
-        if (alertInstallResult.getReturnCode() == 0) {
-            alertWait.waitForAlert(alertInstallResult.getInstallDirectory());
-            logger.info("The Alert install was successful!");
-        } else {
+        if (alertInstallResult.getReturnCode() != 0) {
             throw new BlackDuckInstallerException("At least one Alert install command was not successful, the install can not continue - please check the output for any errors.");
         }
+
+        boolean isAlertRunning = alertWait.waitForAlert(alertInstallResult.getInstallDirectory());
+        if (!isAlertRunning) {
+            throw new BlackDuckInstallerException("Alert did not respond within the configured timeout period, the install can not continue - please check the output for any errors.");
+        }
+
+        logger.info("The Alert install was successful!");
     }
 
     private BlackDuckServerConfig createBlackDuckServerConfig(IntLogger intLogger) {
