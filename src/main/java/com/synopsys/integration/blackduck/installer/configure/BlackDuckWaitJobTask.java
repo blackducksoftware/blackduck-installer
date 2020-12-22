@@ -53,6 +53,7 @@ public class BlackDuckWaitJobTask implements WaitJobTask {
 
     @Override
     public boolean isComplete() throws BlackDuckInstallerException {
+        intLogger.info(String.format("Attempting to connect to %s.", blackDuckServerConfig.getBlackDuckUrl()));
         BlackDuckServicesFactory blackDuckServicesFactory = blackDuckServerConfig.createBlackDuckServicesFactory(intLogger);
         BlackDuckApiClient blackDuckApiClient = blackDuckServicesFactory.getBlackDuckApiClient();
         try {
