@@ -1,9 +1,6 @@
 buildscript {
     apply from: 'https://raw.githubusercontent.com/blackducksoftware/integration-resources/master/gradle_common/buildscript-repositories.gradle', to: buildscript
-    ////////// START BUILDSCRIPT DEPENDENCY //////////
-dependencies { classpath "com.synopsys.integration:common-gradle-plugin:1.7.0" }
-
-////////// END BUILDSCRIPT DEPENDENCY //////////
+    apply from: 'https://raw.githubusercontent.com/blackducksoftware/integration-resources/master/gradle_common/buildscript-dependencies.gradle', to: buildscript
 }
 
 plugins {
@@ -11,7 +8,7 @@ plugins {
     id 'io.spring.dependency-management' version '1.0.8.RELEASE'
 }
 
-version = '0.0.5'
+version = '0.0.6-SNAPSHOT'
 project.ext.javaSourceCompatibility = JavaVersion.VERSION_11
 project.ext.javaTargetCompatibility = JavaVersion.VERSION_11
 
